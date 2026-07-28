@@ -123,4 +123,34 @@ class FeedCustomRepositoryTest {
           .containsExactly(targetAuthor);
     }
   }
+
+  @Nested
+  @DisplayName("findFeeds - keyword 필터")
+  class FindFeedsByKeyword {
+
+    @Test
+    @DisplayName("keywordLike가 주어지면 content에 해당 키워드를 포함한 피드만 조회한다")
+    void returnsOnlyMatchingFeeds_whenKeywordLikeGiven() {
+      // given
+      feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "맑은 날 OOTD"));
+      feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "비 오는 날 OOTD"));
+      feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "흐린 날 패션"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      FeedListParams params = new FeedListParams(
+          null, null, 10,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          "OOTD", null
+      );
+
+      // when
+      List<Feed> result = feedRepository.findFeeds(params);
+
+      // then
+      assertThat(result)
+          .extracting(Feed::getContent)
+          .containsExactlyInAnyOrder("맑은 날 OOTD", "비 오는 날 OOTD");
+    }
+  }
 }
