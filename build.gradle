@@ -39,6 +39,10 @@ dependencies {
 	implementation "io.github.openfeign.querydsl:querydsl-jpa:7.5"
 	implementation 'org.springframework.boot:spring-boot-flyway'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
 	annotationProcessor 'org.projectlombok:lombok'
 	annotationProcessor "io.github.openfeign.querydsl:querydsl-apt:7.5:jpa"
@@ -60,6 +64,7 @@ dependencies {
 	testImplementation 'org.testcontainers:testcontainers-postgresql'
 	testImplementation 'com.navercorp.fixturemonkey:fixture-monkey-starter:1.2.0'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'
 
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -71,9 +76,22 @@ dependencyManagement {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'external'
+	}
 	finalizedBy jacocoTestReport
     systemProperty "spring.profiles.active", "test"
+}
+
+tasks.register('externalTest', Test) {
+	group = 'verification'
+	description = '실제 외부 API(기상청/Kakao) 호출 검증 테스트 - 기본 test 태스크에서 제외됨'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'external'
+	}
+	systemProperty "spring.profiles.active", "test"
 }
 
 def jacocoExcludes = [

@@ -21,8 +21,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
-    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     @Transactional
     public UserDto signUp(UserCreateRequest request) {
@@ -42,6 +42,6 @@ public class UserService {
         Profile newDefaultProfile = Profile.createDefault(savedUser);
         profileRepository.save(newDefaultProfile);
 
-        return userMapper.userDtoFromUser(savedUser);
+        return userMapper.userDtoFrom(savedUser);
     }
 }

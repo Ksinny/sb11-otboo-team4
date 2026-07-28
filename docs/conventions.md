@@ -565,6 +565,8 @@ public class ClothesNotFoundException extends ClothesException {
 }
 ```
 
+> **`OtbooException` 상속은 컨트롤러까지 전파돼 HTTP 응답으로 나가는 예외에만 필요합니다.** 배치 Step 내부 실패, 외부 클라이언트 파싱 실패 등 컨트롤러까지 올라가지 않고 내부 로깅(`log.error` 등)에서만 소비되고 끝나는 예외는 `OtbooException`/도메인 예외 계층을 상속하지 않아도 무방합니다 — 이 계층은 `GlobalExceptionHandler`가 `status`/`details`를 읽어 `ErrorResponse`로 변환하기 위한 것이라, 애초에 그 경로를 안 타는 예외까지 굳이 맞출 필요는 없습니다. 일반 `RuntimeException`(또는 그 하위)으로 두면 됩니다.
+
 ---
 
 ## 6. 커서 페이지네이션
@@ -674,11 +676,13 @@ public interface KmaWeatherClient {
 
 클래스명은 `{대상클래스}Test`, 메서드명과 `@DisplayName`은 한글로 작성합니다. `@Nested` + `given / when / then` 구조를 유지합니다. **`@Nested` 블록의 클래스명은 영어로 작성**합니다(한글 식별자는 테스트 오류 가능성을 높임) — `@DisplayName`과 테스트 메서드명은 계속 한글 유지.
 
-**테스트 픽스처는 FixtureMonkey로 생성**(멘토 피드백 #2, ADR로 EasyRandom 대신 확정 — 수동 빌더/생성자 나열 지양):
+**테스트 픽스처는 FixtureMonkey로 생성**(멘토 피드백 #2, ADR로 EasyRandom 대신 확정 — 수동 빌더/생성자 나열 지양). 단, `then`에서 비교할 **기대 응답 DTO는 FixtureMonkey를 쓰지 않고 명시적으로 생성**합니다 — FixtureMonkey는 `when`에 넘길 입력/요청 픽스처에만 사용합니다(`docs/guide/fixture-monkey.md` §8 참고):
 
 ```java
 // FixtureMonkey 예시 (jakarta-validation 플러그인으로 제약 인지 생성)
+// DTO가 record라 setter가 없으므로 objectIntrospector 지정은 필수
 FixtureMonkey fixtureMonkey = FixtureMonkey.builder()
+    .objectIntrospector(ConstructorPropertiesArbitraryIntrospector.INSTANCE)
     .plugin(new JakartaValidationPlugin())
     .build();
 ClothesCreateRequest request = fixtureMonkey.giveMeBuilder(ClothesCreateRequest.class)
@@ -719,7 +723,29 @@ class ClothesRepositoryTest {
 }
 ```
 
-외부 API(기상청/Kakao/LLM) 연동 로직은 목업뿐 아니라 **실제 API 호출 기반 검증 테스트**를 별도로 포함합니다(응답 스펙 변경을 CI에서 조기 감지).
+외부 API(기상청/Kakao/LLM) 연동 로직은 목업뿐 아니라 **실제 API 호출 기반 검증 테스트**를 별도로 포함합니다(응답 스펙 변경을 CI에서 조기 감지). 이 테스트는 네트워크/API 키/외부 서비스 가용성에 의존해 불안정할 수 있으므로, 실제 외부 API를 처음 연동하는 시점에 `build.gradle`에 아래 설정을 추가해 기본 `test` 태스크에서 격리합니다.
+
+```groovy
+tasks.named('test') {
+    useJUnitPlatform {
+        excludeTags 'external'
+    }
+}
+
+tasks.register('externalTest', Test) {
+    group = 'verification'
+    description = '실제 외부 API 호출 검증 테스트 - 기본 test 태스크에서 제외됨'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'external'
+    }
+}
+```
+
+실제 네트워크 호출이 있는 테스트 클래스에는 `@Tag("external")`을 붙여 기본 `test`에서 빠지고 `externalTest`로만 실행되게 합니다(현재 `dev`에는 아직 `external/` 연동이 없어 이 설정도 없습니다 — 첫 Feign Client 추가 PR에서 함께 반영).
+
+**`externalTest`는 CI 워크플로에 연결하지 않습니다** — 매 PR마다 외부 API를 실제로 호출하면 네트워크/키 문제로 CI가 그 API 상태에 좌우되기 때문입니다. CI(추후 구성될 `ci-pr.yml` 포함)는 기본 `test` 태스크만 돌리고, `externalTest`는 응답 스펙 변경이 의심될 때 로컬에서 `./gradlew externalTest`로 개발자가 직접 실행합니다.
 
 ---
 
