@@ -19,12 +19,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.time.Instant;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,8 +41,8 @@ class UserServiceTest {
     @InjectMocks UserService userService;
     @Mock UserRepository mockUserRepository;
     @Mock ProfileRepository mockProfileRepository;
-    @Mock UserMapper mockAuthUserMapper;
     @Mock PasswordEncoder mockPasswordEncoder;
+    @Spy UserMapper userMapper = new UserMapper();
 
     @Nested
     @DisplayName("회원가입 성공")
@@ -65,26 +63,20 @@ class UserServiceTest {
             Profile savedProfile = Profile.createDefault(savedUser);
             given(mockProfileRepository.save(any(Profile.class))).willReturn(savedProfile);
 
-            UserDto expectedDto = new UserDto(
-                    savedUser.getId(),
-                    Instant.now(),
-                    savedUser.getEmail(),
-                    savedUser.getName(),
-                    savedUser.getRole(),
-                    savedUser.isLocked()
-            );
-            given(mockAuthUserMapper.userDtoFromUser(savedUser)).willReturn(expectedDto);
-
             // when
             UserDto result = userService.signUp(request);
 
             // then
-            assertThat(result).isEqualTo(expectedDto);
+            assertThat(result.id()).isEqualTo(savedUser.getId());
+            assertThat(result.createdAt()).isEqualTo(savedUser.getCreatedAt());
+            assertThat(result.email()).isEqualTo(savedUser.getEmail());
+            assertThat(result.name()).isEqualTo(savedUser.getName());
+            assertThat(result.role()).isEqualTo(savedUser.getRole());
+            assertThat(result.locked()).isEqualTo(savedUser.isLocked());
             verify(mockUserRepository).existsByEmail(request.email());
             verify(mockPasswordEncoder).encode(request.password());
             verify(mockUserRepository).saveAndFlush(any(User.class));
             verify(mockProfileRepository).save(any(Profile.class));
-            verify(mockAuthUserMapper).userDtoFromUser(savedUser);
         }
 
         @Test
@@ -99,8 +91,6 @@ class UserServiceTest {
                     .willAnswer(invocation -> invocation.getArgument(0));
             given(mockProfileRepository.save(any(Profile.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
-            given(mockAuthUserMapper.userDtoFromUser(any(User.class)))
-                    .willReturn(new UserDto(UUID.randomUUID(), Instant.now(), request.email(), request.name(), Role.USER, false));
 
             // when
             userService.signUp(request);
@@ -126,8 +116,6 @@ class UserServiceTest {
                     .willAnswer(invocation -> invocation.getArgument(0));
             given(mockProfileRepository.save(any(Profile.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
-            given(mockAuthUserMapper.userDtoFromUser(any(User.class)))
-                    .willReturn(new UserDto(UUID.randomUUID(), Instant.now(), request.email(), request.name(), Role.USER, false));
 
             // when
             userService.signUp(request);
@@ -154,8 +142,6 @@ class UserServiceTest {
             given(mockUserRepository.saveAndFlush(any(User.class))).willReturn(savedUser);
             given(mockProfileRepository.save(any(Profile.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
-            given(mockAuthUserMapper.userDtoFromUser(savedUser))
-                    .willReturn(new UserDto(savedUser.getId(), Instant.now(), savedUser.getEmail(), savedUser.getName(), savedUser.getRole(), savedUser.isLocked()));
 
             // when
             userService.signUp(request);
@@ -180,8 +166,6 @@ class UserServiceTest {
                     .willAnswer(invocation -> invocation.getArgument(0));
             given(mockProfileRepository.save(any(Profile.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
-            given(mockAuthUserMapper.userDtoFromUser(any(User.class)))
-                    .willReturn(new UserDto(UUID.randomUUID(), Instant.now(), request.email(), request.name(), Role.USER, false));
 
             // when
             userService.signUp(request);
@@ -228,7 +212,6 @@ class UserServiceTest {
                     .isInstanceOf(RuntimeException.class);
 
             verify(mockProfileRepository, never()).save(any());
-            verify(mockAuthUserMapper, never()).userDtoFromUser(any());
         }
     }
 }
