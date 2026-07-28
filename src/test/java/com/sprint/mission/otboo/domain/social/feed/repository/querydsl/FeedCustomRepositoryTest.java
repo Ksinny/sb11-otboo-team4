@@ -195,4 +195,34 @@ class FeedCustomRepositoryTest {
           .executeUpdate();
     }
   }
+
+  @Nested
+  @DisplayName("findFeeds - createdAt 오름차순 정렬")
+  class FindFeedsSortByCreatedAtAsc {
+
+    @Test
+    @DisplayName("sortDirection이 ASCENDING이면 오래된 순으로 조회한다")
+    void returnsSortedByCreatedAtAsc_whenDirectionAscending() {
+      // given
+      feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "첫번째"));
+      feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "두번째"));
+      feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "세번째"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      FeedListParams params = new FeedListParams(
+          null, null, 10,
+          FeedSortBy.CREATED_AT, SortDirection.ASCENDING,
+          null, null
+      );
+
+      // when
+      List<Feed> result = feedRepository.findFeeds(params);
+
+      // then
+      assertThat(result)
+          .extracting(Feed::getContent)
+          .containsExactly("첫번째", "두번째", "세번째");
+    }
+  }
 }
