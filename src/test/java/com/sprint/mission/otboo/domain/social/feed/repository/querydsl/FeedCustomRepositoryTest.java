@@ -199,5 +199,61 @@ class FeedCustomRepositoryTest {
           .extracting(Feed::getContent)
           .containsExactly("첫번째", "두번째", "세번째");
     }
+
+    @Test
+    @DisplayName("likeCount 정렬에서 커서 이후의 피드만 조회한다")
+    void returnsFeedsAfterCursor_whenSortByLikeCountWithCursor() {
+      // given
+      Feed a = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "A"));
+      Feed b = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "B"));
+      Feed c = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "C"));
+      testEntityManager.flush();
+
+      setLikeCount(a.getId(), 100L);
+      setLikeCount(b.getId(), 50L);
+      setLikeCount(c.getId(), 10L);
+      testEntityManager.clear();
+
+      // likeCount DESC 순서: A(100) → B(50) → C(10)
+      FeedListParams params = new FeedListParams(
+          "50", b.getId(), 10,
+          FeedSortBy.LIKE_COUNT, SortDirection.DESCENDING,
+          null, null
+      );
+
+      // when
+      List<Feed> result = feedRepository.findFeeds(params);
+
+      // then
+      assertThat(result)
+          .extracting(Feed::getContent)
+          .containsExactly("C");
+    }
+
+    @Test
+    @DisplayName("createdAt 오름차순에서 커서 이후의 피드만 조회한다")
+    void returnsFeedsAfterCursor_whenCreatedAtAscWithCursor() {
+      // given
+      Feed first = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "첫번째"));
+      Feed second = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "두번째"));
+      Feed third = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "세번째"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // ASC 순서: 첫번째 → 두번째 → 세번째
+      FeedListParams params = new FeedListParams(
+          first.getCreatedAt().toString(), first.getId(), 10,
+          FeedSortBy.CREATED_AT, SortDirection.ASCENDING,
+          null, null
+      );
+
+      // when
+      List<Feed> result = feedRepository.findFeeds(params);
+
+      // then
+      assertThat(result)
+          .extracting(Feed::getContent)
+          .containsExactly("두번째", "세번째");
+    }
   }
 }
