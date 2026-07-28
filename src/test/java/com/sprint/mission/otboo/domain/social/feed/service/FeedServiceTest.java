@@ -11,10 +11,16 @@ import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitra
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
+import com.sprint.mission.otboo.global.dto.SortDirection;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -25,6 +31,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FeedService")
@@ -57,7 +64,7 @@ class FeedServiceTest {
           .set("authorId", UUID.randomUUID())
           .sample();
 
-      /// when & then
+      // when & then
       assertThatThrownBy(() -> feedService.create(request, currentUserId))
           .isInstanceOf(FeedForbiddenException.class)
           .satisfies(ex -> {
@@ -96,6 +103,69 @@ class FeedServiceTest {
       assertThat(saved.getLikeCount()).isZero();
       assertThat(saved.getCommentCount()).isZero();
       assertThat(result).isEqualTo(expected);
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 목록 조회")
+  class GetFeeds {
+
+    @Test
+    @DisplayName("limit + 1개가 조회되면 hasNext는 true이고 data는 limit개로 자른다")
+    void returnsHasNextTrueAndTrimsData_whenMoreThanLimit() {
+      // given
+      FeedListParams params = new FeedListParams(
+          null, null, 2,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null
+      );
+
+      Feed feed1 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드1");
+      Feed feed2 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드2");
+      Feed feed3 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드3");
+      ReflectionTestUtils.setField(feed2, "createdAt", Instant.now());
+      when(feedRepository.findFeeds(params)).thenReturn(List.of(feed1, feed2, feed3));
+
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, "피드1", 0L, 0, false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, "피드2", 0L, 0, false);
+      when(feedMapper.toDto(feed1, false)).thenReturn(dto1);
+      when(feedMapper.toDto(feed2, false)).thenReturn(dto2);
+
+      // when
+      CursorPageResponse<FeedDto> result = feedService.getFeeds(params);
+
+      // then
+      assertThat(result.hasNext()).isTrue();
+      assertThat(result.data()).containsExactly(dto1, dto2);
+    }
+
+    @Test
+    @DisplayName("조회 결과가 limit 이하면 hasNext는 false이고 nextCursor는 null이다")
+    void returnsHasNextFalseAndNullCursor_whenWithinLimit() {
+      // given
+      FeedListParams params = new FeedListParams(
+          null, null, 5,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null
+      );
+
+      Feed feed1 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드1");
+      Feed feed2 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드2");
+      when(feedRepository.findFeeds(params)).thenReturn(List.of(feed1, feed2));
+
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, "피드1", 0L, 0, false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, "피드2", 0L, 0, false);
+      when(feedMapper.toDto(feed1, false)).thenReturn(dto1);
+      when(feedMapper.toDto(feed2, false)).thenReturn(dto2);
+
+      // when
+      CursorPageResponse<FeedDto> result = feedService.getFeeds(params);
+
+      // then
+      assertThat(result.hasNext()).isFalse();
+      assertThat(result.nextCursor()).isNull();
+      assertThat(result.nextIdAfter()).isNull();
+      assertThat(result.data()).containsExactly(dto1, dto2);
     }
   }
 }

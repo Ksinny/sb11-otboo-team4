@@ -5,8 +5,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum FeedSortBy {
   @JsonProperty("createdAt")
-  CREATED_AT,
+  CREATED_AT("createdAt"),
 
   @JsonProperty("likeCount")
-  LIKE_COUNT
+  LIKE_COUNT("likeCount");
+
+  private final String param;
+
+  FeedSortBy(String param) {
+    this.param = param;
+  }
+
+  public String param() {
+    return param;
+  }
 }
