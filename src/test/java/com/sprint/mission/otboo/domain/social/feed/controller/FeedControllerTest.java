@@ -3,6 +3,7 @@ package com.sprint.mission.otboo.domain.social.feed.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,7 +13,10 @@ import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitra
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.service.FeedService;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
+import com.sprint.mission.otboo.global.dto.SortDirection;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -83,6 +87,29 @@ class FeedControllerTest {
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 목록 조회 - GET /api/feeds")
+  class GetFeedList {
+
+    @Test
+    @DisplayName("정상 요청이면 200과 CursorPageResponse를 반환한다")
+    void returns200AndCursorPage_whenRequestIsValid() throws Exception {
+      // given
+      CursorPageResponse<FeedDto> response = new CursorPageResponse<>(
+          List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
+      when(feedService.getFeeds(any(FeedListParams.class))).thenReturn(response);
+
+      // when & then
+      mockMvc.perform(get("/api/feeds")
+              .param("limit", "10")
+              .param("sortBy", "createdAt")
+              .param("sortDirection", "ASCENDING"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.hasNext").value(false))
+          .andExpect(jsonPath("$.sortBy").value("createdAt"));
     }
   }
 }
