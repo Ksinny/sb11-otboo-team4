@@ -38,7 +38,7 @@ public class FeedController implements FeedApi {
   @GetMapping
   @Override
   public ResponseEntity<CursorPageResponse<FeedDto>> getFeedList(
-      @ModelAttribute FeedListParams params) {
+      @Valid @ModelAttribute FeedListParams params) {
     log.debug("피드 목록 조회 요청: limit={}, sortBy={}", params.limit(), params.sortBy());
     CursorPageResponse<FeedDto> result = feedService.getFeeds(params);
     return ResponseEntity.ok(result);
