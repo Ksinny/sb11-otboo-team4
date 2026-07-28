@@ -153,4 +153,46 @@ class FeedCustomRepositoryTest {
           .containsExactlyInAnyOrder("맑은 날 OOTD", "비 오는 날 OOTD");
     }
   }
+
+  @Nested
+  @DisplayName("findFeeds - likeCount 정렬")
+  class FindFeedsSortByLikeCount {
+
+    @Test
+    @DisplayName("sortBy가 likeCount면 좋아요 수 내림차순으로 조회한다")
+    void returnsSortedByLikeCountDesc_whenSortByLikeCount() {
+      // given
+      Feed low = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "좋아요 적음"));
+      Feed high = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "좋아요 많음"));
+      Feed mid = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "좋아요 중간"));
+      testEntityManager.flush();
+
+      setLikeCount(low.getId(), 1L);
+      setLikeCount(high.getId(), 100L);
+      setLikeCount(mid.getId(), 50L);
+      testEntityManager.clear();
+
+      FeedListParams params = new FeedListParams(
+          null, null, 10,
+          FeedSortBy.LIKE_COUNT, SortDirection.DESCENDING,
+          null, null
+      );
+
+      // when
+      List<Feed> result = feedRepository.findFeeds(params);
+
+      // then
+      assertThat(result)
+          .extracting(Feed::getContent)
+          .containsExactly("좋아요 많음", "좋아요 중간", "좋아요 적음");
+    }
+
+    private void setLikeCount(UUID feedId, long count) {
+      testEntityManager.getEntityManager()
+          .createNativeQuery("update feeds set like_count = :count where id = :id")
+          .setParameter("count", count)
+          .setParameter("id", feedId)
+          .executeUpdate();
+    }
+  }
 }
