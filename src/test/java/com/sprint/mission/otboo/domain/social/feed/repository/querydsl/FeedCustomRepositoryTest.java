@@ -34,9 +34,17 @@ class FeedCustomRepositoryTest {
   @Autowired
   private TestEntityManager testEntityManager;
 
+  private void setLikeCount(UUID feedId, long count) {
+    testEntityManager.getEntityManager()
+        .createNativeQuery("update feeds set like_count = :count where id = :id")
+        .setParameter("count", count)
+        .setParameter("id", feedId)
+        .executeUpdate();
+  }
+
   @Nested
-  @DisplayName("findFeeds - 첫 페이지 조회")
-  class FindFeedsFirstPage {
+  @DisplayName("findFeeds")
+  class FindFeeds {
 
     @Test
     @DisplayName("커서가 없으면 limit + 1개까지 조회한다")
@@ -60,11 +68,6 @@ class FeedCustomRepositoryTest {
       // then
       assertThat(result).hasSize(3); // limit(2) + 1
     }
-  }
-
-  @Nested
-  @DisplayName("findFeeds - 다음 페이지 조회")
-  class FindFeedsNextPage {
 
     @Test
     @DisplayName("커서 이후의 피드만 조회한다")
@@ -91,11 +94,6 @@ class FeedCustomRepositoryTest {
           .extracting(Feed::getContent)
           .containsExactly("두번째", "첫번째");
     }
-  }
-
-  @Nested
-  @DisplayName("findFeeds - authorId 필터")
-  class FindFeedsByAuthor {
 
     @Test
     @DisplayName("authorIdEqual이 주어지면 해당 작성자의 피드만 조회한다")
@@ -122,11 +120,6 @@ class FeedCustomRepositoryTest {
           .extracting(Feed::getAuthorId)
           .containsExactly(targetAuthor);
     }
-  }
-
-  @Nested
-  @DisplayName("findFeeds - keyword 필터")
-  class FindFeedsByKeyword {
 
     @Test
     @DisplayName("keywordLike가 주어지면 content에 해당 키워드를 포함한 피드만 조회한다")
@@ -152,11 +145,6 @@ class FeedCustomRepositoryTest {
           .extracting(Feed::getContent)
           .containsExactlyInAnyOrder("맑은 날 OOTD", "비 오는 날 OOTD");
     }
-  }
-
-  @Nested
-  @DisplayName("findFeeds - likeCount 정렬")
-  class FindFeedsSortByLikeCount {
 
     @Test
     @DisplayName("sortBy가 likeCount면 좋아요 수 내림차순으로 조회한다")
@@ -186,19 +174,6 @@ class FeedCustomRepositoryTest {
           .extracting(Feed::getContent)
           .containsExactly("좋아요 많음", "좋아요 중간", "좋아요 적음");
     }
-
-    private void setLikeCount(UUID feedId, long count) {
-      testEntityManager.getEntityManager()
-          .createNativeQuery("update feeds set like_count = :count where id = :id")
-          .setParameter("count", count)
-          .setParameter("id", feedId)
-          .executeUpdate();
-    }
-  }
-
-  @Nested
-  @DisplayName("findFeeds - createdAt 오름차순 정렬")
-  class FindFeedsSortByCreatedAtAsc {
 
     @Test
     @DisplayName("sortDirection이 ASCENDING이면 오래된 순으로 조회한다")
