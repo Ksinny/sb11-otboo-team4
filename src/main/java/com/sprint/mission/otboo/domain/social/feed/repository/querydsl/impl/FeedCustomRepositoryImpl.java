@@ -4,12 +4,15 @@ import static com.sprint.mission.otboo.domain.social.feed.entity.QFeed.feed;
 
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.repository.querydsl.FeedCustomRepository;
 import com.sprint.mission.otboo.global.dto.SortDirection;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -25,12 +28,29 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
 
     return queryFactory
         .selectFrom(feed)
-        .where(feed.softDeletable.deletedAt.isNull())
+        .where(
+            feed.softDeletable.deletedAt.isNull(),
+            cursorCondition(params)
+        )
         .orderBy(
             new OrderSpecifier<>(order, feed.createdAt),
             new OrderSpecifier<>(order, feed.id)
         )
         .limit(params.limit() + 1L)
         .fetch();
+  }
+
+  private BooleanExpression cursorCondition(FeedListParams params) {
+    if (params.cursor() == null) {
+      return null;
+    }
+    boolean isAsc = params.sortDirection() == SortDirection.ASCENDING;
+    Instant cursorCreatedAt = Instant.parse(params.cursor());
+    UUID cursorId = params.idAfter();
+
+    return isAsc ? feed.createdAt.gt(cursorCreatedAt)
+        .or(feed.createdAt.eq(cursorCreatedAt).and(feed.id.gt(cursorId)))
+        : feed.createdAt.lt(cursorCreatedAt)
+            .or(feed.createdAt.eq(cursorCreatedAt).and(feed.id.lt(cursorId)));
   }
 }
