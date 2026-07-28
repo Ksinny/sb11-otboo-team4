@@ -30,6 +30,7 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
         .selectFrom(feed)
         .where(
             feed.softDeletable.deletedAt.isNull(),
+            eqAuthorId(params.authorIdEqual()),
             cursorCondition(params)
         )
         .orderBy(
@@ -38,6 +39,10 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
         )
         .limit(params.limit() + 1L)
         .fetch();
+  }
+
+  private BooleanExpression eqAuthorId(UUID authorId) {
+    return authorId == null ? null : feed.authorId.eq(authorId);
   }
 
   private BooleanExpression cursorCondition(FeedListParams params) {

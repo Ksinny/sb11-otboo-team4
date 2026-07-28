@@ -92,4 +92,35 @@ class FeedCustomRepositoryTest {
           .containsExactly("두번째", "첫번째");
     }
   }
+
+  @Nested
+  @DisplayName("findFeeds - authorId 필터")
+  class FindFeedsByAuthor {
+
+    @Test
+    @DisplayName("authorIdEqual이 주어지면 해당 작성자의 피드만 조회한다")
+    void returnsOnlyAuthorFeeds_whenAuthorIdEqualGiven() {
+      // given
+      UUID targetAuthor = UUID.randomUUID();
+      UUID otherAuthor = UUID.randomUUID();
+      feedRepository.save(Feed.create(targetAuthor, UUID.randomUUID(), "대상 작성자 글"));
+      feedRepository.save(Feed.create(otherAuthor, UUID.randomUUID(), "다른 작성자 글"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      FeedListParams params = new FeedListParams(
+          null, null, 10,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, targetAuthor
+      );
+
+      // when
+      List<Feed> result = feedRepository.findFeeds(params);
+
+      // then
+      assertThat(result)
+          .extracting(Feed::getAuthorId)
+          .containsExactly(targetAuthor);
+    }
+  }
 }
