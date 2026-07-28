@@ -111,5 +111,16 @@ class FeedControllerTest {
           .andExpect(jsonPath("$.hasNext").value(false))
           .andExpect(jsonPath("$.sortBy").value("createdAt"));
     }
+
+    @Test
+    @DisplayName("limit이 1 미만이면 400을 반환한다")
+    void returns400_whenLimitLessThanOne() throws Exception {
+      // when & then
+      mockMvc.perform(get("/api/feeds")
+              .param("limit", "0")
+              .param("sortBy", "createdAt")
+              .param("sortDirection", "ASCENDING"))
+          .andExpect(status().isBadRequest());
+    }
   }
 }
