@@ -31,6 +31,7 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
         .where(
             feed.softDeletable.deletedAt.isNull(),
             eqAuthorId(params.authorIdEqual()),
+            containsKeyword(params.keywordLike()),
             cursorCondition(params)
         )
         .orderBy(
@@ -45,6 +46,10 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
     return authorId == null ? null : feed.authorId.eq(authorId);
   }
 
+  private BooleanExpression containsKeyword(String keyword) {
+    return keyword == null ? null : feed.content.containsIgnoreCase(keyword);
+  }
+  
   private BooleanExpression cursorCondition(FeedListParams params) {
     if (params.cursor() == null) {
       return null;
