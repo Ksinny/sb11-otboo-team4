@@ -11,6 +11,7 @@ import com.sprint.mission.otboo.global.config.QuerydslConfig;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -77,6 +78,7 @@ class FeedCustomRepositoryTest {
       // then
       assertThat(result.data()).hasSize(2);
       assertThat(result.hasNext()).isTrue();
+      assertThat(result.totalCount()).isEqualTo(3);
     }
 
     @Test
@@ -279,10 +281,6 @@ class FeedCustomRepositoryTest {
       setCreatedAt(b.getId(), sameTime);
       testEntityManager.clear();
 
-      // 실제 부여된 id로 기대 순서 계산 (DESC tie-break: 큰 id 먼저)
-      UUID largerId = a.getId().compareTo(b.getId()) > 0 ? a.getId() : b.getId();
-      UUID smallerId = a.getId().compareTo(b.getId()) > 0 ? b.getId() : a.getId();
-
       FeedListParams params = new FeedListParams(
           null, null, 10,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
@@ -300,6 +298,51 @@ class FeedCustomRepositoryTest {
       // tie-break 검증
       assertThat(result.data().get(0).getId().toString())
           .isGreaterThan(result.data().get(1).getId().toString());
+    }
+
+    @Test
+    @DisplayName("createdAt 동률에서 커서로 다음 페이지를 조회하면 나머지가 중복·누락 없이 조회된다")
+    void paginatesByCursor_whenCreatedAtEqual() {
+      // given
+      Instant sameTime = Instant.parse("2026-07-28T00:00:00Z");
+      Feed a = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "A"));
+      Feed b = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "B"));
+      testEntityManager.flush();
+
+      setCreatedAt(a.getId(), sameTime);
+      setCreatedAt(b.getId(), sameTime);
+      testEntityManager.clear();
+        
+      FeedListParams firstPage = new FeedListParams(
+          null, null, 1,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null
+      );
+
+      // when: 첫 페이지 조회
+      CursorPageResponse<Feed> first = feedRepository.findFeeds(firstPage);
+
+      // then
+      assertThat(first.data()).hasSize(1);
+      assertThat(first.hasNext()).isTrue();
+      assertThat(first.nextCursor()).isNotNull();
+      assertThat(first.nextIdAfter()).isNotNull();
+
+      UUID firstId = first.data().get(0).getId();
+
+      // when
+      FeedListParams secondPage = new FeedListParams(
+          first.nextCursor(), first.nextIdAfter(), 1,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null
+      );
+      CursorPageResponse<Feed> second = feedRepository.findFeeds(secondPage);
+
+      // then
+      assertThat(second.data()).hasSize(1);
+      UUID secondId = second.data().get(0).getId();
+      assertThat(secondId).isNotEqualTo(firstId);
+      assertThat(List.of(firstId, secondId)).containsExactlyInAnyOrder(a.getId(), b.getId());
     }
   }
 }
