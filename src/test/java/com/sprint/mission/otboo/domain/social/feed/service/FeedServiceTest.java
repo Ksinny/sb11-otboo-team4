@@ -137,6 +137,8 @@ class FeedServiceTest {
       // then
       assertThat(result.hasNext()).isTrue();
       assertThat(result.data()).containsExactly(dto1, dto2);
+      assertThat(result.nextCursor()).isEqualTo(feed2.getCreatedAt().toString());
+      assertThat(result.nextIdAfter()).isEqualTo(feed2.getId());
     }
 
     @Test

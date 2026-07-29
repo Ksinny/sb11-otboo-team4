@@ -9,6 +9,7 @@ import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import com.sprint.mission.otboo.global.config.JpaConfig;
 import com.sprint.mission.otboo.global.config.QuerydslConfig;
 import com.sprint.mission.otboo.global.dto.SortDirection;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +39,14 @@ class FeedCustomRepositoryTest {
     testEntityManager.getEntityManager()
         .createNativeQuery("update feeds set like_count = :count where id = :id")
         .setParameter("count", count)
+        .setParameter("id", feedId)
+        .executeUpdate();
+  }
+
+  private void setCreatedAt(UUID feedId, Instant createdAt) {
+    testEntityManager.getEntityManager()
+        .createNativeQuery("update feeds set created_at = :createdAt where id = :id")
+        .setParameter("createdAt", createdAt)
         .setParameter("id", feedId)
         .executeUpdate();
   }
@@ -254,6 +263,38 @@ class FeedCustomRepositoryTest {
       assertThat(result)
           .extracting(Feed::getContent)
           .containsExactly("두번째", "세번째");
+    }
+
+    @Test
+    @DisplayName("createdAt이 같으면 id 역순으로 tie-break하여 조회한다")
+    void breaksTieById_whenCreatedAtEqual() {
+      // given
+      Instant sameTime = Instant.parse("2026-07-28T00:00:00Z");
+      Feed a = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "A"));
+      Feed b = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "B"));
+      testEntityManager.flush();
+
+      setCreatedAt(a.getId(), sameTime);
+      setCreatedAt(b.getId(), sameTime);
+      testEntityManager.clear();
+
+      // 실제 부여된 id로 기대 순서 계산 (DESC tie-break: 큰 id 먼저)
+      UUID largerId = a.getId().compareTo(b.getId()) > 0 ? a.getId() : b.getId();
+      UUID smallerId = a.getId().compareTo(b.getId()) > 0 ? b.getId() : a.getId();
+
+      FeedListParams params = new FeedListParams(
+          null, null, 10,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null
+      );
+
+      // when
+      List<Feed> result = feedRepository.findFeeds(params);
+
+      // then
+      assertThat(result)
+          .extracting(Feed::getId)
+          .containsExactly(largerId, smallerId);
     }
   }
 }

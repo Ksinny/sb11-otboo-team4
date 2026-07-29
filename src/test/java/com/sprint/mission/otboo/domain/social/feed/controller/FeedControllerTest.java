@@ -1,7 +1,10 @@
 package com.sprint.mission.otboo.domain.social.feed.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,6 +17,7 @@ import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPl
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.service.FeedService;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
@@ -23,6 +27,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -110,6 +115,13 @@ class FeedControllerTest {
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.hasNext").value(false))
           .andExpect(jsonPath("$.sortBy").value("createdAt"));
+
+      ArgumentCaptor<FeedListParams> captor = ArgumentCaptor.forClass(FeedListParams.class);
+      verify(feedService).getFeeds(captor.capture());
+      FeedListParams captured = captor.getValue();
+      assertThat(captured.limit()).isEqualTo(10);
+      assertThat(captured.sortBy()).isEqualTo(FeedSortBy.CREATED_AT);
+      assertThat(captured.sortDirection()).isEqualTo(SortDirection.ASCENDING);
     }
 
     @Test
@@ -120,6 +132,32 @@ class FeedControllerTest {
               .param("limit", "0")
               .param("sortBy", "createdAt")
               .param("sortDirection", "ASCENDING"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("잘못된 정렬 기준이면 400을 반환하고 서비스를 호출하지 않는다")
+    void returns400AndDoesNotCallService_whenSortByUnknown() throws Exception {
+      // when & then
+      mockMvc.perform(get("/api/feeds")
+              .param("limit", "10")
+              .param("sortBy", "unknown")
+              .param("sortDirection", "ASCENDING"))
+          .andExpect(status().isBadRequest());
+
+      verify(feedService, never()).getFeeds(any());
+    }
+
+    @Test
+    @DisplayName("createdAt 정렬에 잘못된 형식의 커서면 400을 반환한다")
+    void returns400_whenCreatedAtCursorInvalid() throws Exception {
+      // when & then
+      mockMvc.perform(get("/api/feeds")
+              .param("limit", "10")
+              .param("sortBy", "createdAt")
+              .param("sortDirection", "DESCENDING")
+              .param("cursor", "invalid-instant")
+              .param("idAfter", UUID.randomUUID().toString()))
           .andExpect(status().isBadRequest());
     }
   }
