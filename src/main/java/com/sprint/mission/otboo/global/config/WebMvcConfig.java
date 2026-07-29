@@ -43,7 +43,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     registry.addConverter(String.class, FeedSortBy.class, value -> switch (value) {
       case "createdAt" -> FeedSortBy.CREATED_AT;
       case "likeCount" -> FeedSortBy.LIKE_COUNT;
-      default -> throw InvalidSortByException.withValue(value, FeedSortBy.class);
+      default -> throw InvalidSortByException.withValue(value);
     });
     // 정렬 기준 enum이 있는 도메인마다 추가
   }

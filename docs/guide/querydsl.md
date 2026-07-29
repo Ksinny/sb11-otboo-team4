@@ -239,7 +239,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     registry.addConverter(String.class, FeedSortBy.class, value -> switch (value) {
       case "createdAt" -> FeedSortBy.CREATED_AT;
       case "likeCount" -> FeedSortBy.LIKE_COUNT;
-      default -> InvalidSortByException.withValue(value, FeedSortBy.class);
+      default -> InvalidSortByException.withValue(value);
     });
     // 정렬 기준 enum이 있는 도메인마다(Clothes, Follow, User 등) 여기 계속 추가
   }
@@ -254,9 +254,8 @@ public class InvalidSortByException extends OtbooException {
     super(HttpStatus.BAD_REQUEST, "지원하는 정렬 기준이 아닙니다.", details);
   }
 
-  public static InvalidSortByException withValue(String value,
-      Class<? extends Enum<?>> sortByType) {
-    return new InvalidSortByException(Map.of("value", value, "type", sortByType.getSimpleName()));
+  public static InvalidSortByException withValue(String value) {
+    return new InvalidSortByException(Map.of("value", value));
   }
 }
 ```

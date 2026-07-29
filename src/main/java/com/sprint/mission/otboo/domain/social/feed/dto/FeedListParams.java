@@ -5,6 +5,8 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.UUID;
 
 public record FeedListParams(
@@ -24,15 +26,18 @@ public record FeedListParams(
     return (cursor == null && idAfter == null) || (cursor != null && idAfter != null);
   }
 
-  @AssertTrue(message = "likeCount 기준 커서는 숫자여야 합니다")
+  @AssertTrue(message = "커서 형식이 정렬 기준과 일치하지 않습니다")
   public boolean isCursorFormatValidForSortBy() {
-    if (cursor == null || sortBy != FeedSortBy.LIKE_COUNT) {
+    if (cursor == null) {
       return true;
     }
     try {
-      Long.parseLong(cursor);
+      switch (sortBy) {
+        case CREATED_AT -> Instant.parse(cursor);
+        case LIKE_COUNT -> Long.parseLong(cursor);
+      }
       return true;
-    } catch (NumberFormatException e) {
+    } catch (DateTimeParseException | NumberFormatException e) {
       return false;
     }
   }

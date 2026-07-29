@@ -9,8 +9,7 @@ public class InvalidSortByException extends OtbooException {
     super(HttpStatus.BAD_REQUEST, "지원하는 정렬 기준이 아닙니다.", details);
   }
 
-  public static InvalidSortByException withValue(String value,
-      Class<? extends Enum<?>> sortByType) {
-    return new InvalidSortByException(Map.of("value", value, "type", sortByType.getSimpleName()));
+  public static InvalidSortByException withValue(String value) {
+    return new InvalidSortByException(Map.of("value", value));
   }
 }
