@@ -20,21 +20,33 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.service.FeedService;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
+import com.sprint.mission.otboo.global.security.jwt.filter.UserPrincipal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import tools.jackson.databind.ObjectMapper;
 
 @WebMvcTest(FeedController.class)
+@Import(FeedControllerTest.SecurityArgumentResolverConfig.class)
 @DisplayName("FeedController")
 class FeedControllerTest {
 
@@ -52,6 +64,26 @@ class FeedControllerTest {
   @MockitoBean
   FeedService feedService;
 
+  private Authentication authenticationOf(UUID userId) {
+    UserPrincipal principal = new UserPrincipal(userId, "USER");
+    return new UsernamePasswordAuthenticationToken(
+        principal, null, List.of(new SimpleGrantedAuthority("USER")));
+  }
+
+  @AfterEach
+  void tearDown() {
+    SecurityContextHolder.clearContext();
+  }
+
+  @TestConfiguration
+  static class SecurityArgumentResolverConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+      resolvers.add(new AuthenticationPrincipalArgumentResolver());
+    }
+  }
+
   @Nested
   @DisplayName("피드 등록 - POST /api/feeds")
   class CreateFeed {
@@ -60,14 +92,17 @@ class FeedControllerTest {
     @DisplayName("정상 요청이면 201과 FeedDto를 반환한다")
     void 정상_요청이면_201과_FeedDto를_반환한다() throws Exception {
       // given
-      UUID authorId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+
       FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
-          .set("authorId", authorId)
+          .set("authorId", UUID.randomUUID()) // 인증 사용자와 다른 값
           .sample();
 
       FeedDto response = new FeedDto(
           UUID.randomUUID(), Instant.now(), Instant.now(), "오늘의 착장", 0L, 0, false);
-      when(feedService.create(any(FeedCreateRequest.class), eq(authorId))).thenReturn(response);
+      when(feedService.create(any(FeedCreateRequest.class), eq(currentUserId)))
+          .thenReturn(response);
 
       // when & then
       mockMvc.perform(post("/api/feeds")
