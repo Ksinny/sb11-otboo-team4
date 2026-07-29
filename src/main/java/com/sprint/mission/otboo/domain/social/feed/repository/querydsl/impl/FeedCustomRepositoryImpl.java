@@ -25,7 +25,20 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
 
   @Override
   public CursorPageResponse<Feed> findFeeds(FeedListParams params) {
-    List<Feed> raw = queryFactory
+    List<Feed> raw = fetchFeeds(params);
+
+    boolean hasNext = raw.size() > params.limit();
+    List<Feed> page = hasNext ? raw.subList(0, params.limit()) : raw;
+
+    CursorInfo cursorInfo = createCursorInfo(page, hasNext, params.sortBy());
+
+    return new CursorPageResponse<>(page, cursorInfo.nextCursor(), cursorInfo.nextIdAfter(),
+        hasNext, countFeeds(params), params.sortBy().param(), params.sortDirection()
+    );
+  }
+
+  private List<Feed> fetchFeeds(FeedListParams params) {
+    return queryFactory
         .selectFrom(feed)
         .where(
             feed.softDeletable.deletedAt.isNull(),
@@ -39,20 +52,12 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
         )
         .limit(params.limit() + 1L)
         .fetch();
+  }
 
-    boolean hasNext = raw.size() > params.limit();
-    List<Feed> page = hasNext ? raw.subList(0, params.limit()) : raw;
-
-    String nextCursor = null;
-    UUID nextIdAfter = null;
-    if (hasNext && !page.isEmpty()) {
-      Feed last = page.get(page.size() - 1);
-      nextCursor = extractCursor(last, params.sortBy());
-      nextIdAfter = last.getId();
-    }
-
-    long totalCount = Optional.ofNullable(
-        queryFactory.select(feed.count()).from(feed)
+  private long countFeeds(FeedListParams params) {
+    return Optional.ofNullable(
+        queryFactory.select(feed.count())
+            .from(feed)
             .where(
                 feed.softDeletable.deletedAt.isNull(),
                 eqAuthorId(params.authorIdEqual()),
@@ -60,10 +65,23 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
             )
             .fetchOne()
     ).orElse(0L);
+  }
 
-    return new CursorPageResponse<>(
-        page, nextCursor, nextIdAfter, hasNext, totalCount,
-        params.sortBy().param(), params.sortDirection());
+  private CursorInfo createCursorInfo(
+      List<Feed> page,
+      boolean hasNext,
+      FeedSortBy sortBy
+  ) {
+    if (!hasNext || page.isEmpty()) {
+      return new CursorInfo(null, null);
+    }
+
+    Feed last = page.get(page.size() - 1);
+
+    return new CursorInfo(
+        extractCursor(last, sortBy),
+        last.getId()
+    );
   }
 
   private String extractCursor(Feed last, FeedSortBy sortBy) {
@@ -85,6 +103,7 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
     if (params.cursor() == null) {
       return null;
     }
+
     boolean isAsc = params.sortDirection() == SortDirection.ASCENDING;
     UUID cursorId = params.idAfter();
 
@@ -106,6 +125,7 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
 
   private OrderSpecifier<?> sortOrderSpecifier(FeedSortBy sortBy, SortDirection direction) {
     Order order = direction == SortDirection.ASCENDING ? Order.ASC : Order.DESC;
+
     return switch (sortBy) {
       case CREATED_AT -> new OrderSpecifier<>(order, feed.createdAt);
       case LIKE_COUNT -> new OrderSpecifier<>(order, feed.likeCount);
@@ -115,5 +135,12 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
   private OrderSpecifier<?> idOrderSpecifier(SortDirection direction) {
     Order order = direction == SortDirection.ASCENDING ? Order.ASC : Order.DESC;
     return new OrderSpecifier<>(order, feed.id);
+  }
+
+  private record CursorInfo(
+      String nextCursor,
+      UUID nextIdAfter
+  ) {
+
   }
 }
