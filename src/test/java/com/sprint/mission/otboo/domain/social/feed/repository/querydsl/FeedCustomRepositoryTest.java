@@ -58,7 +58,7 @@ class FeedCustomRepositoryTest {
 
     @Test
     @DisplayName("커서가 없으면 limit + 1개까지 조회한다")
-    void returnsLimitPlusOne_whenNoCursor() {
+    void 커서가_없으면_limit_플러스_1개까지_조회한다() {
       // given
       for (int i = 0; i < 3; i++) {
         feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "내용" + i));
@@ -83,7 +83,7 @@ class FeedCustomRepositoryTest {
 
     @Test
     @DisplayName("커서 이후의 피드만 조회한다")
-    void returnsFeedsAfterCursor_whenCursorGiven() {
+    void 커서_이후의_피드만_조회한다() {
       // given
       Feed first = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "첫번째"));
       Feed second = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "두번째"));
@@ -109,7 +109,7 @@ class FeedCustomRepositoryTest {
 
     @Test
     @DisplayName("authorIdEqual이 주어지면 해당 작성자의 피드만 조회한다")
-    void returnsOnlyAuthorFeeds_whenAuthorIdEqualGiven() {
+    void authorIdEqual이_주어지면_해당_작성자의_피드만_조회한다() {
       // given
       UUID targetAuthor = UUID.randomUUID();
       UUID otherAuthor = UUID.randomUUID();
@@ -135,7 +135,7 @@ class FeedCustomRepositoryTest {
 
     @Test
     @DisplayName("keywordLike가 주어지면 content에 해당 키워드를 포함한 피드만 조회한다")
-    void returnsOnlyMatchingFeeds_whenKeywordLikeGiven() {
+    void keywordLike가_주어지면_content에_해당_키워드를_포함한_피드만_조회한다() {
       // given
       feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "맑은 날 OOTD"));
       feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "비 오는 날 OOTD"));
@@ -160,7 +160,7 @@ class FeedCustomRepositoryTest {
 
     @Test
     @DisplayName("sortBy가 likeCount면 좋아요 수 내림차순으로 조회한다")
-    void returnsSortedByLikeCountDesc_whenSortByLikeCount() {
+    void sortBy가_likeCount면_좋아요_수_내림차순으로_조회한다() {
       // given
       Feed low = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "좋아요 적음"));
       Feed high = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "좋아요 많음"));
@@ -189,7 +189,7 @@ class FeedCustomRepositoryTest {
 
     @Test
     @DisplayName("sortDirection이 ASCENDING이면 오래된 순으로 조회한다")
-    void returnsSortedByCreatedAtAsc_whenDirectionAscending() {
+    void sortDirection이_ASCENDING이면_오래된_순으로_조회한다() {
       // given
       feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "첫번째"));
       feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "두번째"));
@@ -214,7 +214,7 @@ class FeedCustomRepositoryTest {
 
     @Test
     @DisplayName("likeCount 정렬에서 커서 이후의 피드만 조회한다")
-    void returnsFeedsAfterCursor_whenSortByLikeCountWithCursor() {
+    void likeCount_정렬에서_커서_이후의_피드만_조회한다() {
       // given
       Feed a = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "A"));
       Feed b = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "B"));
@@ -244,7 +244,7 @@ class FeedCustomRepositoryTest {
 
     @Test
     @DisplayName("createdAt 오름차순에서 커서 이후의 피드만 조회한다")
-    void returnsFeedsAfterCursor_whenCreatedAtAscWithCursor() {
+    void createdAt_오름차순에서_커서_이후의_피드만_조회한다() {
       // given
       Feed first = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "첫번째"));
       Feed second = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "두번째"));
@@ -270,7 +270,7 @@ class FeedCustomRepositoryTest {
 
     @Test
     @DisplayName("createdAt이 같으면 id 역순으로 tie-break하여 조회한다")
-    void breaksTieById_whenCreatedAtEqual() {
+    void createdAt이_같으면_id_역순으로_tie_break하여_조회한다() {
       // given
       Instant sameTime = Instant.parse("2026-07-28T00:00:00Z");
       Feed a = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "A"));
@@ -302,7 +302,7 @@ class FeedCustomRepositoryTest {
 
     @Test
     @DisplayName("createdAt 동률에서 커서로 다음 페이지를 조회하면 나머지가 중복·누락 없이 조회된다")
-    void paginatesByCursor_whenCreatedAtEqual() {
+    void createdAt_동률에서_커서로_다음_페이지를_조회하면_나머지가_중복_누락_없이_조회된다() {
       // given
       Instant sameTime = Instant.parse("2026-07-28T00:00:00Z");
       Feed a = feedRepository.save(Feed.create(UUID.randomUUID(), UUID.randomUUID(), "A"));
@@ -312,7 +312,7 @@ class FeedCustomRepositoryTest {
       setCreatedAt(a.getId(), sameTime);
       setCreatedAt(b.getId(), sameTime);
       testEntityManager.clear();
-        
+
       FeedListParams firstPage = new FeedListParams(
           null, null, 1,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,

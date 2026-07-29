@@ -58,7 +58,7 @@ class FeedControllerTest {
 
     @Test
     @DisplayName("정상 요청이면 201과 FeedDto를 반환한다")
-    void returns201AndFeedDto_whenRequestIsValid() throws Exception {
+    void 정상_요청이면_201과_FeedDto를_반환한다() throws Exception {
       // given
       UUID authorId = UUID.randomUUID();
       FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
@@ -81,7 +81,7 @@ class FeedControllerTest {
 
     @Test
     @DisplayName("content가 비어 있으면 400을 반환한다")
-    void returns400_whenContentIsBlank() throws Exception {
+    void content가_비어있으면_400을_반환한다() throws Exception {
       // given — content 공백
       FeedCreateRequest request = new FeedCreateRequest(
           UUID.randomUUID(), UUID.randomUUID(), List.of(UUID.randomUUID()), "");
@@ -100,7 +100,7 @@ class FeedControllerTest {
 
     @Test
     @DisplayName("정상 요청이면 200과 CursorPageResponse를 반환한다")
-    void returns200AndCursorPage_whenRequestIsValid() throws Exception {
+    void 정상_요청이면_200과_CursorPageResponse를_반환한다() throws Exception {
       // given
       CursorPageResponse<FeedDto> response = new CursorPageResponse<>(
           List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
@@ -125,7 +125,7 @@ class FeedControllerTest {
 
     @Test
     @DisplayName("limit이 1 미만이면 400을 반환한다")
-    void returns400_whenLimitLessThanOne() throws Exception {
+    void limit이_1_미만이면_400을_반환한다() throws Exception {
       // when & then
       mockMvc.perform(get("/api/feeds")
               .param("limit", "0")
@@ -136,7 +136,7 @@ class FeedControllerTest {
 
     @Test
     @DisplayName("잘못된 정렬 기준이면 기본값(createdAt)으로 처리한다")
-    void fallsBackToCreatedAt_whenSortByUnknown() throws Exception {
+    void 잘못된_정렬_기준이면_기본값_createdAt으로_처리한다() throws Exception {
       // given
       CursorPageResponse<FeedDto> response = new CursorPageResponse<>(
           List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
@@ -156,7 +156,7 @@ class FeedControllerTest {
 
     @Test
     @DisplayName("createdAt 정렬에 잘못된 형식의 커서면 400을 반환한다")
-    void returns400_whenCreatedAtCursorInvalid() throws Exception {
+    void createdAt_정렬에_잘못된_형식의_커서면_400을_반환한다() throws Exception {
       // when & then
       mockMvc.perform(get("/api/feeds")
               .param("limit", "10")
