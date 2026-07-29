@@ -33,7 +33,7 @@ public class FeedController implements FeedApi {
   public ResponseEntity<FeedDto> createFeed(
       @Valid @RequestBody FeedCreateRequest request,
       @CurrentUser UserPrincipal principal) {
-    log.debug("피드 등록 요청: authorId={}", request.authorId());
+    log.debug("피드 등록 요청: userId={}", principal.userId());
     FeedDto created = feedService.create(request, principal.userId());
     return ResponseEntity.status(HttpStatus.CREATED).body(created);
   }
