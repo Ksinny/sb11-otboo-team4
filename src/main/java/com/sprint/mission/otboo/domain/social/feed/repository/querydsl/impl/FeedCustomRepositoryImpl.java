@@ -10,6 +10,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.repository.querydsl.FeedCustomRepository;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
 import java.time.Instant;
 import java.util.List;
@@ -22,8 +23,8 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public List<Feed> findFeeds(FeedListParams params) {
-    return queryFactory
+  public CursorPageResponse<Feed> findFeeds(FeedListParams params) {
+    List<Feed> raw = queryFactory
         .selectFrom(feed)
         .where(
             feed.softDeletable.deletedAt.isNull(),
@@ -37,6 +38,28 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
         )
         .limit(params.limit() + 1L)
         .fetch();
+
+    boolean hasNext = raw.size() > params.limit();
+    List<Feed> page = hasNext ? raw.subList(0, params.limit()) : raw;
+
+    String nextCursor = null;
+    UUID nextIdAfter = null;
+    if (hasNext && !page.isEmpty()) {
+      Feed last = page.get(page.size() - 1);
+      nextCursor = extractCursor(last, params.sortBy());
+      nextIdAfter = last.getId();
+    }
+
+    return new CursorPageResponse<>(
+        page, nextCursor, nextIdAfter, hasNext, page.size(),
+        params.sortBy().param(), params.sortDirection());
+  }
+
+  private String extractCursor(Feed last, FeedSortBy sortBy) {
+    return switch (sortBy) {
+      case CREATED_AT -> last.getCreatedAt().toString();
+      case LIKE_COUNT -> String.valueOf(last.getLikeCount());
+    };
   }
 
   private BooleanExpression eqAuthorId(UUID authorId) {

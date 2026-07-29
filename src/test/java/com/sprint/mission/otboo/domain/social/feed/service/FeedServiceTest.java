@@ -19,7 +19,6 @@ import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -31,7 +30,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FeedService")
@@ -111,8 +109,8 @@ class FeedServiceTest {
   class GetFeeds {
 
     @Test
-    @DisplayName("limit + 1개가 조회되면 hasNext는 true이고 data는 limit개로 자른다")
-    void returnsHasNextTrueAndTrimsData_whenMoreThanLimit() {
+    @DisplayName("Repository가 준 페이지를 FeedDto로 변환해 반환한다")
+    void mapsToDto_whenRepositoryReturnsPage() {
       // given
       FeedListParams params = new FeedListParams(
           null, null, 2,
@@ -122,9 +120,11 @@ class FeedServiceTest {
 
       Feed feed1 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드1");
       Feed feed2 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드2");
-      Feed feed3 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드3");
-      ReflectionTestUtils.setField(feed2, "createdAt", Instant.now());
-      when(feedRepository.findFeeds(params)).thenReturn(List.of(feed1, feed2, feed3));
+
+      CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
+          List.of(feed1, feed2), "커서값", feed2.getId(), true, 2L,
+          "createdAt", SortDirection.DESCENDING);
+      when(feedRepository.findFeeds(params)).thenReturn(repoPage);
 
       FeedDto dto1 = new FeedDto(feed1.getId(), null, null, "피드1", 0L, 0, false);
       FeedDto dto2 = new FeedDto(feed2.getId(), null, null, "피드2", 0L, 0, false);
@@ -135,15 +135,15 @@ class FeedServiceTest {
       CursorPageResponse<FeedDto> result = feedService.getFeeds(params);
 
       // then
-      assertThat(result.hasNext()).isTrue();
       assertThat(result.data()).containsExactly(dto1, dto2);
-      assertThat(result.nextCursor()).isEqualTo(feed2.getCreatedAt().toString());
+      assertThat(result.hasNext()).isTrue();
+      assertThat(result.nextCursor()).isEqualTo("커서값");
       assertThat(result.nextIdAfter()).isEqualTo(feed2.getId());
     }
 
     @Test
-    @DisplayName("조회 결과가 limit 이하면 hasNext는 false이고 nextCursor는 null이다")
-    void returnsHasNextFalseAndNullCursor_whenWithinLimit() {
+    @DisplayName("Repository가 마지막 페이지를 주면 hasNext false와 null 커서를 그대로 전달한다")
+    void passesThroughLastPage_whenRepositoryReturnsNoNext() {
       // given
       FeedListParams params = new FeedListParams(
           null, null, 5,
@@ -153,7 +153,11 @@ class FeedServiceTest {
 
       Feed feed1 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드1");
       Feed feed2 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드2");
-      when(feedRepository.findFeeds(params)).thenReturn(List.of(feed1, feed2));
+
+      CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
+          List.of(feed1, feed2), null, null, false, 2L,
+          "createdAt", SortDirection.DESCENDING);
+      when(feedRepository.findFeeds(params)).thenReturn(repoPage);
 
       FeedDto dto1 = new FeedDto(feed1.getId(), null, null, "피드1", 0L, 0, false);
       FeedDto dto2 = new FeedDto(feed2.getId(), null, null, "피드2", 0L, 0, false);

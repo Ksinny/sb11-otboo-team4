@@ -8,9 +8,9 @@ import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import com.sprint.mission.otboo.global.config.JpaConfig;
 import com.sprint.mission.otboo.global.config.QuerydslConfig;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -72,10 +72,11 @@ class FeedCustomRepositoryTest {
       );
 
       // when
-      List<Feed> result = feedRepository.findFeeds(params);
+      CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
 
       // then
-      assertThat(result).hasSize(3); // limit(2) + 1
+      assertThat(result.data()).hasSize(2);
+      assertThat(result.hasNext()).isTrue();
     }
 
     @Test
@@ -96,10 +97,10 @@ class FeedCustomRepositoryTest {
       );
 
       // when
-      List<Feed> result = feedRepository.findFeeds(params);
+      CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
 
       // then
-      assertThat(result)
+      assertThat(result.data())
           .extracting(Feed::getContent)
           .containsExactly("두번째", "첫번째");
     }
@@ -122,10 +123,10 @@ class FeedCustomRepositoryTest {
       );
 
       // when
-      List<Feed> result = feedRepository.findFeeds(params);
+      CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
 
       // then
-      assertThat(result)
+      assertThat(result.data())
           .extracting(Feed::getAuthorId)
           .containsExactly(targetAuthor);
     }
@@ -147,10 +148,10 @@ class FeedCustomRepositoryTest {
       );
 
       // when
-      List<Feed> result = feedRepository.findFeeds(params);
+      CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
 
       // then
-      assertThat(result)
+      assertThat(result.data())
           .extracting(Feed::getContent)
           .containsExactlyInAnyOrder("맑은 날 OOTD", "비 오는 날 OOTD");
     }
@@ -176,10 +177,10 @@ class FeedCustomRepositoryTest {
       );
 
       // when
-      List<Feed> result = feedRepository.findFeeds(params);
+      CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
 
       // then
-      assertThat(result)
+      assertThat(result.data())
           .extracting(Feed::getContent)
           .containsExactly("좋아요 많음", "좋아요 중간", "좋아요 적음");
     }
@@ -201,10 +202,10 @@ class FeedCustomRepositoryTest {
       );
 
       // when
-      List<Feed> result = feedRepository.findFeeds(params);
+      CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
 
       // then
-      assertThat(result)
+      assertThat(result.data())
           .extracting(Feed::getContent)
           .containsExactly("첫번째", "두번째", "세번째");
     }
@@ -231,10 +232,10 @@ class FeedCustomRepositoryTest {
       );
 
       // when
-      List<Feed> result = feedRepository.findFeeds(params);
+      CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
 
       // then
-      assertThat(result)
+      assertThat(result.data())
           .extracting(Feed::getContent)
           .containsExactly("C");
     }
@@ -257,10 +258,10 @@ class FeedCustomRepositoryTest {
       );
 
       // when
-      List<Feed> result = feedRepository.findFeeds(params);
+      CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
 
       // then
-      assertThat(result)
+      assertThat(result.data())
           .extracting(Feed::getContent)
           .containsExactly("두번째", "세번째");
     }
@@ -289,12 +290,16 @@ class FeedCustomRepositoryTest {
       );
 
       // when
-      List<Feed> result = feedRepository.findFeeds(params);
+      CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
 
       // then
-      assertThat(result)
+      // 같은 createdAt이므로 id DESC로 tie-break되어 두 피드 모두 조회됨
+      assertThat(result.data())
           .extracting(Feed::getId)
-          .containsExactly(largerId, smallerId);
+          .containsExactlyInAnyOrder(a.getId(), b.getId());
+      // tie-break 검증
+      assertThat(result.data().get(0).getId().toString())
+          .isGreaterThan(result.data().get(1).getId().toString());
     }
   }
 }
