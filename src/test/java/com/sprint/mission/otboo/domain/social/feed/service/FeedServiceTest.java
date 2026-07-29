@@ -55,7 +55,7 @@ class FeedServiceTest {
 
     @Test
     @DisplayName("작성자 ID가 인증 사용자와 다르면 FeedForbiddenException을 던진다")
-    void throwsFeedForbiddenException_whenAuthorIdMismatchesCurrentUser() {
+    void 작성자_ID가_인증_사용자와_다르면_FeedForbiddenException을_던진다() {
       // given
       UUID currentUserId = UUID.randomUUID();
       FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
@@ -76,7 +76,7 @@ class FeedServiceTest {
 
     @Test
     @DisplayName("정상 요청이면 피드를 저장하고 FeedDto를 반환한다")
-    void savesFeedAndReturnsDto_whenRequestIsValid() {
+    void 정상_요청이면_피드를_저장하고_FeedDto를_반환한다() {
       // given
       UUID currentUserId = UUID.randomUUID();
       FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
@@ -110,7 +110,7 @@ class FeedServiceTest {
 
     @Test
     @DisplayName("Repository가 준 페이지를 FeedDto로 변환해 반환한다")
-    void mapsToDto_whenRepositoryReturnsPage() {
+    void Repository가_준_페이지를_FeedDto로_변환해_반환한다() {
       // given
       FeedListParams params = new FeedListParams(
           null, null, 2,
@@ -143,7 +143,7 @@ class FeedServiceTest {
 
     @Test
     @DisplayName("Repository가 마지막 페이지를 주면 hasNext false와 null 커서를 그대로 전달한다")
-    void passesThroughLastPage_whenRepositoryReturnsNoNext() {
+    void Repository가_마지막_페이지를_주면_hasNext_false와_null_커서를_그대로_전달한다() {
       // given
       FeedListParams params = new FeedListParams(
           null, null, 5,
