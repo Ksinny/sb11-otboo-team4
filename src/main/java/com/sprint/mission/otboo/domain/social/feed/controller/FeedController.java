@@ -6,6 +6,8 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.service.FeedService;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
+import com.sprint.mission.otboo.global.security.jwt.filter.CurrentUser;
+import com.sprint.mission.otboo.global.security.jwt.filter.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,10 +30,11 @@ public class FeedController implements FeedApi {
 
   @PostMapping
   @Override
-  public ResponseEntity<FeedDto> createFeed(@Valid @RequestBody FeedCreateRequest request) {
-    log.debug("피드 등록 요청 - authorId={}", request.authorId());
-    // TODO: @CurrentUserId 도입 시 request.authorId() → 인증 사용자 ID로 교체
-    FeedDto created = feedService.create(request, request.authorId());
+  public ResponseEntity<FeedDto> createFeed(
+      @Valid @RequestBody FeedCreateRequest request,
+      @CurrentUser UserPrincipal principal) {
+    log.debug("피드 등록 요청: userId={}", principal.userId());
+    FeedDto created = feedService.create(request, principal.userId());
     return ResponseEntity.status(HttpStatus.CREATED).body(created);
   }
 

@@ -518,8 +518,11 @@ Authorization: Bearer {accessToken}
 - 액세스 토큰은 응답 바디(`JwtDto.accessToken`)로, 리프레시 토큰은 **`REFRESH_TOKEN` httpOnly 쿠키**로 관리합니다.
   `POST /api/auth/refresh`는 쿠키에서 리프레시 토큰을 읽어 재발급합니다.
 - CSRF 토큰은 `GET /api/auth/csrf-token` 호출 시 `XSRF-TOKEN` 쿠키로 발급합니다.
-- `JwtAuthenticationFilter`가 `Authorization` 헤더를 파싱해 `SecurityContext`에 인증 정보를 채웁니다. Controller에서 현재
-  사용자 ID가 필요하면 커스텀 리졸버(`@CurrentUserId UUID userId` 형태)로 받습니다 — `String`으로 UUID를 다루지 않습니다.
+- `JwtAuthenticationFilter`가 `Authorization` 헤더를 파싱해 `SecurityContext`에 인증 정보를 채웁니다. 이때 principal로
+  들어가는 것은 `UserPrincipal`(`userId: UUID`, `role: String`을 담은 record)입니다.
+- Controller에서 현재 사용자가
+  필요하면 커스텀 애노테이션 **`@CurrentUser`**(`@AuthenticationPrincipal` 메타 애노테이션)로 `UserPrincipal`을
+  주입받아 `principal.userId()`(UUID)를 사용합니다 — `String`으로 UUID를 다루지 않습니다.
 - 소셜 로그인은 Spring Security OAuth2 Client 표준 흐름(`/oauth2/authorization/{google|kakao}`)을 그대로 사용하며 커스텀
   REST 엔드포인트를 만들지 않습니다. OAuth2 로그인 성공 후 SPA로 토큰을 넘기는 방식은 3차 스프린트 착수 전 ADR로 확정합니다.
 
@@ -527,13 +530,13 @@ Authorization: Bearer {accessToken}
 
 `FeedCreateRequest.authorId`, `CommentCreateRequest.authorId`, `ClothesCreateRequest.ownerId`,
 `FollowCreateRequest.followerId` 등은 **요청 바디 필드로 전달**됩니다(서버가 토큰만으로 유추하지 않음). 이 값을 그대로 신뢰해 저장하면 다른
-사용자를 사칭한 요청이 가능해집니다. **Service 레이어에서 반드시 `@CurrentUserId`로 얻은 인증된 사용자 ID와 요청 바디의 ID가 일치하는지 검증**하고,
-불일치 시 `403 Forbidden`을 반환합니다.
+사용자를 사칭한 요청이 가능해집니다. 컨트롤러가 `@CurrentUser UserPrincipal`에서 꺼낸 `principal.userId()`를 Service로 넘기고,
+**Service 레이어에서 반드시 이 인증된 사용자 ID와 요청 바디의 ID가 일치하는지 검증**하고, 불일치 시 `403 Forbidden`을 반환합니다.
 
 ```java
 
 @Transactional
-public FeedResponse create(FeedCreateRequest request, UUID currentUserId) {
+public FeedDto create(FeedCreateRequest request, UUID currentUserId) {
   if (!request.authorId().equals(currentUserId)) {
     throw FeedForbiddenException.authorMismatch(currentUserId, request.authorId());
   }
