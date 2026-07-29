@@ -28,7 +28,7 @@ public record FeedListParams(
 
   @AssertTrue(message = "커서 형식이 정렬 기준과 일치하지 않습니다")
   public boolean isCursorFormatValidForSortBy() {
-    if (cursor == null) {
+    if (cursor == null || sortBy == null) {
       return true;
     }
     try {

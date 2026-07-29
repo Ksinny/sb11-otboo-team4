@@ -14,6 +14,7 @@ import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
@@ -50,8 +51,18 @@ public class FeedCustomRepositoryImpl implements FeedCustomRepository {
       nextIdAfter = last.getId();
     }
 
+    long totalCount = Optional.ofNullable(
+        queryFactory.select(feed.count()).from(feed)
+            .where(
+                feed.softDeletable.deletedAt.isNull(),
+                eqAuthorId(params.authorIdEqual()),
+                containsKeyword(params.keywordLike())
+            )
+            .fetchOne()
+    ).orElse(0L);
+
     return new CursorPageResponse<>(
-        page, nextCursor, nextIdAfter, hasNext, page.size(),
+        page, nextCursor, nextIdAfter, hasNext, totalCount,
         params.sortBy().param(), params.sortDirection());
   }
 
