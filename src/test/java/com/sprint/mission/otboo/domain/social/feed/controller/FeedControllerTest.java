@@ -3,7 +3,6 @@ package com.sprint.mission.otboo.domain.social.feed.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -136,16 +135,23 @@ class FeedControllerTest {
     }
 
     @Test
-    @DisplayName("잘못된 정렬 기준이면 400을 반환하고 서비스를 호출하지 않는다")
-    void returns400AndDoesNotCallService_whenSortByUnknown() throws Exception {
+    @DisplayName("잘못된 정렬 기준이면 기본값(createdAt)으로 처리한다")
+    void fallsBackToCreatedAt_whenSortByUnknown() throws Exception {
+      // given
+      CursorPageResponse<FeedDto> response = new CursorPageResponse<>(
+          List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
+      when(feedService.getFeeds(any(FeedListParams.class))).thenReturn(response);
+
       // when & then
       mockMvc.perform(get("/api/feeds")
               .param("limit", "10")
               .param("sortBy", "unknown")
-              .param("sortDirection", "ASCENDING"))
-          .andExpect(status().isBadRequest());
+              .param("sortDirection", "DESCENDING"))
+          .andExpect(status().isOk());
 
-      verify(feedService, never()).getFeeds(any());
+      ArgumentCaptor<FeedListParams> captor = ArgumentCaptor.forClass(FeedListParams.class);
+      verify(feedService).getFeeds(captor.capture());
+      assertThat(captor.getValue().sortBy()).isEqualTo(FeedSortBy.CREATED_AT);
     }
 
     @Test

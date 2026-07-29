@@ -1,7 +1,6 @@
 package com.sprint.mission.otboo.global.config;
 
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
-import com.sprint.mission.otboo.global.exception.InvalidSortByException;
 import com.sprint.mission.otboo.global.interceptor.MdcLoggingInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,7 +42,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     registry.addConverter(String.class, FeedSortBy.class, value -> switch (value) {
       case "createdAt" -> FeedSortBy.CREATED_AT;
       case "likeCount" -> FeedSortBy.LIKE_COUNT;
-      default -> throw InvalidSortByException.withValue(value);
+      default -> FeedSortBy.CREATED_AT;
     });
     // 정렬 기준 enum이 있는 도메인마다 추가
   }
