@@ -214,6 +214,7 @@ class FollowServiceTest {
 
       // then
       assertThat(result).isEqualTo(expected);
+      verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
