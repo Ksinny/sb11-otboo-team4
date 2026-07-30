@@ -38,6 +38,12 @@ public class FollowService {
       throw SelfFollowNotAllowedException.of(followerId);
     }
 
+    if (followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId)) {
+      Follow existing = followRepository.findByFollowerIdAndFolloweeId(followerId, followeeId)
+          .orElseThrow();
+      return toDto(existing);
+    }
+
     Follow saved = followRepository.save(Follow.create(followerId, followeeId));
 
     UserSummary follower = userSummaryQueryRepository.findByUserId(followerId);
@@ -47,5 +53,11 @@ public class FollowService {
         saved.getId(), followerId, followeeId);
 
     return followMapper.toDto(saved, follower, followee);
+  }
+
+  private FollowDto toDto(Follow follow) {
+    UserSummary follower = userSummaryQueryRepository.findByUserId(follow.getFollowerId());
+    UserSummary followee = userSummaryQueryRepository.findByUserId(follow.getFolloweeId());
+    return followMapper.toDto(follow, follower, followee);
   }
 }
