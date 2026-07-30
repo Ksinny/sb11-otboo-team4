@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.navercorp.fixturemonkey.FixtureMonkey;
@@ -19,6 +20,7 @@ import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenEx
 import com.sprint.mission.otboo.domain.social.follow.exception.SelfFollowNotAllowedException;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -126,6 +128,41 @@ class FollowServiceTest {
       // when & then
       assertThatThrownBy(() -> followService.create(request, currentUserId))
           .isInstanceOf(FollowForbiddenException.class);
+    }
+
+    @Test
+    @DisplayName("이미 팔로우 중이면 저장하지 않고 기존 Follow로 FollowDto를 반환한다")
+    void 이미_팔로우_중이면_저장하지_않고_기존_Follow로_FollowDto를_반환한다() {
+      // given
+      UUID followerId = UUID.randomUUID();
+      UUID followeeId = UUID.randomUUID();
+      FollowCreateRequest request = fm.giveMeBuilder(FollowCreateRequest.class)
+          .set("followerId", followerId)
+          .set("followeeId", followeeId)
+          .sample();
+
+      Follow existing = Follow.create(followerId, followeeId);
+      UserSummary followerSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followerId).sample();
+      UserSummary followeeSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followeeId).sample();
+      FollowDto expected = new FollowDto(existing.getId(), followeeSummary, followerSummary);
+
+      given(followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId))
+          .willReturn(true);
+      given(followRepository.findByFollowerIdAndFolloweeId(followerId, followeeId))
+          .willReturn(Optional.of(existing));
+      given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
+      given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
+      given(followMapper.toDto(eq(existing), eq(followerSummary), eq(followeeSummary)))
+          .willReturn(expected);
+
+      // when
+      FollowDto result = followService.create(request, followerId);
+
+      // then
+      assertThat(result).isEqualTo(expected);
+      verify(followRepository, never()).save(any(Follow.class));
     }
   }
 }
