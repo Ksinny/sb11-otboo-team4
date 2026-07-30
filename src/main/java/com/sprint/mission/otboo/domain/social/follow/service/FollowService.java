@@ -82,13 +82,13 @@ public class FollowService {
 
   private void validateFollowerMatchesCurrentUser(UUID followerId, UUID currentUserId) {
     if (!followerId.equals(currentUserId)) {
-      throw FollowForbiddenException.followerMismatch(currentUserId, followerId);
+      throw FollowForbiddenException.followerMismatch();
     }
   }
 
   private void validateNotSelfFollow(UUID followerId, UUID followeeId) {
     if (followerId.equals(followeeId)) {
-      throw SelfFollowNotAllowedException.of(followerId);
+      throw SelfFollowNotAllowedException.withNone();
     }
   }
 
