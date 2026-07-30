@@ -1,13 +1,13 @@
 package com.sprint.mission.otboo.global.config;
 
-import com.sprint.mission.otboo.domain.authuser.user.entity.enums.Role;
+import com.sprint.mission.otboo.domain.authuser.user.repository.UserRepository;
 import com.sprint.mission.otboo.global.exception.ErrorResponseWriter;
 import com.sprint.mission.otboo.global.security.details.CustomUserDetailsService;
 import com.sprint.mission.otboo.global.security.jwt.JwtProvider;
 import com.sprint.mission.otboo.global.security.jwt.filter.JwtAuthenticationFilter;
-import com.sprint.mission.otboo.global.usersession.UserSession;
+import com.sprint.mission.otboo.global.temppassword.TempPasswordAuthenticationProvider;
+import com.sprint.mission.otboo.global.temppassword.registry.TempPasswordRegistry;
 import com.sprint.mission.otboo.global.usersession.UserSessionRegistry;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,10 +19,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import tools.jackson.databind.ObjectMapper;
 
 @Configuration
@@ -32,12 +33,18 @@ public class SecurityConfig {
   @Bean
   public AuthenticationManager authenticationManager(
       CustomUserDetailsService userDetailsService,
-      PasswordEncoder passwordEncoder
+      PasswordEncoder passwordEncoder,
+      UserRepository userRepository,
+      TempPasswordRegistry tempPasswordRegistry
   ) {
 
-    DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-    provider.setPasswordEncoder(passwordEncoder);
-    return new ProviderManager(provider);
+    DaoAuthenticationProvider daoProvider = new DaoAuthenticationProvider(userDetailsService);
+    daoProvider.setPasswordEncoder(passwordEncoder);
+
+    TempPasswordAuthenticationProvider tempPasswordAuthenticationProvider = new TempPasswordAuthenticationProvider(
+        userRepository, tempPasswordRegistry);
+
+    return new ProviderManager(daoProvider, tempPasswordAuthenticationProvider);
   }
 
   @Bean
@@ -51,8 +58,10 @@ public class SecurityConfig {
     http.formLogin(AbstractHttpConfigurer::disable);
     http.httpBasic(AbstractHttpConfigurer::disable);
 
-    http.csrf(AbstractHttpConfigurer::disable);
-    // TODO: 개발 단계에서 csrf 비활성화 / 추후 csrf 설정 추가
+    http.csrf(csrf -> csrf
+        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+    );
 
     http.sessionManagement(session -> session
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -81,6 +90,7 @@ public class SecurityConfig {
         .requestMatchers(HttpMethod.POST, "/api/auth/sign-in").permitAll()
         .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
         .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/auth/csrf-token").permitAll()
 
         .anyRequest().authenticated()
     );
