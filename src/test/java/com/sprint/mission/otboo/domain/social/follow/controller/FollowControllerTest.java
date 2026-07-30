@@ -110,5 +110,18 @@ class FollowControllerTest {
           .andExpect(jsonPath("$.follower.userId").value(followerId.toString()))
           .andExpect(jsonPath("$.followee.userId").value(followeeId.toString()));
     }
+
+    @Test
+    @DisplayName("followeeId가 없으면 400을 반환한다")
+    void followeeId가_없으면_400을_반환한다() throws Exception {
+      // given — followeeId 누락
+      FollowCreateRequest request = new FollowCreateRequest(null, UUID.randomUUID());
+
+      // when & then
+      mockMvc.perform(post("/api/follows")
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isBadRequest());
+    }
   }
 }
