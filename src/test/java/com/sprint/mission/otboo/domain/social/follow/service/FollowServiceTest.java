@@ -82,20 +82,18 @@ class FollowServiceTest {
           .set("followeeId", followeeId)
           .sample();
 
+      Follow persistedFollow = Follow.create(followerId, followeeId);
       UserSummary followerSummary = fm.giveMeBuilder(UserSummary.class)
           .set("userId", followerId).sample();
       UserSummary followeeSummary = fm.giveMeBuilder(UserSummary.class)
           .set("userId", followeeId).sample();
+      FollowDto expected = new FollowDto(persistedFollow.getId(), followeeSummary, followerSummary);
 
-      FollowDto expected = new FollowDto(UUID.randomUUID(), followeeSummary, followerSummary);
-
-      given(followRepository.save(any(Follow.class)))
-          .willAnswer(inv -> inv.getArgument(0));
+      given(followRepository.save(any(Follow.class))).willReturn(persistedFollow);
       given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
       given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
-      given(followMapper.toDto(any(Follow.class), eq(followerSummary), eq(followeeSummary)))
+      given(followMapper.toDto(eq(persistedFollow), eq(followerSummary), eq(followeeSummary)))
           .willReturn(expected);
-
       // when
       FollowDto result = followService.create(request, followerId);
 
