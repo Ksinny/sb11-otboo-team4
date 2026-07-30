@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -18,7 +19,13 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "follows")
+@Table(
+    name = "follows",
+    uniqueConstraints = @UniqueConstraint(
+        name = "UQ_follows_follower_id_followee_id",
+        columnNames = {"follower_id", "followee_id"}
+    )
+)
 @Entity
 public class Follow {
 
