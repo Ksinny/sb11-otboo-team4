@@ -5,6 +5,7 @@ import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSum
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
+import com.sprint.mission.otboo.domain.social.follow.exception.SelfFollowNotAllowedException;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
 import java.util.UUID;
@@ -28,6 +29,10 @@ public class FollowService {
     UUID followerId = request.followerId();
     UUID followeeId = request.followeeId();
 
+    if (followerId.equals(followeeId)) {
+      throw SelfFollowNotAllowedException.of(followerId);
+    }
+    
     Follow saved = followRepository.save(Follow.create(followerId, followeeId));
 
     UserSummary follower = userSummaryQueryRepository.findByUserId(followerId);
