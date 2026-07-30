@@ -11,6 +11,7 @@ import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
 import com.sprint.mission.otboo.global.event.NotificationLevel;
 import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,7 +77,7 @@ public class FollowService {
   private void publishFollowNotification(UUID followeeId, String followerName) {
     String content = followerName + "님이 나를 팔로우했어요.";
     eventPublisher.publishEvent(
-        new NotificationRequestedEvent(followeeId, "팔로우", content, NotificationLevel.INFO));
+        new NotificationRequestedEvent(Set.of(followeeId), "팔로우", content, NotificationLevel.INFO));
   }
 
   private void validateFollowerMatchesCurrentUser(UUID followerId, UUID currentUserId) {

@@ -280,7 +280,7 @@ class FollowServiceTest {
       verify(eventPublisher).publishEvent(eventCaptor.capture());
 
       NotificationRequestedEvent event = eventCaptor.getValue();
-      assertThat(event.receiverId()).isEqualTo(followeeId);
+      assertThat(event.receiverIds()).containsExactly(followeeId);
       assertThat(event.content()).isEqualTo("이경신님이 나를 팔로우했어요.");
       assertThat(event.level()).isEqualTo(NotificationLevel.INFO);
     }
