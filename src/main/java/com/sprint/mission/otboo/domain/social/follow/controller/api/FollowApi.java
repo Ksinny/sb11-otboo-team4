@@ -17,7 +17,8 @@ public interface FollowApi {
   @Operation(summary = "팔로우 생성", operationId = "createFollow")
   @ApiResponses({
       @ApiResponse(responseCode = "201", description = "팔로우 생성 성공"),
-      @ApiResponse(responseCode = "400", description = "팔로우 생성 실패")
+      @ApiResponse(responseCode = "400", description = "팔로우 생성 실패"),
+      @ApiResponse(responseCode = "403", description = "본인만 수행할 수 있음")
   })
   ResponseEntity<FollowDto> createFollow(@Valid @RequestBody FollowCreateRequest request,
       UserPrincipal principal);
