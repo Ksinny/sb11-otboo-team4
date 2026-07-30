@@ -287,13 +287,19 @@ class FollowServiceTest {
     @Test
     @DisplayName("팔로우 대상 유저가 없으면 UserNotFoundException을 전파한다")
     void 팔로우_대상_유저가_없으면_UserNotFoundException을_전파한다() {
+      // given
       UUID followerId = UUID.randomUUID();
       UUID followeeId = UUID.randomUUID();
       FollowCreateRequest request = fm.giveMeBuilder(FollowCreateRequest.class)
           .set("followerId", followerId).set("followeeId", followeeId).sample();
-      given(userSummaryQueryRepository.findByUserId(followerId))
+
+      UserSummary followerSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followerId).sample();
+      given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
+      given(userSummaryQueryRepository.findByUserId(followeeId))
           .willThrow(UserNotFoundException.withNone());
 
+      // when & then
       assertThatThrownBy(() -> followService.create(request, followerId))
           .isInstanceOf(UserNotFoundException.class);
     }
