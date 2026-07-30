@@ -9,6 +9,8 @@ import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenEx
 import com.sprint.mission.otboo.domain.social.follow.exception.SelfFollowNotAllowedException;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
+import com.sprint.mission.otboo.global.event.NotificationLevel;
+import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,14 +38,22 @@ public class FollowService {
     UUID followerId = request.followerId();
     UUID followeeId = request.followeeId();
 
-    validateFollowerMatchesCurrentUser(followerId, currentUserId);
-    validateNotSelfFollow(followerId, followeeId);
+    validateCreateRequest(followerId, followeeId, currentUserId);
 
-    Follow follow = findOrCreateFollow(followerId, followeeId);
-    return toDto(follow);
+    UserSummary follower = userSummaryQueryRepository.findByUserId(followerId);
+    UserSummary followee = userSummaryQueryRepository.findByUserId(followeeId);
+
+    Follow follow = findOrCreateFollow(followerId, followeeId, follower.name());
+
+    return followMapper.toDto(follow, follower, followee);
   }
 
-  private Follow findOrCreateFollow(UUID followerId, UUID followeeId) {
+  private void validateCreateRequest(UUID followerId, UUID followeeId, UUID currentUserId) {
+    validateFollowerMatchesCurrentUser(followerId, currentUserId);
+    validateNotSelfFollow(followerId, followeeId);
+  }
+
+  private Follow findOrCreateFollow(UUID followerId, UUID followeeId, String followerName) {
     if (followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId)) {
       return findExistingFollow(followerId, followeeId);
     }
@@ -51,13 +61,22 @@ public class FollowService {
       Follow saved = followRepository.save(Follow.create(followerId, followeeId));
       log.info("팔로우 생성 완료: followId={}, followerId={}, followeeId={}",
           saved.getId(), followerId, followeeId);
+      publishFollowNotification(followeeId, followerName);
       return saved;
     } catch (DataIntegrityViolationException e) {
       if (isUniqueViolation(e)) {
+        log.warn("팔로우 생성 중 동시성 충돌 발생 (재조회 진행): followerId={}, followeeId={}",
+            followerId, followeeId);
         return findExistingFollow(followerId, followeeId);
       }
-      throw e;
+      throw e; // UQ 외 제약 위반은 전파
     }
+  }
+
+  private void publishFollowNotification(UUID followeeId, String followerName) {
+    String content = followerName + "님이 나를 팔로우했어요.";
+    eventPublisher.publishEvent(
+        new NotificationRequestedEvent(followeeId, "팔로우", content, NotificationLevel.INFO));
   }
 
   private void validateFollowerMatchesCurrentUser(UUID followerId, UUID currentUserId) {
@@ -72,7 +91,6 @@ public class FollowService {
     }
   }
 
-
   private Follow findExistingFollow(UUID followerId, UUID followeeId) {
     return followRepository.findByFollowerIdAndFolloweeId(followerId, followeeId)
         .orElseThrow();
@@ -81,11 +99,5 @@ public class FollowService {
   private boolean isUniqueViolation(DataIntegrityViolationException e) {
     return e.getCause() instanceof ConstraintViolationException cve
         && UQ_FOLLOWS.equalsIgnoreCase(cve.getConstraintName());
-  }
-
-  private FollowDto toDto(Follow follow) {
-    UserSummary follower = userSummaryQueryRepository.findByUserId(follow.getFollowerId());
-    UserSummary followee = userSummaryQueryRepository.findByUserId(follow.getFolloweeId());
-    return followMapper.toDto(follow, follower, followee);
   }
 }

@@ -227,10 +227,15 @@ class FollowServiceTest {
           .set("followeeId", followeeId)
           .sample();
 
+      UserSummary followerSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followerId).sample();
+      UserSummary followeeSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followeeId).sample();
+      given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
+      given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
+
       given(followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId))
           .willReturn(false);
-
-      // UQ가 아닌 다른 제약 위반
       given(followRepository.save(any(Follow.class)))
           .willThrow(uniqueViolation("fk_users_to_follows_1"));
 
