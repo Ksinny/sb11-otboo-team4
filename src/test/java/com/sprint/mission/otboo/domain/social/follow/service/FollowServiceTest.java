@@ -177,6 +177,7 @@ class FollowServiceTest {
       // then
       assertThat(result).isEqualTo(expected);
       verify(followRepository, never()).save(any(Follow.class));
+      verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
