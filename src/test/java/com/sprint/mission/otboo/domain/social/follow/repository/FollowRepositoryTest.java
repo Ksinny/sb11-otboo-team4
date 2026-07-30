@@ -78,7 +78,7 @@ class FollowRepositoryTest {
       // given
       UUID followerId = UUID.randomUUID();
       UUID followeeId = UUID.randomUUID();
-      followRepository.save(Follow.create(followerId, followeeId));
+      Follow saved = followRepository.save(Follow.create(followerId, followeeId));
       testEntityManager.flush();
       testEntityManager.clear();
 
@@ -87,9 +87,11 @@ class FollowRepositoryTest {
           followRepository.findByFollowerIdAndFolloweeId(followerId, followeeId);
 
       // then
-      assertThat(result).isPresent();
-      assertThat(result.get().getFollowerId()).isEqualTo(followerId);
-      assertThat(result.get().getFolloweeId()).isEqualTo(followeeId);
+      assertThat(result).hasValueSatisfying(follow -> {
+        assertThat(follow.getId()).isEqualTo(saved.getId());
+        assertThat(follow.getFollowerId()).isEqualTo(followerId);
+        assertThat(follow.getFolloweeId()).isEqualTo(followeeId);
+      });
     }
 
     @Test
