@@ -6,6 +6,7 @@ import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.service.FollowService;
 import com.sprint.mission.otboo.global.security.jwt.filter.CurrentUser;
 import com.sprint.mission.otboo.global.security.jwt.filter.UserPrincipal;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -26,7 +27,7 @@ public class FollowController implements FollowApi {
   @PostMapping
   @Override
   public ResponseEntity<FollowDto> createFollow(
-      @RequestBody FollowCreateRequest request,
+      @Valid @RequestBody FollowCreateRequest request,
       @CurrentUser UserPrincipal principal) {
     log.debug("팔로우 생성 요청: userId={}", principal.userId());
     FollowDto created = followService.create(request, principal.userId());
