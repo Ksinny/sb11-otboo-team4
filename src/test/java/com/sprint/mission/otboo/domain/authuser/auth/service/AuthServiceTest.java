@@ -4,8 +4,10 @@ import com.navercorp.fixturemonkey.FixtureMonkey;
 import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitraryIntrospector;
 import com.navercorp.fixturemonkey.api.introspector.FieldReflectionArbitraryIntrospector;
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
+import com.sprint.mission.otboo.domain.authuser.auth.dto.request.ResetPasswordRequest;
 import com.sprint.mission.otboo.domain.authuser.auth.dto.request.SignInRequest;
 import com.sprint.mission.otboo.domain.authuser.auth.dto.response.SignInDto;
+import com.sprint.mission.otboo.domain.authuser.auth.event.TempPasswordRequestedEvent;
 import com.sprint.mission.otboo.domain.authuser.auth.exception.AccountLockedException;
 import com.sprint.mission.otboo.domain.authuser.auth.exception.InvalidCredentialsException;
 import com.sprint.mission.otboo.domain.authuser.auth.mapper.AuthMapper;
@@ -15,38 +17,37 @@ import com.sprint.mission.otboo.domain.authuser.user.entity.enums.Role;
 import com.sprint.mission.otboo.domain.authuser.user.exception.UserNotFoundException;
 import com.sprint.mission.otboo.domain.authuser.user.mapper.UserMapper;
 import com.sprint.mission.otboo.domain.authuser.user.repository.UserRepository;
+import com.sprint.mission.otboo.domain.weathernotification.sse.service.SseService;
 import com.sprint.mission.otboo.global.security.details.CustomUserDetails;
 import com.sprint.mission.otboo.global.security.jwt.JwtProperties;
 import com.sprint.mission.otboo.global.security.jwt.JwtProvider;
 import com.sprint.mission.otboo.global.security.jwt.exception.InvalidRefreshTokenException;
+import com.sprint.mission.otboo.global.temppassword.generator.TempPasswordGenerator;
+import com.sprint.mission.otboo.global.temppassword.registry.TempPasswordRegistry;
 import com.sprint.mission.otboo.global.usersession.UserSession;
 import com.sprint.mission.otboo.global.usersession.UserSessionRegistry;
 import com.sprint.mission.otboo.global.usersession.exception.RefreshTokenReusedException;
 import com.sprint.mission.otboo.global.usersession.exception.UserSessionExpiredException;
 import io.jsonwebtoken.Claims;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import com.sprint.mission.otboo.domain.authuser.auth.dto.request.ResetPasswordRequest;
-import com.sprint.mission.otboo.domain.authuser.auth.event.TempPasswordRequestedEvent;
-import com.sprint.mission.otboo.global.temppassword.generator.TempPasswordGenerator;
-import com.sprint.mission.otboo.global.temppassword.registry.TempPasswordRegistry;
-import org.springframework.context.ApplicationEventPublisher;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,7 +55,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -86,6 +86,8 @@ class AuthServiceTest {
   AuthenticationManager mockAuthenticationManager;
   @Mock
   UserRepository mockUserRepository;
+  @Mock
+  SseService mockSseService;
   @Spy
   AuthMapper authMapper = new AuthMapper(new UserMapper());
   @Mock
@@ -212,6 +214,34 @@ class AuthServiceTest {
       inOrder.verify(mockJwtProvider).createAccessToken(any(), any(), any(), any());
       inOrder.verify(mockJwtProvider).createRefreshToken(any(), any(), any(), any());
       inOrder.verify(mockUserSessionRegistry).save(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("로그인_성공_시_같은_계정의_기존_SSE_연결을_강제_종료한다")
+    void 로그인_성공_시_같은_계정의_기존_SSE_연결을_강제_종료한다() {
+      // given
+      SignInRequest request = fixtureMonkey.giveMeBuilder(SignInRequest.class).sample();
+      User user = User.create("홍길동", request.username(), "encoded-password");
+      CustomUserDetails principal = new CustomUserDetails(user);
+
+      Authentication authentication = mock(Authentication.class);
+      given(authentication.getPrincipal()).willReturn(principal);
+      given(mockAuthenticationManager.authenticate(any())).willReturn(authentication);
+
+      UserSession issuedSession = new UserSession(UUID.randomUUID(), UUID.randomUUID(),
+          Instant.now());
+      given(mockUserSessionRegistry.issue()).willReturn(issuedSession);
+      given(mockJwtProvider.createAccessToken(any(), any(), any(), any())).willReturn(
+          "access-token");
+      given(mockJwtProvider.createRefreshToken(any(), any(), any(), any())).willReturn(
+          "refresh-token");
+      given(mockJwtProvider.getRefreshTokenExpiresAt(any())).willReturn(Instant.now());
+
+      // when
+      authService.signIn(request);
+
+      // then
+      verify(mockSseService).disconnectAll(principal.getUserId());
     }
   }
 

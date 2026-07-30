@@ -10,14 +10,16 @@ import com.sprint.mission.otboo.domain.authuser.auth.mapper.AuthMapper;
 import com.sprint.mission.otboo.domain.authuser.user.entity.User;
 import com.sprint.mission.otboo.domain.authuser.user.exception.UserNotFoundException;
 import com.sprint.mission.otboo.domain.authuser.user.repository.UserRepository;
+import com.sprint.mission.otboo.domain.weathernotification.sse.service.SseService;
 import com.sprint.mission.otboo.global.security.details.CustomUserDetails;
 import com.sprint.mission.otboo.global.security.jwt.JwtProvider;
 import com.sprint.mission.otboo.global.temppassword.generator.TempPasswordGenerator;
 import com.sprint.mission.otboo.global.temppassword.registry.TempPasswordRegistry;
 import com.sprint.mission.otboo.global.usersession.UserSession;
 import com.sprint.mission.otboo.global.usersession.UserSessionRegistry;
-import com.sprint.mission.otboo.global.usersession.exception.UserSessionExpiredException;
 import io.jsonwebtoken.Claims;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,9 +29,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +40,7 @@ public class AuthService {
   private final AuthenticationManager authenticationManager;
   private final AuthMapper authMapper;
   private final UserRepository userRepository;
+  private final SseService sseService;
   private final TempPasswordGenerator tempPasswordGenerator;
   private final TempPasswordRegistry tempPasswordRegistry;
   private final ApplicationEventPublisher eventPublisher;
@@ -75,6 +75,9 @@ public class AuthService {
 
     userSessionRegistry.save(principal.getUserId(), issued,
         jwtProvider.getRefreshTokenExpiresAt(issued.issuedAt()));
+
+    // 같은 계정으로 이미 로그인된 세션이 있으면 기존 SSE 연결을 강제 종료
+    sseService.disconnectAll(principal.getUserId());
 
     return result;
   }
