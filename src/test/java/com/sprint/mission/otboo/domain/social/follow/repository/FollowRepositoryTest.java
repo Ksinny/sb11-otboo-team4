@@ -1,6 +1,7 @@
 package com.sprint.mission.otboo.domain.social.follow.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.global.config.JpaConfig;
@@ -15,6 +16,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
@@ -103,6 +105,25 @@ class FollowRepositoryTest {
 
       // then
       assertThat(result).isEmpty();
+    }
+  }
+
+  @Nested
+  @DisplayName("unique constraint")
+  class UniqueConstraint {
+
+    @Test
+    @DisplayName("동일한 follower-followee 조합을 중복 저장하면 예외가 발생한다")
+    void 동일한_follower_followee_조합을_중복_저장하면_예외가_발생한다() {
+      // given
+      UUID followerId = UUID.randomUUID();
+      UUID followeeId = UUID.randomUUID();
+      followRepository.saveAndFlush(Follow.create(followerId, followeeId));
+
+      // when & then
+      assertThatThrownBy(() ->
+          followRepository.saveAndFlush(Follow.create(followerId, followeeId))
+      ).isInstanceOf(DataIntegrityViolationException.class);
     }
   }
 }
