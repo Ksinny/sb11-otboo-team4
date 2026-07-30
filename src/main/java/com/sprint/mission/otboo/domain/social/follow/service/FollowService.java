@@ -13,6 +13,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class FollowService {
   private final FollowRepository followRepository;
   private final FollowMapper followMapper;
   private final UserSummaryQueryRepository userSummaryQueryRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public FollowDto create(FollowCreateRequest request, UUID currentUserId) {

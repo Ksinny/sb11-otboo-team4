@@ -20,6 +20,8 @@ import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenEx
 import com.sprint.mission.otboo.domain.social.follow.exception.SelfFollowNotAllowedException;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
+import com.sprint.mission.otboo.global.event.NotificationLevel;
+import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
 import java.util.Optional;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
@@ -31,6 +33,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,6 +56,9 @@ class FollowServiceTest {
 
   @Mock
   private UserSummaryQueryRepository userSummaryQueryRepository;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   private DataIntegrityViolationException uniqueViolation(String constraintName) {
     ConstraintViolationException cause =
@@ -231,6 +237,46 @@ class FollowServiceTest {
       // when & then
       assertThatThrownBy(() -> followService.create(request, followerId))
           .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("팔로우 생성에 성공하면 팔로위에게 알림 이벤트를 발행한다")
+    void 팔로우_생성에_성공하면_팔로위에게_알림_이벤트를_발행한다() {
+      // given
+      UUID followerId = UUID.randomUUID();
+      UUID followeeId = UUID.randomUUID();
+      FollowCreateRequest request = fm.giveMeBuilder(FollowCreateRequest.class)
+          .set("followerId", followerId)
+          .set("followeeId", followeeId)
+          .sample();
+
+      UserSummary followerSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followerId)
+          .set("name", "이경신")
+          .sample();
+      UserSummary followeeSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followeeId).sample();
+      FollowDto expected = new FollowDto(UUID.randomUUID(), followeeSummary, followerSummary);
+
+      given(followRepository.save(any(Follow.class)))
+          .willAnswer(inv -> inv.getArgument(0));
+      given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
+      given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
+      given(followMapper.toDto(any(Follow.class), eq(followerSummary), eq(followeeSummary)))
+          .willReturn(expected);
+
+      // when
+      followService.create(request, followerId);
+
+      // then
+      ArgumentCaptor<NotificationRequestedEvent> eventCaptor =
+          ArgumentCaptor.forClass(NotificationRequestedEvent.class);
+      verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+      NotificationRequestedEvent event = eventCaptor.getValue();
+      assertThat(event.receiverId()).isEqualTo(followeeId);
+      assertThat(event.content()).isEqualTo("이경신님이 나를 팔로우했어요.");
+      assertThat(event.level()).isEqualTo(NotificationLevel.INFO);
     }
   }
 }
