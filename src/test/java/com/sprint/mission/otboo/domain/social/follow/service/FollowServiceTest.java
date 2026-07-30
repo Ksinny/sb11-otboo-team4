@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import com.navercorp.fixturemonkey.FixtureMonkey;
 import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitraryIntrospector;
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
+import com.sprint.mission.otboo.domain.authuser.user.exception.UserNotFoundException;
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
@@ -283,6 +284,20 @@ class FollowServiceTest {
       assertThat(event.receiverIds()).containsExactly(followeeId);
       assertThat(event.content()).isEqualTo("이경신님이 나를 팔로우했어요.");
       assertThat(event.level()).isEqualTo(NotificationLevel.INFO);
+    }
+
+    @Test
+    @DisplayName("팔로우 대상 유저가 없으면 UserNotFoundException을 전파한다")
+    void 팔로우_대상_유저가_없으면_UserNotFoundException을_전파한다() {
+      UUID followerId = UUID.randomUUID();
+      UUID followeeId = UUID.randomUUID();
+      FollowCreateRequest request = fm.giveMeBuilder(FollowCreateRequest.class)
+          .set("followerId", followerId).set("followeeId", followeeId).sample();
+      given(userSummaryQueryRepository.findByUserId(followerId))
+          .willThrow(UserNotFoundException.withNone());
+
+      assertThatThrownBy(() -> followService.create(request, followerId))
+          .isInstanceOf(UserNotFoundException.class);
     }
   }
 }
