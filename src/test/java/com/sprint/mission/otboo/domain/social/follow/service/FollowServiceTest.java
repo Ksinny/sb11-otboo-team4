@@ -15,6 +15,7 @@ import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSum
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
+import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.SelfFollowNotAllowedException;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
@@ -107,6 +108,24 @@ class FollowServiceTest {
       // when & then
       assertThatThrownBy(() -> followService.create(request, userId))
           .isInstanceOf(SelfFollowNotAllowedException.class);
+    }
+
+
+    @Test
+    @DisplayName("요청자가 인증 사용자와 다르면 FollowForbiddenException을 던진다")
+    void 요청자가_인증_사용자와_다르면_FollowForbiddenException을_던진다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID followerId = UUID.randomUUID();
+      UUID followeeId = UUID.randomUUID();
+      FollowCreateRequest request = fm.giveMeBuilder(FollowCreateRequest.class)
+          .set("followerId", followerId)
+          .set("followeeId", followeeId)
+          .sample();
+
+      // when & then
+      assertThatThrownBy(() -> followService.create(request, currentUserId))
+          .isInstanceOf(FollowForbiddenException.class);
     }
   }
 }
