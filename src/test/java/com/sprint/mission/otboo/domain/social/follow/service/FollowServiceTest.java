@@ -18,6 +18,7 @@ import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
+import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
 import com.sprint.mission.otboo.domain.social.follow.exception.SelfFollowNotAllowedException;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
@@ -303,6 +304,56 @@ class FollowServiceTest {
       // when & then
       assertThatThrownBy(() -> followService.create(request, followerId))
           .isInstanceOf(UserNotFoundException.class);
+    }
+  }
+
+  @Nested
+  @DisplayName("팔로우 취소")
+  class DeleteFollow {
+
+    @Test
+    @DisplayName("존재하지 않는 followId면 FollowNotFoundException을 던진다")
+    void 존재하지_않는_followId면_FollowNotFoundException을_던진다() {
+      // given
+      UUID followId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      given(followRepository.findById(followId)).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> followService.delete(followId, currentUserId))
+          .isInstanceOf(FollowNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("본인의 팔로우가 아니면 FollowForbiddenException을 던진다")
+    void 본인의_팔로우가_아니면_FollowForbiddenException을_던진다() {
+      // given
+      UUID followId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      UUID otherFollowerId = UUID.randomUUID(); // 남의 팔로우
+      Follow follow = Follow.create(otherFollowerId, UUID.randomUUID());
+      given(followRepository.findById(followId)).willReturn(Optional.of(follow));
+
+      // when & then
+      assertThatThrownBy(() -> followService.delete(followId, currentUserId))
+          .isInstanceOf(FollowForbiddenException.class);
+    }
+
+    @Test
+    @DisplayName("본인의 팔로우면 하드 삭제한다")
+    void 본인의_팔로우면_하드_삭제한다() {
+      // given
+      UUID followId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      Follow follow = Follow.create(currentUserId,
+          UUID.randomUUID());
+      given(followRepository.findById(followId)).willReturn(Optional.of(follow));
+
+      // when
+      followService.delete(followId, currentUserId);
+
+      // then
+      verify(followRepository).delete(follow);
     }
   }
 }

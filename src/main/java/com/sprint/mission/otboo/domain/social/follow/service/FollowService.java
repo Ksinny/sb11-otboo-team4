@@ -6,6 +6,7 @@ import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
+import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
 import com.sprint.mission.otboo.domain.social.follow.exception.SelfFollowNotAllowedException;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
@@ -49,11 +50,6 @@ public class FollowService {
     return followMapper.toDto(follow, follower, followee);
   }
 
-  private void validateCreateRequest(UUID followerId, UUID followeeId, UUID currentUserId) {
-    validateFollowerMatchesCurrentUser(followerId, currentUserId);
-    validateNotSelfFollow(followerId, followeeId);
-  }
-
   private Follow findOrCreateFollow(UUID followerId, UUID followeeId, String followerName) {
     if (followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId)) {
       return findExistingFollow(followerId, followeeId);
@@ -72,6 +68,25 @@ public class FollowService {
       }
       throw e; // UQ 외 제약 위반은 전파
     }
+  }
+
+  @Transactional
+  public void delete(UUID followId, UUID currentUserId) {
+    Follow follow = followRepository.findById(followId)
+        .orElseThrow(() -> FollowNotFoundException.of(followId));
+
+    if (!follow.getFollowerId().equals(currentUserId)) {
+      throw FollowForbiddenException.notOwner(followId);
+    }
+
+    followRepository.delete(follow);
+    log.info("팔로우 취소 완료: followId={}, followerId={}, followeeId={}",
+        followId, follow.getFollowerId(), follow.getFolloweeId());
+  }
+
+  private void validateCreateRequest(UUID followerId, UUID followeeId, UUID currentUserId) {
+    validateFollowerMatchesCurrentUser(followerId, currentUserId);
+    validateNotSelfFollow(followerId, followeeId);
   }
 
   private void publishFollowNotification(UUID followeeId, String followerName) {

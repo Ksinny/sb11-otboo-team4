@@ -2,7 +2,10 @@ package com.sprint.mission.otboo.domain.social.follow.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -13,6 +16,8 @@ import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPl
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
+import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
+import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
 import com.sprint.mission.otboo.domain.social.follow.service.FollowService;
 import com.sprint.mission.otboo.global.security.jwt.filter.UserPrincipal;
 import java.util.List;
@@ -122,6 +127,56 @@ class FollowControllerTest {
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("팔로우 취소 - DELETE /api/follows/{followId}")
+  class CancelFollow {
+
+    @Test
+    @DisplayName("정상 요청이면 204를 반환한다")
+    void 정상_요청이면_204를_반환한다() throws Exception {
+      // given
+      UUID followId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+
+      // when & then
+      mockMvc.perform(delete("/api/follows/{followId}", followId))
+          .andExpect(status().isNoContent());
+
+      verify(followService).delete(followId, currentUserId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 팔로우면 404를 반환한다")
+    void 존재하지_않는_팔로우면_404를_반환한다() throws Exception {
+      //given
+      UUID followId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+      willThrow(FollowNotFoundException.of(followId))
+          .given(followService).delete(followId, currentUserId);
+
+      // when & then
+      mockMvc.perform(delete("/api/follows/{followId}", followId))
+          .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("본인의 팔로우가 아니면 403을 반환한다")
+    void 본인의_팔로우가_아니면_403을_반환한다() throws Exception {
+      // given
+      UUID followId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+      willThrow(FollowForbiddenException.notOwner(followId))
+          .given(followService).delete(followId, currentUserId);
+
+      // when & then
+      mockMvc.perform(delete("/api/follows/{followId}", followId))
+          .andExpect(status().isForbidden());
     }
   }
 }
