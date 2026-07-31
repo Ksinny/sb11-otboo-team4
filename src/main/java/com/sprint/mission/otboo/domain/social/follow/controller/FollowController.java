@@ -45,7 +45,9 @@ public class FollowController implements FollowApi {
   public ResponseEntity<FollowSummaryDto> getFollowSummary(
       @RequestParam UUID userId,
       @CurrentUser UserPrincipal principal) {
-    return null;
+    log.debug("팔로우 요약 조회 요청: userId={}", userId);
+    FollowSummaryDto summary = followService.getSummary(userId, principal.userId());
+    return ResponseEntity.ok(summary);
   }
 
   @DeleteMapping("/{followId}")
