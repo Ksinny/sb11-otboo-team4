@@ -2,12 +2,14 @@ package com.sprint.mission.otboo.domain.social.follow.repository.querydsl.impl;
 
 import static com.sprint.mission.otboo.domain.social.follow.entity.QFollow.follow;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.repository.querydsl.FollowCustomRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,10 +36,23 @@ public class FollowCustomRepositoryImpl implements FollowCustomRepository {
   private List<Follow> fetchFollowings(FollowingListParams params) {
     return queryFactory
         .selectFrom(follow)
-        .where(follow.followerId.eq(params.followerId()))
-        .orderBy(follow.createdAt.desc())
+        .where(
+            follow.followerId.eq(params.followerId()),
+            cursorCondition(params)
+        )
+        .orderBy(follow.createdAt.desc(), follow.id.desc())
         .limit(params.limit() + 1L)
         .fetch();
+  }
+
+  private BooleanExpression cursorCondition(FollowingListParams params) {
+    if (params.cursor() == null) {
+      return null;
+    }
+    Instant value = Instant.parse(params.cursor());
+    UUID cursorId = params.idAfter();
+    return follow.createdAt.lt(value)
+        .or(follow.createdAt.eq(value).and(follow.id.lt(cursorId)));
   }
 
   private long countFollowings(FollowingListParams params) {
