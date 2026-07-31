@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @RequiredArgsConstructor
 public class FollowCustomRepositoryImpl implements FollowCustomRepository {
@@ -34,10 +35,22 @@ public class FollowCustomRepositoryImpl implements FollowCustomRepository {
 
   @Override
   public CursorPageResponse<FollowDto> findFollowings(FollowingListParams params) {
-    List<Follow> raw = fetchFollowings(params);
+    return findFollows(params.followerId(), params.cursor(), params.idAfter(),
+        params.limit(), params.nameLike(), Direction.FOLLOWINGS);
+  }
 
-    boolean hasNext = raw.size() > params.limit();
-    List<Follow> page = hasNext ? raw.subList(0, params.limit()) : raw;
+  @Override
+  public CursorPageResponse<FollowDto> findFollowers(FollowerListParams params) {
+    return findFollows(params.followeeId(), params.cursor(), params.idAfter(),
+        params.limit(), params.nameLike(), Direction.FOLLOWERS);
+  }
+
+  private CursorPageResponse<FollowDto> findFollows(
+      UUID baseId, String cursor, UUID idAfter, int limit, String nameLike, Direction direction) {
+    List<Follow> raw = fetchFollows(baseId, cursor, idAfter, limit, nameLike, direction);
+
+    boolean hasNext = raw.size() > limit;
+    List<Follow> page = hasNext ? raw.subList(0, limit) : raw;
 
     String nextCursor = null;
     UUID nextIdAfter = null;
@@ -47,74 +60,135 @@ public class FollowCustomRepositoryImpl implements FollowCustomRepository {
       nextIdAfter = last.getId();
     }
 
-    List<FollowDto> data = toFollowDtos(page, params.followerId());
-
-    return new CursorPageResponse<>(data, nextCursor, nextIdAfter, hasNext, countFollowings(params),
-        "createdAt", SortDirection.DESCENDING
+    return new CursorPageResponse<>(
+        toFollowDtos(page, baseId, direction),
+        nextCursor,
+        nextIdAfter,
+        hasNext,
+        countFollows(baseId, nameLike, direction),
+        "createdAt",
+        SortDirection.DESCENDING
     );
   }
 
-  @Override
-  public CursorPageResponse<FollowDto> findFollowers(FollowerListParams params) {
-    return new CursorPageResponse<>(List.of(), null, null, false, 0L, "createdAt",
-        SortDirection.DESCENDING);
-  }
-
-  private List<FollowDto> toFollowDtos(List<Follow> page, UUID followerId) {
-    if (page.isEmpty()) {
+  private List<FollowDto> toFollowDtos(List<Follow> follows, UUID baseId, Direction direction) {
+    if (follows.isEmpty()) {
       return List.of();
     }
-    UserSummary follower = userSummaryQueryRepository.findByUserId(followerId);
-    Map<UUID, UserSummary> followeeMap = userSummaryQueryRepository.findByUserIds(
-            page.stream().map(Follow::getFolloweeId).toList()
-        ).stream()
-        .collect(Collectors.toMap(UserSummary::userId, Function.identity()));
 
-    return page.stream()
-        .map(f -> followMapper.toDto(f, follower, followeeMap.get(f.getFolloweeId())))
+    UserSummary baseSummary = userSummaryQueryRepository.findByUserId(baseId);
+
+    Map<UUID, UserSummary> otherSummaryMap =
+        userSummaryQueryRepository.findByUserIds(
+                follows.stream().map(direction::otherSideId).toList()
+            ).stream()
+            .collect(Collectors.toMap(UserSummary::userId, Function.identity()));
+
+    return follows.stream()
+        .map(followEntity -> direction.toDto(
+            followMapper, followEntity, baseSummary,
+            otherSummaryMap.get(direction.otherSideId(followEntity))))
         .toList();
   }
 
-  private List<Follow> fetchFollowings(FollowingListParams params) {
+  private List<Follow> fetchFollows(
+      UUID baseId, String cursor, UUID idAfter, int limit, String nameLike, Direction direction) {
     JPAQuery<Follow> query = queryFactory.selectFrom(follow);
-    if (params.nameLike() != null) {
-      query.join(user).on(user.id.eq(follow.followeeId));
+
+    if (StringUtils.hasText(nameLike)) {
+      query.join(user).on(direction.joinCondition());
     }
+
     return query
         .where(
-            follow.followerId.eq(params.followerId()),
-            containsName(params.nameLike()),
-            cursorCondition(params)
+            direction.baseCondition(baseId),
+            userNameContains(nameLike),
+            cursorCondition(cursor, idAfter)
         )
         .orderBy(follow.createdAt.desc(), follow.id.desc())
-        .limit(params.limit() + 1L)
+        .limit(limit + 1L)
         .fetch();
   }
 
-  private long countFollowings(FollowingListParams params) {
+  private long countFollows(UUID baseId, String nameLike, Direction direction) {
     JPAQuery<Long> query = queryFactory.select(follow.count()).from(follow);
-    if (params.nameLike() != null) {
-      query.join(user).on(user.id.eq(follow.followeeId));
+
+    if (StringUtils.hasText(nameLike)) {
+      query.join(user).on(direction.joinCondition());
     }
+
     return Optional.ofNullable(
         query.where(
-            follow.followerId.eq(params.followerId()),
-            containsName(params.nameLike())
+            direction.baseCondition(baseId),
+            userNameContains(nameLike)
         ).fetchOne()
     ).orElse(0L);
   }
 
-  private BooleanExpression containsName(String name) {
-    return name == null ? null : user.name.containsIgnoreCase(name);
+  private BooleanExpression userNameContains(String name) {
+    return StringUtils.hasText(name) ? user.name.containsIgnoreCase(name) : null;
   }
 
-  private BooleanExpression cursorCondition(FollowingListParams params) {
-    if (params.cursor() == null) {
+  private BooleanExpression cursorCondition(String cursor, UUID idAfter) {
+    if (!StringUtils.hasText(cursor)) {
       return null;
     }
-    Instant cursor = Instant.parse(params.cursor());
-    UUID idAfter = params.idAfter();
-    return follow.createdAt.lt(cursor)
-        .or(follow.createdAt.eq(cursor).and(follow.id.lt(idAfter)));
+    Instant instant = Instant.parse(cursor);
+    return follow.createdAt.lt(instant)
+        .or(follow.createdAt.eq(instant).and(follow.id.lt(idAfter)));
+  }
+
+  private enum Direction {
+    FOLLOWINGS {
+      @Override
+      BooleanExpression baseCondition(UUID id) {
+        return follow.followerId.eq(id);
+      }
+
+      @Override
+      BooleanExpression joinCondition() {
+        return user.id.eq(follow.followeeId);
+      }
+
+      @Override
+      UUID otherSideId(Follow follow) {
+        return follow.getFolloweeId();
+      }
+
+      @Override
+      FollowDto toDto(FollowMapper mapper, Follow follow, UserSummary base, UserSummary other) {
+        return mapper.toDto(follow, base, other); // follower = base, followee = other
+      }
+    },
+    FOLLOWERS {
+      @Override
+      BooleanExpression baseCondition(UUID id) {
+        return follow.followeeId.eq(id);
+      }
+
+      @Override
+      BooleanExpression joinCondition() {
+        return user.id.eq(follow.followerId);
+      }
+
+      @Override
+      UUID otherSideId(Follow follow) {
+        return follow.getFollowerId();
+      }
+
+      @Override
+      FollowDto toDto(FollowMapper mapper, Follow follow, UserSummary base, UserSummary other) {
+        return mapper.toDto(follow, other, base); // follower = other, followee = base
+      }
+    };
+
+    abstract BooleanExpression baseCondition(UUID id);
+
+    abstract BooleanExpression joinCondition();
+
+    abstract UUID otherSideId(Follow follow);
+
+    abstract FollowDto toDto(FollowMapper mapper, Follow follow, UserSummary base,
+        UserSummary other);
   }
 }
