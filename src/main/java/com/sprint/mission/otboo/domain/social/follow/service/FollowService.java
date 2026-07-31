@@ -1,7 +1,7 @@
 package com.sprint.mission.otboo.domain.social.follow.service;
 
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
-import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
+import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.UserSummaryQueryRepositoryImpl;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
@@ -31,7 +31,7 @@ public class FollowService {
 
   private final FollowRepository followRepository;
   private final FollowMapper followMapper;
-  private final UserSummaryQueryRepository userSummaryQueryRepository;
+  private final UserSummaryQueryRepositoryImpl userSummaryQueryRepositoryImpl;
   private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
@@ -41,8 +41,8 @@ public class FollowService {
 
     validateCreateRequest(followerId, followeeId, currentUserId);
 
-    UserSummary follower = userSummaryQueryRepository.findByUserId(followerId);
-    UserSummary followee = userSummaryQueryRepository.findByUserId(followeeId);
+    UserSummary follower = userSummaryQueryRepositoryImpl.findByUserId(followerId);
+    UserSummary followee = userSummaryQueryRepositoryImpl.findByUserId(followeeId);
 
     Follow follow = findOrCreateFollow(followerId, followeeId, follower.name());
 
