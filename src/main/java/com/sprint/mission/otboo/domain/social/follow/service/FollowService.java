@@ -83,8 +83,8 @@ public class FollowService {
 
     boolean followingMe = followRepository.existsByFollowerIdAndFolloweeId(userId, currentUserId);
 
-    return new FollowSummaryDto(userId, followerCount, followingCount,
-        followedByMe, followedByMeId, followingMe);
+    return followMapper.toSummaryDto(
+        userId, followerCount, followingCount, followedByMe, followedByMeId, followingMe);
   }
 
   @Transactional

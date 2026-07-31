@@ -379,16 +379,15 @@ class FollowServiceTest {
           Optional.of(follow));
       given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(false);
 
+      FollowSummaryDto expected = new FollowSummaryDto(userId, 10L, 5L, true, followId, false);
+      given(followMapper.toSummaryDto(userId, 10L, 5L, true, followId, false))
+          .willReturn(expected);
+
       // when
       FollowSummaryDto result = followService.getSummary(userId, me);
 
       // then
-      assertThat(result.followeeId()).isEqualTo(userId);
-      assertThat(result.followerCount()).isEqualTo(10L);
-      assertThat(result.followingCount()).isEqualTo(5L);
-      assertThat(result.followedByMe()).isTrue();
-      assertThat(result.followedByMeId()).isEqualTo(followId);
-      assertThat(result.followingMe()).isFalse();
+      assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -403,10 +402,15 @@ class FollowServiceTest {
           Optional.empty());
       given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(false);
 
+      FollowSummaryDto expected = new FollowSummaryDto(userId, 0L, 0L, false, null, false);
+      given(followMapper.toSummaryDto(userId, 0L, 0L, false, null, false))
+          .willReturn(expected);
+
       // when
       FollowSummaryDto result = followService.getSummary(userId, me);
 
       // then
+      assertThat(result).isEqualTo(expected);
       assertThat(result.followedByMe()).isFalse();
       assertThat(result.followedByMeId()).isNull();
     }
@@ -423,10 +427,15 @@ class FollowServiceTest {
           Optional.empty());
       given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(true);
 
+      FollowSummaryDto expected = new FollowSummaryDto(userId, 0L, 0L, false, null, true);
+      given(followMapper.toSummaryDto(userId, 0L, 0L, false, null, true))
+          .willReturn(expected);
+
       // when
       FollowSummaryDto result = followService.getSummary(userId, me);
 
       // then
+      assertThat(result).isEqualTo(expected);
       assertThat(result.followingMe()).isTrue();
     }
   }
