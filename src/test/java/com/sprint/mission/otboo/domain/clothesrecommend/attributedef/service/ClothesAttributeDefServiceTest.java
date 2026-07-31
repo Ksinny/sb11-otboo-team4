@@ -14,12 +14,14 @@ import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.Attribu
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefCreateRequest;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefDto;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefListParams;
+import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefUpdateRequest;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.entity.ClothesAttributeDef;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.entity.ClothesAttributeDefValue;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.exception.ClothesAttributeDefNameDuplicatedException;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.mapper.ClothesAttributeDefMapper;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.repository.ClothesAttributeDefRepository;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.repository.ClothesAttributeDefValueRepository;
+import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.exception.ClothesAttributeDefNotFoundException;
 import com.sprint.mission.otboo.global.dto.SortDirection;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +33,8 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
+import java.util.Optional;
+import java.util.UUID;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ClothesAttributeDefServiceTest")
@@ -52,6 +56,7 @@ class ClothesAttributeDefServiceTest {
   @DisplayName("의상 속성 정의 등록")
   class Create {
 
+
     @Test
     @DisplayName("정상 요청이면 정의와 선택 값이 저장된다")
     void 정상_요청이면_정의와_선택_값이_저장된다() {
@@ -59,7 +64,7 @@ class ClothesAttributeDefServiceTest {
       ClothesAttributeDefCreateRequest request =
           new ClothesAttributeDefCreateRequest("색상", List.of("빨강", "파랑", "초록"));
       given(clothesAttributeDefRepository.existsByName("색상")).willReturn(false);
-      given(clothesAttributeDefRepository.save(any(ClothesAttributeDef.class)))
+      given(clothesAttributeDefRepository.saveAndFlush(any(ClothesAttributeDef.class)))
           .willAnswer(invocation -> invocation.getArgument(0));
       given(clothesAttributeDefValueRepository.saveAll(anyList()))
           .willAnswer(invocation -> invocation.getArgument(0));
@@ -71,6 +76,7 @@ class ClothesAttributeDefServiceTest {
       assertThat(result.name()).isEqualTo("색상");
       assertThat(result.selectableValues()).containsExactly("빨강", "파랑", "초록");
       assertThat(result.id()).isNotNull();
+
     }
 
     @Test
@@ -84,7 +90,7 @@ class ClothesAttributeDefServiceTest {
       // when & then
       assertThatThrownBy(() -> clothesAttributeDefService.create(request))
           .isInstanceOf(ClothesAttributeDefNameDuplicatedException.class);
-      verify(clothesAttributeDefRepository, never()).save(any());
+      verify(clothesAttributeDefRepository, never()).saveAndFlush(any());
     }
   }
 
@@ -155,6 +161,112 @@ class ClothesAttributeDefServiceTest {
       // then
       assertThat(result).isEmpty();
       verify(clothesAttributeDefValueRepository, never()).findAllByDefinitionIds(anyList());
+    }
+  }
+
+  @Nested
+  @DisplayName("Update")
+  class Update {
+
+    @Test
+    @DisplayName("Should update attribute definition name and selectable values successfully")
+    void updateSuccess() {
+      // given
+      UUID definitionId = UUID.randomUUID();
+      ClothesAttributeDef existing = ClothesAttributeDef.create("색상");
+      ClothesAttributeDefUpdateRequest request =
+          new ClothesAttributeDefUpdateRequest("컬러", List.of("빨강", "파랑"));
+
+      given(clothesAttributeDefRepository.findById(definitionId))
+          .willReturn(Optional.of(existing));
+      given(clothesAttributeDefValueRepository.saveAll(anyList()))
+          .willAnswer(invocation -> invocation.getArgument(0));
+
+      // when
+      ClothesAttributeDefDto result =
+          clothesAttributeDefService.update(definitionId, request);
+
+      // then
+      assertThat(result.name()).isEqualTo("컬러");
+      assertThat(result.selectableValues()).containsExactly("빨강", "파랑");
+      verify(clothesAttributeDefValueRepository).deleteAllByDefinitionId(definitionId);
+    }
+    @Test
+    @DisplayName("Should throw NotFoundException when definition does not exist")
+    void updateFailWhenNotFound() {
+      // given
+      UUID definitionId = UUID.randomUUID();
+      ClothesAttributeDefUpdateRequest request =
+          new ClothesAttributeDefUpdateRequest("컬러", List.of("빨강"));
+
+      given(clothesAttributeDefRepository.findById(definitionId))
+          .willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> clothesAttributeDefService.update(definitionId, request))
+          .isInstanceOf(ClothesAttributeDefNotFoundException.class);
+    }
+    @Test
+    @DisplayName("Should throw NameDuplicatedException when new name already exists")
+    void updateFailWhenNameDuplicated() {
+      // given
+      UUID definitionId = UUID.randomUUID();
+      ClothesAttributeDef existing = ClothesAttributeDef.create("색상");
+      ClothesAttributeDefUpdateRequest request =
+          new ClothesAttributeDefUpdateRequest("컬러", List.of("빨강"));
+
+      given(clothesAttributeDefRepository.findById(definitionId))
+          .willReturn(Optional.of(existing));
+      given(clothesAttributeDefRepository.existsByName("컬러"))
+          .willReturn(true);
+
+      // when & then
+      assertThatThrownBy(() -> clothesAttributeDefService.update(definitionId, request))
+          .isInstanceOf(ClothesAttributeDefNameDuplicatedException.class);
+    }
+
+    @Test
+    @DisplayName("Should succeed when new name equals existing name")
+    void updateSuccessWhenSameName() {
+      // given
+      UUID definitionId = UUID.randomUUID();
+      ClothesAttributeDef existing = ClothesAttributeDef.create("색상");
+      ClothesAttributeDefUpdateRequest request =
+          new ClothesAttributeDefUpdateRequest("색상", List.of("빨강", "파랑"));
+
+      given(clothesAttributeDefRepository.findById(definitionId))
+          .willReturn(Optional.of(existing));
+      given(clothesAttributeDefValueRepository.saveAll(anyList()))
+          .willAnswer(invocation -> invocation.getArgument(0));
+
+      // when
+      ClothesAttributeDefDto result =
+          clothesAttributeDefService.update(definitionId, request);
+
+      // then
+      assertThat(result.name()).isEqualTo("색상");
+    }
+  }
+  @Nested
+  @DisplayName("Delete")
+  class Delete {
+
+    @Test
+    @DisplayName("Should delete attribute definition successfully")
+    void deleteSuccess() {
+      // given
+      UUID definitionId = UUID.randomUUID();
+      ClothesAttributeDef existing = ClothesAttributeDef.create("색상");
+
+      given(clothesAttributeDefRepository.findById(definitionId))
+          .willReturn(Optional.of(existing));
+
+      // when
+      clothesAttributeDefService.delete(definitionId);
+
+      // then
+      verify(clothesAttributeDefValueRepository).deleteAllByDefinitionId(definitionId);
+      verify(clothesAttributeDefRepository).delete(existing);
     }
   }
 }

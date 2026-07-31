@@ -3,6 +3,7 @@ package com.sprint.mission.otboo.domain.clothesrecommend.attributedef.controller
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefCreateRequest;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefDto;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefListParams;
+import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefUpdateRequest;
 import com.sprint.mission.otboo.global.dto.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import java.util.UUID;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 
@@ -54,4 +56,54 @@ public interface ClothesAttributeDefApi {
   })
   ResponseEntity<List<ClothesAttributeDefDto>> getAll(
       @ParameterObject ClothesAttributeDefListParams params);
+
+  @Operation(summary = "의상 속성 정의 수정", description = "의상 속성 정의 수정 API")
+  @ApiResponses({
+      @ApiResponse(
+          responseCode = "200",
+          description = "의상 속성 정의 수정 성공",
+          content = @Content(
+              schema = @Schema(implementation = ClothesAttributeDefDto.class))),
+      @ApiResponse(
+          responseCode = "400",
+          description = "의상 속성 정의 수정 실패",
+          content = @Content(
+              schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(
+          responseCode = "404",
+          description = "의상 속성 정의를 찾을 수 없음",
+          content = @Content(
+              schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(
+          responseCode = "409",
+          description = "의상 속성 정의 이름 중복",
+          content = @Content(
+              schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  ResponseEntity<ClothesAttributeDefDto> update(
+      UUID definitionId,
+      ClothesAttributeDefUpdateRequest request);
+
+  @Operation(summary = "의상 속성 정의 삭제", description = "의상 속성 정의 삭제 API")
+  @ApiResponses({
+      @ApiResponse(
+          responseCode = "204",
+          description = "의상 속성 정의 삭제 성공"),
+      @ApiResponse(
+          responseCode = "400",
+          description = "의상 속성 정의 삭제 실패",
+          content = @Content(
+              schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(
+          responseCode = "404",
+          description = "의상 속성 정의를 찾을 수 없음",
+          content = @Content(
+              schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(
+          responseCode = "409",
+          description = "사용 중인 의상 속성 정의 삭제 불가",
+          content = @Content(
+              schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  ResponseEntity<Void> delete(UUID definitionId);
 }

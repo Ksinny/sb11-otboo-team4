@@ -4,13 +4,16 @@ import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.Attribu
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefCreateRequest;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefDto;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefListParams;
+import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.dto.ClothesAttributeDefUpdateRequest;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.entity.ClothesAttributeDef;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.entity.ClothesAttributeDefValue;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.exception.ClothesAttributeDefNameDuplicatedException;
+import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.exception.ClothesAttributeDefNotFoundException;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.mapper.ClothesAttributeDefMapper;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.repository.ClothesAttributeDefRepository;
 import com.sprint.mission.otboo.domain.clothesrecommend.attributedef.repository.ClothesAttributeDefValueRepository;
 import com.sprint.mission.otboo.global.dto.SortDirection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,11 +21,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.LinkedHashSet;
-import org.springframework.dao.DataIntegrityViolationException;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -115,5 +117,52 @@ public class ClothesAttributeDefService {
             ? Sort.Direction.DESC
             : Sort.Direction.ASC;
     return Sort.by(direction, property);
+  }
+
+  @Transactional
+  public ClothesAttributeDefDto update(UUID definitionId,
+      ClothesAttributeDefUpdateRequest request) {
+    ClothesAttributeDef definition = clothesAttributeDefRepository.findById(definitionId)
+        .orElseThrow(() -> ClothesAttributeDefNotFoundException.withId(definitionId));
+
+    String newName = request.name().trim();
+    if (!definition.getName().equals(newName)
+        && clothesAttributeDefRepository.existsByName(newName)) {
+      throw ClothesAttributeDefNameDuplicatedException.withName(newName);
+    }
+    definition.changeName(newName);
+
+    try {
+      clothesAttributeDefRepository.saveAndFlush(definition);
+    } catch (DataIntegrityViolationException e) {
+      if (e.getMessage() != null
+          && e.getMessage().contains("uq_clothes_attribute_defs_name")) {
+        throw ClothesAttributeDefNameDuplicatedException.withName(newName);
+      }
+      throw e;
+    }
+
+    List<String> newValues = validateSelectableValues(request.selectableValues());
+    clothesAttributeDefValueRepository.deleteAllByDefinitionId(definitionId);
+
+    List<ClothesAttributeDefValue> values =
+        IntStream.range(0, newValues.size())
+            .mapToObj(i -> ClothesAttributeDefValue.create(definition, newValues.get(i), i))
+            .toList();
+    List<ClothesAttributeDefValue> savedValues =
+        clothesAttributeDefValueRepository.saveAll(values);
+
+    return clothesAttributeDefMapper.toDto(definition, savedValues);
+  }
+
+  @Transactional
+  public void delete(UUID definitionId) {
+    ClothesAttributeDef definition = clothesAttributeDefRepository.findById(definitionId)
+        .orElseThrow(() -> ClothesAttributeDefNotFoundException.withId(definitionId));
+
+    clothesAttributeDefValueRepository.deleteAllByDefinitionId(definitionId);
+    clothesAttributeDefRepository.delete(definition);
+
+    log.info("의상 속성 정의 삭제 완료 definitionId={}", definitionId);
   }
 }
