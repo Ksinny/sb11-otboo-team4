@@ -298,6 +298,39 @@ class FollowControllerTest {
       assertThat(captured.limit()).isEqualTo(10);
       assertThat(captured.nameLike()).isEqualTo("팔로워");
     }
+
+    @Test
+    @DisplayName("limit이 1 미만이면 400을 반환한다")
+    void limit이_1_미만이면_400을_반환한다() throws Exception {
+      // when & then
+      mockMvc.perform(get("/api/follows/followers")
+              .param("followeeId", UUID.randomUUID().toString())
+              .param("limit", "0"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("cursor만 있고 idAfter가 없으면 400을 반환한다")
+    void cursor만_있고_idAfter가_없으면_400을_반환한다() throws Exception {
+      // when & then
+      mockMvc.perform(get("/api/follows/followers")
+              .param("followeeId", UUID.randomUUID().toString())
+              .param("limit", "10")
+              .param("cursor", "2026-07-28T00:00:00Z"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("cursor 형식이 잘못되면 400을 반환한다")
+    void cursor_형식이_잘못되면_400을_반환한다() throws Exception {
+      // when & then
+      mockMvc.perform(get("/api/follows/followers")
+              .param("followeeId", UUID.randomUUID().toString())
+              .param("limit", "10")
+              .param("cursor", "invalid-instant")
+              .param("idAfter", UUID.randomUUID().toString()))
+          .andExpect(status().isBadRequest());
+    }
   }
 
   @Nested
