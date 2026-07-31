@@ -73,7 +73,18 @@ public class FollowService {
 
   @Transactional(readOnly = true)
   public FollowSummaryDto getSummary(UUID userId, UUID currentUserId) {
-    return null;
+    long followerCount = followRepository.countByFolloweeId(userId);
+    long followingCount = followRepository.countByFollowerId(userId);
+
+    UUID followedByMeId = followRepository.findByFollowerIdAndFolloweeId(currentUserId, userId)
+        .map(Follow::getId)
+        .orElse(null);
+    boolean followedByMe = followedByMeId != null;
+
+    boolean followingMe = followRepository.existsByFollowerIdAndFolloweeId(userId, currentUserId);
+
+    return new FollowSummaryDto(userId, followerCount, followingCount,
+        followedByMe, followedByMeId, followingMe);
   }
 
   @Transactional
