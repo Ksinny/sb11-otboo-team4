@@ -3,6 +3,7 @@ package com.sprint.mission.otboo.domain.social.follow.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -490,7 +491,7 @@ class FollowServiceTest {
 
       FollowingListParams params = new FollowingListParams(followerId, null, null, 10, null);
       given(followRepository.findFollowings(params)).willReturn(repoPage);
-      given(userSummaryQueryRepository.findByUserIds(any()))
+      given(userSummaryQueryRepository.findByUserIds(anyList()))
           .willReturn(List.of(followerSummary, followeeSummary));
       given(followMapper.toDto(follow, followerSummary, followeeSummary)).willReturn(dto);
 
@@ -499,9 +500,13 @@ class FollowServiceTest {
 
       // then
       assertThat(result.data()).containsExactly(dto);
-      assertThat(result.hasNext()).isFalse();
       assertThat(result.totalCount()).isEqualTo(1L);
       assertThat(result.nextCursor()).isEqualTo("cursor");
+
+      ArgumentCaptor<List<UUID>> idsCaptor = ArgumentCaptor.forClass(List.class);
+      verify(userSummaryQueryRepository).findByUserIds(idsCaptor.capture());
+      assertThat(idsCaptor.getValue()).contains(followerId, followeeId);
+      verify(userSummaryQueryRepository, never()).findByUserId(any());
     }
 
     @Test
@@ -536,8 +541,9 @@ class FollowServiceTest {
       UUID followeeId = UUID.randomUUID();
       Follow follow = Follow.create(followerId, followeeId);
       CursorPageResponse<Follow> repoPage = new CursorPageResponse<>(
-          List.of(follow), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
-
+          List.of(follow), "cursor", follow.getId(), false, 1L, "createdAt",
+          SortDirection.DESCENDING);
+      
       UserSummary followerSummary = fm.giveMeBuilder(UserSummary.class)
           .set("userId", followerId).sample();
       UserSummary followeeSummary = fm.giveMeBuilder(UserSummary.class)
@@ -546,7 +552,7 @@ class FollowServiceTest {
 
       FollowerListParams params = new FollowerListParams(followeeId, null, null, 10, null);
       given(followRepository.findFollowers(params)).willReturn(repoPage);
-      given(userSummaryQueryRepository.findByUserIds(any()))
+      given(userSummaryQueryRepository.findByUserIds(anyList()))
           .willReturn(List.of(followerSummary, followeeSummary));
       given(followMapper.toDto(follow, followerSummary, followeeSummary)).willReturn(dto);
 
@@ -556,6 +562,12 @@ class FollowServiceTest {
       // then
       assertThat(result.data()).containsExactly(dto);
       assertThat(result.totalCount()).isEqualTo(1L);
+      assertThat(result.nextCursor()).isEqualTo("cursor");
+
+      ArgumentCaptor<List<UUID>> idsCaptor = ArgumentCaptor.forClass(List.class);
+      verify(userSummaryQueryRepository).findByUserIds(idsCaptor.capture());
+      assertThat(idsCaptor.getValue()).contains(followeeId, followerId);
+      verify(userSummaryQueryRepository, never()).findByUserId(any());
     }
 
     @Test
