@@ -363,12 +363,27 @@ class FollowServiceTest {
   class GetSummary {
 
     @Test
+    @DisplayName("조회 대상 유저가 존재하지 않으면 UserNotFoundException을 던진다")
+    void 조회_대상_유저가_존재하지_않으면_UserNotFoundException을_던진다() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID me = UUID.randomUUID();
+      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(false);
+
+      // when & then
+      assertThatThrownBy(() -> followService.getSummary(userId, me))
+          .isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
     @DisplayName("팔로우 요약 정보를 반환한다")
     void 팔로우_요약_정보를_반환한다() {
       // given
       UUID userId = UUID.randomUUID();
       UUID me = UUID.randomUUID();
       UUID followId = UUID.randomUUID();
+
+      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(true);
 
       Follow follow = mock(Follow.class);
       given(follow.getId()).willReturn(followId);
@@ -388,6 +403,7 @@ class FollowServiceTest {
 
       // then
       assertThat(result).isEqualTo(expected);
+      verify(userSummaryQueryRepositoryImpl).existsByUserId(userId);
     }
 
     @Test
@@ -396,6 +412,9 @@ class FollowServiceTest {
       // given
       UUID userId = UUID.randomUUID();
       UUID me = UUID.randomUUID();
+
+      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(true);
+
       given(followRepository.countByFolloweeId(userId)).willReturn(0L);
       given(followRepository.countByFollowerId(userId)).willReturn(0L);
       given(followRepository.findByFollowerIdAndFolloweeId(me, userId)).willReturn(
@@ -421,6 +440,9 @@ class FollowServiceTest {
       // given
       UUID userId = UUID.randomUUID();
       UUID me = UUID.randomUUID();
+
+      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(true);
+
       given(followRepository.countByFolloweeId(userId)).willReturn(0L);
       given(followRepository.countByFollowerId(userId)).willReturn(0L);
       given(followRepository.findByFollowerIdAndFolloweeId(me, userId)).willReturn(

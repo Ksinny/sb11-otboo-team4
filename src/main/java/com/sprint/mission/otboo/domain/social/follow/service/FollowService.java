@@ -1,5 +1,6 @@
 package com.sprint.mission.otboo.domain.social.follow.service;
 
+import com.sprint.mission.otboo.domain.authuser.user.exception.UserNotFoundException;
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.UserSummaryQueryRepositoryImpl;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
@@ -73,6 +74,10 @@ public class FollowService {
 
   @Transactional(readOnly = true)
   public FollowSummaryDto getSummary(UUID userId, UUID currentUserId) {
+    if (!userSummaryQueryRepositoryImpl.existsByUserId(userId)) {
+      throw UserNotFoundException.withNone();
+    }
+
     long followerCount = followRepository.countByFolloweeId(userId);
     long followingCount = followRepository.countByFollowerId(userId);
 
