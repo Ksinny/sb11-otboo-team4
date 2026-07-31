@@ -47,6 +47,12 @@ public class UserSummaryQueryRepositoryImpl implements UserSummaryQueryRepositor
   }
 
   public List<UserSummary> findByUserIds(Collection<UUID> userIds) {
-    return List.of();
+    return queryFactory
+        .select(Projections.constructor(UserSummary.class,
+            user.id, user.name, profile.profileImageUrl))
+        .from(user)
+        .leftJoin(profile).on(profile.id.eq(user.id))
+        .where(user.id.in(userIds))
+        .fetch();
   }
 }
