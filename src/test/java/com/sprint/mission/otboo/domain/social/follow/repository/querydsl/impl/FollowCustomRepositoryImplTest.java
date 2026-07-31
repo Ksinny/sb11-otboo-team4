@@ -8,6 +8,7 @@ import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository
 import com.sprint.mission.otboo.global.config.JpaConfig;
 import com.sprint.mission.otboo.global.config.QuerydslConfig;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,6 +32,14 @@ class FollowCustomRepositoryTest {
 
   @Autowired
   private TestEntityManager testEntityManager;
+
+  private void setCreatedAt(UUID followId, Instant createdAt) {
+    testEntityManager.getEntityManager()
+        .createNativeQuery("update follows set created_at = :createdAt where id = :id")
+        .setParameter("createdAt", createdAt)
+        .setParameter("id", followId)
+        .executeUpdate();
+  }
 
   @Nested
   @DisplayName("findFollowings")
@@ -59,6 +68,30 @@ class FollowCustomRepositoryTest {
       assertThat(result.totalCount()).isEqualTo(3);
       assertThat(result.data())
           .allSatisfy(f -> assertThat(f.getFollowerId()).isEqualTo(followerId));
+    }
+
+    @Test
+    @DisplayName("커서 이후의 팔로잉만 조회한다")
+    void 커서_이후의_팔로잉만_조회한다() {
+      // given
+      UUID followerId = UUID.randomUUID();
+      Follow first = followRepository.save(Follow.create(followerId, UUID.randomUUID()));
+      Follow second = followRepository.save(Follow.create(followerId, UUID.randomUUID()));
+      Follow third = followRepository.save(Follow.create(followerId, UUID.randomUUID()));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // createdAt DESC 순서: third → second → first, 커서 = third
+      FollowingListParams params = new FollowingListParams(
+          followerId, third.getCreatedAt().toString(), third.getId(), 10, null);
+
+      // when
+      CursorPageResponse<Follow> result = followRepository.findFollowings(params);
+
+      // then
+      assertThat(result.data())
+          .extracting(Follow::getFolloweeId)
+          .containsExactly(second.getFolloweeId(), first.getFolloweeId());
     }
   }
 }
