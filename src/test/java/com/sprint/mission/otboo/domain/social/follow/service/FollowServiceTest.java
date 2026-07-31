@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -96,6 +97,7 @@ class FollowServiceTest {
       given(userSummaryQueryRepositoryImpl.findByUserId(followeeId)).willReturn(followeeSummary);
       given(followMapper.toDto(eq(persistedFollow), eq(followerSummary), eq(followeeSummary)))
           .willReturn(expected);
+
       // when
       FollowDto result = followService.create(request, followerId);
 
@@ -126,7 +128,6 @@ class FollowServiceTest {
       assertThatThrownBy(() -> followService.create(request, userId))
           .isInstanceOf(SelfFollowNotAllowedException.class);
     }
-
 
     @Test
     @DisplayName("요청자가 인증 사용자와 다르면 FollowForbiddenException을 던진다")
@@ -346,8 +347,7 @@ class FollowServiceTest {
       // given
       UUID followId = UUID.randomUUID();
       UUID currentUserId = UUID.randomUUID();
-      Follow follow = Follow.create(currentUserId,
-          UUID.randomUUID());
+      Follow follow = Follow.create(currentUserId, UUID.randomUUID());
       given(followRepository.findById(followId)).willReturn(Optional.of(follow));
 
       // when
@@ -365,30 +365,36 @@ class FollowServiceTest {
     @Test
     @DisplayName("팔로우 요약 정보를 반환한다")
     void 팔로우_요약_정보를_반환한다() {
+      // given
       UUID userId = UUID.randomUUID();
       UUID me = UUID.randomUUID();
-      Follow follow = Follow.create(me, userId);
+      UUID followId = UUID.randomUUID();
+
+      Follow follow = mock(Follow.class);
+      given(follow.getId()).willReturn(followId);
 
       given(followRepository.countByFolloweeId(userId)).willReturn(10L);
       given(followRepository.countByFollowerId(userId)).willReturn(5L);
-      given(followRepository.existsByFollowerIdAndFolloweeId(me, userId)).willReturn(true);
       given(followRepository.findByFollowerIdAndFolloweeId(me, userId)).willReturn(
           Optional.of(follow));
       given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(false);
 
+      // when
       FollowSummaryDto result = followService.getSummary(userId, me);
 
+      // then
       assertThat(result.followeeId()).isEqualTo(userId);
       assertThat(result.followerCount()).isEqualTo(10L);
       assertThat(result.followingCount()).isEqualTo(5L);
       assertThat(result.followedByMe()).isTrue();
-      assertThat(result.followedByMeId()).isEqualTo(follow.getId());
+      assertThat(result.followedByMeId()).isEqualTo(followId);
       assertThat(result.followingMe()).isFalse();
     }
 
     @Test
     @DisplayName("내가 팔로우하지 않으면 followedByMe는 false, followedByMeId는 null이다")
     void 내가_팔로우하지_않으면_followedByMe는_false이고_followedByMeId는_null이다() {
+      // given
       UUID userId = UUID.randomUUID();
       UUID me = UUID.randomUUID();
       given(followRepository.countByFolloweeId(userId)).willReturn(0L);
@@ -397,8 +403,10 @@ class FollowServiceTest {
           Optional.empty());
       given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(false);
 
+      // when
       FollowSummaryDto result = followService.getSummary(userId, me);
 
+      // then
       assertThat(result.followedByMe()).isFalse();
       assertThat(result.followedByMeId()).isNull();
     }
@@ -406,6 +414,7 @@ class FollowServiceTest {
     @Test
     @DisplayName("대상이 나를 팔로우하면 followingMe는 true이다")
     void 대상이_나를_팔로우하면_followingMe는_true이다() {
+      // given
       UUID userId = UUID.randomUUID();
       UUID me = UUID.randomUUID();
       given(followRepository.countByFolloweeId(userId)).willReturn(0L);
@@ -414,8 +423,10 @@ class FollowServiceTest {
           Optional.empty());
       given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(true);
 
+      // when
       FollowSummaryDto result = followService.getSummary(userId, me);
 
+      // then
       assertThat(result.followingMe()).isTrue();
     }
   }
