@@ -92,4 +92,38 @@ class UserSummaryQueryRepositoryImplTest {
           .isInstanceOf(UserNotFoundException.class);
     }
   }
+
+  @Nested
+  @DisplayName("existsByUserId")
+  class ExistsByUserId {
+
+    @Test
+    @DisplayName("존재하는 userId면 true를 반환한다")
+    void 존재하는_userId면_true를_반환한다() {
+      // given
+      User user = User.create("otboo", "otboo@test.com", "encoded-password");
+      testEntityManager.persist(user);
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      boolean result = userSummaryQueryRepository.existsByUserId(user.getId());
+
+      // then
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 userId면 false를 반환한다")
+    void 존재하지_않는_userId면_false를_반환한다() {
+      // given
+      UUID unknownId = UUID.randomUUID();
+
+      // when
+      boolean result = userSummaryQueryRepository.existsByUserId(unknownId);
+
+      // then
+      assertThat(result).isFalse();
+    }
+  }
 }

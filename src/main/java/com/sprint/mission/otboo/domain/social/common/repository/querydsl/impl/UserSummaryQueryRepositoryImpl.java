@@ -32,4 +32,15 @@ public class UserSummaryQueryRepositoryImpl implements UserSummaryQueryRepositor
     }
     return result;
   }
+
+  @Override
+  public boolean existsByUserId(UUID userId) {
+    Integer fetchOne = queryFactory
+        .selectOne()
+        .from(user)
+        .where(user.id.eq(userId))
+        .fetchFirst();
+
+    return fetchOne != null;
+  }
 }
