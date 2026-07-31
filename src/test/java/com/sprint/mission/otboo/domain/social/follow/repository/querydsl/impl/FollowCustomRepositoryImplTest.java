@@ -9,6 +9,7 @@ import com.sprint.mission.otboo.global.config.JpaConfig;
 import com.sprint.mission.otboo.global.config.QuerydslConfig;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -92,6 +93,74 @@ class FollowCustomRepositoryTest {
       assertThat(result.data())
           .extracting(Follow::getFolloweeId)
           .containsExactly(second.getFolloweeId(), first.getFolloweeId());
+    }
+
+    @Test
+    @DisplayName("createdAt이 같으면 id 역순으로 tie-break하여 조회한다")
+    void createdAt이_같으면_id_역순으로_tie_break하여_조회한다() {
+      // given
+      UUID followerId = UUID.randomUUID();
+      Instant sameTime = Instant.parse("2026-07-28T00:00:00Z");
+      Follow a = followRepository.save(Follow.create(followerId, UUID.randomUUID()));
+      Follow b = followRepository.save(Follow.create(followerId, UUID.randomUUID()));
+      testEntityManager.flush();
+
+      setCreatedAt(a.getId(), sameTime);
+      setCreatedAt(b.getId(), sameTime);
+      testEntityManager.clear();
+
+      FollowingListParams params = new FollowingListParams(followerId, null, null, 10, null);
+
+      // when
+      CursorPageResponse<Follow> result = followRepository.findFollowings(params);
+
+      // then
+      // 같은 createdAt이므로 id DESC로 tie-break되어 두 팔로우 모두 조회됨
+      assertThat(result.data())
+          .extracting(Follow::getId)
+          .containsExactlyInAnyOrder(a.getId(), b.getId());
+      // tie-break 검증
+      assertThat(result.data().get(0).getId().toString())
+          .isGreaterThan(result.data().get(1).getId().toString());
+    }
+
+    @Test
+    @DisplayName("createdAt 동률에서 커서로 다음 페이지를 조회하면 나머지가 중복·누락 없이 조회된다")
+    void createdAt_동률에서_커서로_다음_페이지를_조회하면_나머지가_중복_누락_없이_조회된다() {
+      // given
+      UUID followerId = UUID.randomUUID();
+      Instant sameTime = Instant.parse("2026-07-28T00:00:00Z");
+      Follow a = followRepository.save(Follow.create(followerId, UUID.randomUUID()));
+      Follow b = followRepository.save(Follow.create(followerId, UUID.randomUUID()));
+      testEntityManager.flush();
+
+      setCreatedAt(a.getId(), sameTime);
+      setCreatedAt(b.getId(), sameTime);
+      testEntityManager.clear();
+
+      FollowingListParams firstPage = new FollowingListParams(followerId, null, null, 1, null);
+
+      // when: 첫 페이지 조회
+      CursorPageResponse<Follow> first = followRepository.findFollowings(firstPage);
+
+      // then
+      assertThat(first.data()).hasSize(1);
+      assertThat(first.hasNext()).isTrue();
+      assertThat(first.nextCursor()).isNotNull();
+      assertThat(first.nextIdAfter()).isNotNull();
+
+      UUID firstId = first.data().get(0).getId();
+
+      // when: 커서로 다음 페이지 조회
+      FollowingListParams secondPage = new FollowingListParams(
+          followerId, first.nextCursor(), first.nextIdAfter(), 1, null);
+      CursorPageResponse<Follow> second = followRepository.findFollowings(secondPage);
+
+      // then
+      assertThat(second.data()).hasSize(1);
+      UUID secondId = second.data().get(0).getId();
+      assertThat(secondId).isNotEqualTo(firstId);
+      assertThat(List.of(firstId, secondId)).containsExactlyInAnyOrder(a.getId(), b.getId());
     }
   }
 }
