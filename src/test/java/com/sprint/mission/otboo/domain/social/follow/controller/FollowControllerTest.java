@@ -3,6 +3,7 @@ package com.sprint.mission.otboo.domain.social.follow.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -160,6 +161,20 @@ class FollowControllerTest {
           .andExpect(jsonPath("$.followingMe").value(false));
 
       verify(followService).getSummary(userId, me);
+    }
+
+    @Test
+    @DisplayName("userId 파라미터가 없으면 400을 반환한다")
+    void userId_파라미터가_없으면_400을_반환한다() throws Exception {
+      // given
+      UUID me = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(me));
+
+      // when & then
+      mockMvc.perform(get("/api/follows/summary"))
+          .andExpect(status().isBadRequest());
+
+      verify(followService, never()).getSummary(any(), any());
     }
   }
 
