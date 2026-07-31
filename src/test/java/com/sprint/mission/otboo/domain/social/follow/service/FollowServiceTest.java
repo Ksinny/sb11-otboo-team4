@@ -385,5 +385,38 @@ class FollowServiceTest {
       assertThat(result.followedByMeId()).isEqualTo(follow.getId());
       assertThat(result.followingMe()).isFalse();
     }
+
+    @Test
+    @DisplayName("내가 팔로우하지 않으면 followedByMe는 false, followedByMeId는 null이다")
+    void 내가_팔로우하지_않으면_followedByMe는_false이고_followedByMeId는_null이다() {
+      UUID userId = UUID.randomUUID();
+      UUID me = UUID.randomUUID();
+      given(followRepository.countByFolloweeId(userId)).willReturn(0L);
+      given(followRepository.countByFollowerId(userId)).willReturn(0L);
+      given(followRepository.findByFollowerIdAndFolloweeId(me, userId)).willReturn(
+          Optional.empty());
+      given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(false);
+
+      FollowSummaryDto result = followService.getSummary(userId, me);
+
+      assertThat(result.followedByMe()).isFalse();
+      assertThat(result.followedByMeId()).isNull();
+    }
+
+    @Test
+    @DisplayName("대상이 나를 팔로우하면 followingMe는 true이다")
+    void 대상이_나를_팔로우하면_followingMe는_true이다() {
+      UUID userId = UUID.randomUUID();
+      UUID me = UUID.randomUUID();
+      given(followRepository.countByFolloweeId(userId)).willReturn(0L);
+      given(followRepository.countByFollowerId(userId)).willReturn(0L);
+      given(followRepository.findByFollowerIdAndFolloweeId(me, userId)).willReturn(
+          Optional.empty());
+      given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(true);
+
+      FollowSummaryDto result = followService.getSummary(userId, me);
+
+      assertThat(result.followingMe()).isTrue();
+    }
   }
 }
