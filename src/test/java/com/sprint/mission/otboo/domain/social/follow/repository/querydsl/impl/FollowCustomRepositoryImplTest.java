@@ -1,7 +1,8 @@
-package com.sprint.mission.otboo.domain.social.follow.repository.querydsl;
+package com.sprint.mission.otboo.domain.social.follow.repository.querydsl.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.sprint.mission.otboo.domain.authuser.user.entity.User;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
@@ -161,6 +162,32 @@ class FollowCustomRepositoryTest {
       UUID secondId = second.data().get(0).getId();
       assertThat(secondId).isNotEqualTo(firstId);
       assertThat(List.of(firstId, secondId)).containsExactlyInAnyOrder(a.getId(), b.getId());
+    }
+
+    @Test
+    @DisplayName("nameLike가 주어지면 팔로위 이름에 해당 키워드를 포함한 팔로잉만 조회한다")
+    void nameLike가_주어지면_팔로위_이름에_해당_키워드를_포함한_팔로잉만_조회한다() {
+      // given
+      UUID followerId = UUID.randomUUID();
+      User woody = testEntityManager.persist(User.create("우디", "woody@otboo.io", "password"));
+      User buzz = testEntityManager.persist(User.create("버즈", "buzz@otboo.io", "password"));
+      User woodyFriend = testEntityManager.persist(User.create("우디친구", "wf@otboo.io", "password"));
+      followRepository.save(Follow.create(followerId, woody.getId()));
+      followRepository.save(Follow.create(followerId, buzz.getId()));
+      followRepository.save(Follow.create(followerId, woodyFriend.getId()));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      FollowingListParams params = new FollowingListParams(followerId, null, null, 10, "우디");
+
+      // when
+      CursorPageResponse<Follow> result = followRepository.findFollowings(params);
+
+      // then
+      assertThat(result.data())
+          .extracting(Follow::getFolloweeId)
+          .containsExactlyInAnyOrder(woody.getId(), woodyFriend.getId());
+      assertThat(result.totalCount()).isEqualTo(2);
     }
   }
 }
