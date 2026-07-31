@@ -4,6 +4,7 @@ import com.sprint.mission.otboo.domain.social.follow.controller.api.FollowApi;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowerListParams;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.service.FollowService;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
@@ -59,6 +60,13 @@ public class FollowController implements FollowApi {
       @Valid @ModelAttribute FollowingListParams params) {
     log.debug("팔로잉 목록 조회 요청: followerId={}", params.followerId());
     return ResponseEntity.ok(followService.getFollowings(params));
+  }
+
+  @GetMapping("/followers")
+  @Override
+  public ResponseEntity<CursorPageResponse<FollowDto>> getFollowers(
+      @ModelAttribute FollowerListParams params) {
+    return null;
   }
 
   @DeleteMapping("/{followId}")

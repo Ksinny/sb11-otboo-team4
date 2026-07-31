@@ -20,6 +20,7 @@ import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowerListParams;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
@@ -255,6 +256,47 @@ class FollowControllerTest {
               .param("cursor", "invalid-instant")
               .param("idAfter", UUID.randomUUID().toString()))
           .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("팔로워 목록 조회 - GET /api/follows/followers")
+  class GetFollowers {
+
+    @Test
+    @DisplayName("정상 요청이면 200과 CursorPageResponse를 반환한다")
+    void 정상_요청이면_200과_CursorPageResponse를_반환한다() throws Exception {
+      // given
+      UUID followeeId = UUID.randomUUID();
+      UUID followerId = UUID.randomUUID();
+      FollowDto dto = new FollowDto(
+          UUID.randomUUID(),
+          new UserSummary(followeeId, "팔로위", null),
+          new UserSummary(followerId, "팔로워", null));
+      CursorPageResponse<FollowDto> response = new CursorPageResponse<>(
+          List.of(dto), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
+      when(followService.getFollowers(any(FollowerListParams.class))).thenReturn(response);
+
+      // when
+      var result = mockMvc.perform(get("/api/follows/followers")
+          .param("followeeId", followeeId.toString())
+          .param("limit", "10")
+          .param("nameLike", "팔로워"));
+
+      // then
+      result
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.hasNext").value(false))
+          .andExpect(jsonPath("$.sortBy").value("createdAt"))
+          .andExpect(jsonPath("$.data[0].follower.userId").value(followerId.toString()));
+
+      ArgumentCaptor<FollowerListParams> captor =
+          ArgumentCaptor.forClass(FollowerListParams.class);
+      verify(followService).getFollowers(captor.capture());
+      FollowerListParams captured = captor.getValue();
+      assertThat(captured.followeeId()).isEqualTo(followeeId);
+      assertThat(captured.limit()).isEqualTo(10);
+      assertThat(captured.nameLike()).isEqualTo("팔로워");
     }
   }
 
