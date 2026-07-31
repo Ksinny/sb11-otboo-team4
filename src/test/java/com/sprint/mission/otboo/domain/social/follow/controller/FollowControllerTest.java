@@ -1,5 +1,6 @@
 package com.sprint.mission.otboo.domain.social.follow.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.willThrow;
@@ -19,9 +20,12 @@ import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
 import com.sprint.mission.otboo.domain.social.follow.service.FollowService;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
+import com.sprint.mission.otboo.global.dto.SortDirection;
 import com.sprint.mission.otboo.global.security.jwt.filter.UserPrincipal;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +33,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -178,6 +183,47 @@ class FollowControllerTest {
     }
   }
 
+  @Nested
+  @DisplayName("팔로잉 목록 조회 - GET /api/follows/followings")
+  class GetFollowings {
+
+    @Test
+    @DisplayName("정상 요청이면 200과 CursorPageResponse를 반환한다")
+    void 정상_요청이면_200과_CursorPageResponse를_반환한다() throws Exception {
+      // given
+      UUID followerId = UUID.randomUUID();
+      UUID followeeId = UUID.randomUUID();
+      FollowDto dto = new FollowDto(
+          UUID.randomUUID(),
+          new UserSummary(followeeId, "팔로위", null),
+          new UserSummary(followerId, "팔로워", null));
+      
+      CursorPageResponse<FollowDto> response = new CursorPageResponse<>(
+          List.of(dto), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
+      when(followService.getFollowings(any(FollowingListParams.class))).thenReturn(response);
+
+      // when
+      var result = mockMvc.perform(get("/api/follows/followings")
+          .param("followerId", followerId.toString())
+          .param("limit", "10")
+          .param("nameLike", "팔로위"));
+
+      // then
+      result
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.hasNext").value(false))
+          .andExpect(jsonPath("$.sortBy").value("createdAt"))
+          .andExpect(jsonPath("$.data[0].followee.userId").value(followeeId.toString()));
+
+      ArgumentCaptor<FollowingListParams> captor =
+          ArgumentCaptor.forClass(FollowingListParams.class);
+      verify(followService).getFollowings(captor.capture());
+      FollowingListParams captured = captor.getValue();
+      assertThat(captured.followerId()).isEqualTo(followerId);
+      assertThat(captured.limit()).isEqualTo(10);
+      assertThat(captured.nameLike()).isEqualTo("팔로위");
+    }
+  }
 
   @Nested
   @DisplayName("팔로우 취소 - DELETE /api/follows/{followId}")

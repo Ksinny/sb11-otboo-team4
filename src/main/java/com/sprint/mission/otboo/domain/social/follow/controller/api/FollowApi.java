@@ -3,6 +3,8 @@ package com.sprint.mission.otboo.domain.social.follow.controller.api;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.security.jwt.filter.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -31,6 +33,13 @@ public interface FollowApi {
       @ApiResponse(responseCode = "400", description = "팔로우 조회 실패")
   })
   ResponseEntity<FollowSummaryDto> getFollowSummary(UUID userId, UserPrincipal principal);
+
+  @Operation(summary = "팔로잉 목록 조회", operationId = "getFollowings")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "팔로잉 목록 조회 성공"),
+      @ApiResponse(responseCode = "400", description = "팔로잉 목록 조회 실패")
+  })
+  ResponseEntity<CursorPageResponse<FollowDto>> getFollowings(FollowingListParams params);
 
   @Operation(summary = "팔로우 취소", operationId = "cancelFollow")
   @ApiResponses({
