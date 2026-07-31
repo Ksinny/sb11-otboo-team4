@@ -80,7 +80,6 @@ public class FollowService {
     }
   }
 
-  @Transactional(readOnly = true)
   public FollowSummaryDto getSummary(UUID userId, UUID currentUserId) {
     if (!userSummaryQueryRepository.existsByUserId(userId)) {
       throw UserNotFoundException.withNone();
@@ -100,12 +99,10 @@ public class FollowService {
         userId, followerCount, followingCount, followedByMe, followedByMeId, followingMe);
   }
 
-  @Transactional(readOnly = true)
   public CursorPageResponse<FollowDto> getFollowings(FollowingListParams params) {
     return toDtoPage(followRepository.findFollowings(params));
   }
 
-  @Transactional(readOnly = true)
   public CursorPageResponse<FollowDto> getFollowers(FollowerListParams params) {
     return toDtoPage(followRepository.findFollowers(params));
   }

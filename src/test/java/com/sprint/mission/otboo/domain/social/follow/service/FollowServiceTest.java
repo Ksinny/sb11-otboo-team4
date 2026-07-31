@@ -14,7 +14,7 @@ import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitra
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
 import com.sprint.mission.otboo.domain.authuser.user.exception.UserNotFoundException;
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
-import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.UserSummaryQueryRepositoryImpl;
+import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
@@ -64,7 +64,7 @@ class FollowServiceTest {
   private FollowMapper followMapper;
 
   @Mock
-  private UserSummaryQueryRepositoryImpl userSummaryQueryRepositoryImpl;
+  private UserSummaryQueryRepository userSummaryQueryRepository;
 
   @Mock
   private ApplicationEventPublisher eventPublisher;
@@ -98,8 +98,8 @@ class FollowServiceTest {
       FollowDto expected = new FollowDto(persistedFollow.getId(), followeeSummary, followerSummary);
 
       given(followRepository.save(any(Follow.class))).willReturn(persistedFollow);
-      given(userSummaryQueryRepositoryImpl.findByUserId(followerId)).willReturn(followerSummary);
-      given(userSummaryQueryRepositoryImpl.findByUserId(followeeId)).willReturn(followeeSummary);
+      given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
+      given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
       given(followMapper.toDto(eq(persistedFollow), eq(followerSummary), eq(followeeSummary)))
           .willReturn(expected);
 
@@ -115,8 +115,8 @@ class FollowServiceTest {
       assertThat(savedFollow.getFollowerId()).isEqualTo(followerId);
       assertThat(savedFollow.getFolloweeId()).isEqualTo(followeeId);
 
-      verify(userSummaryQueryRepositoryImpl).findByUserId(followerId);
-      verify(userSummaryQueryRepositoryImpl).findByUserId(followeeId);
+      verify(userSummaryQueryRepository).findByUserId(followerId);
+      verify(userSummaryQueryRepository).findByUserId(followeeId);
     }
 
     @Test
@@ -173,8 +173,8 @@ class FollowServiceTest {
           .willReturn(true);
       given(followRepository.findByFollowerIdAndFolloweeId(followerId, followeeId))
           .willReturn(Optional.of(existing));
-      given(userSummaryQueryRepositoryImpl.findByUserId(followerId)).willReturn(followerSummary);
-      given(userSummaryQueryRepositoryImpl.findByUserId(followeeId)).willReturn(followeeSummary);
+      given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
+      given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
       given(followMapper.toDto(eq(existing), eq(followerSummary), eq(followeeSummary)))
           .willReturn(expected);
 
@@ -212,8 +212,8 @@ class FollowServiceTest {
           .willThrow(uniqueViolation("uq_follows_follower_id_followee_id"));
       given(followRepository.findByFollowerIdAndFolloweeId(followerId, followeeId))
           .willReturn(Optional.of(existing));
-      given(userSummaryQueryRepositoryImpl.findByUserId(followerId)).willReturn(followerSummary);
-      given(userSummaryQueryRepositoryImpl.findByUserId(followeeId)).willReturn(followeeSummary);
+      given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
+      given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
       given(followMapper.toDto(eq(existing), eq(followerSummary), eq(followeeSummary)))
           .willReturn(expected);
 
@@ -240,8 +240,8 @@ class FollowServiceTest {
           .set("userId", followerId).sample();
       UserSummary followeeSummary = fm.giveMeBuilder(UserSummary.class)
           .set("userId", followeeId).sample();
-      given(userSummaryQueryRepositoryImpl.findByUserId(followerId)).willReturn(followerSummary);
-      given(userSummaryQueryRepositoryImpl.findByUserId(followeeId)).willReturn(followeeSummary);
+      given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
+      given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
 
       given(followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId))
           .willReturn(false);
@@ -274,8 +274,8 @@ class FollowServiceTest {
 
       given(followRepository.save(any(Follow.class)))
           .willAnswer(inv -> inv.getArgument(0));
-      given(userSummaryQueryRepositoryImpl.findByUserId(followerId)).willReturn(followerSummary);
-      given(userSummaryQueryRepositoryImpl.findByUserId(followeeId)).willReturn(followeeSummary);
+      given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
+      given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
       given(followMapper.toDto(any(Follow.class), eq(followerSummary), eq(followeeSummary)))
           .willReturn(expected);
 
@@ -304,8 +304,8 @@ class FollowServiceTest {
 
       UserSummary followerSummary = fm.giveMeBuilder(UserSummary.class)
           .set("userId", followerId).sample();
-      given(userSummaryQueryRepositoryImpl.findByUserId(followerId)).willReturn(followerSummary);
-      given(userSummaryQueryRepositoryImpl.findByUserId(followeeId))
+      given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
+      given(userSummaryQueryRepository.findByUserId(followeeId))
           .willThrow(UserNotFoundException.withNone());
 
       // when & then
@@ -373,7 +373,7 @@ class FollowServiceTest {
       // given
       UUID userId = UUID.randomUUID();
       UUID me = UUID.randomUUID();
-      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(false);
+      given(userSummaryQueryRepository.existsByUserId(userId)).willReturn(false);
 
       // when & then
       assertThatThrownBy(() -> followService.getSummary(userId, me))
@@ -388,7 +388,7 @@ class FollowServiceTest {
       UUID me = UUID.randomUUID();
       UUID followId = UUID.randomUUID();
 
-      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(true);
+      given(userSummaryQueryRepository.existsByUserId(userId)).willReturn(true);
 
       Follow follow = mock(Follow.class);
       given(follow.getId()).willReturn(followId);
@@ -408,7 +408,7 @@ class FollowServiceTest {
 
       // then
       assertThat(result).isEqualTo(expected);
-      verify(userSummaryQueryRepositoryImpl).existsByUserId(userId);
+      verify(userSummaryQueryRepository).existsByUserId(userId);
     }
 
     @Test
@@ -418,7 +418,7 @@ class FollowServiceTest {
       UUID userId = UUID.randomUUID();
       UUID me = UUID.randomUUID();
 
-      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(true);
+      given(userSummaryQueryRepository.existsByUserId(userId)).willReturn(true);
 
       given(followRepository.countByFolloweeId(userId)).willReturn(0L);
       given(followRepository.countByFollowerId(userId)).willReturn(0L);
@@ -446,7 +446,7 @@ class FollowServiceTest {
       UUID userId = UUID.randomUUID();
       UUID me = UUID.randomUUID();
 
-      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(true);
+      given(userSummaryQueryRepository.existsByUserId(userId)).willReturn(true);
 
       given(followRepository.countByFolloweeId(userId)).willReturn(0L);
       given(followRepository.countByFollowerId(userId)).willReturn(0L);
@@ -490,7 +490,7 @@ class FollowServiceTest {
 
       FollowingListParams params = new FollowingListParams(followerId, null, null, 10, null);
       given(followRepository.findFollowings(params)).willReturn(repoPage);
-      given(userSummaryQueryRepositoryImpl.findByUserIds(any()))
+      given(userSummaryQueryRepository.findByUserIds(any()))
           .willReturn(List.of(followerSummary, followeeSummary));
       given(followMapper.toDto(follow, followerSummary, followeeSummary)).willReturn(dto);
 
@@ -520,7 +520,7 @@ class FollowServiceTest {
       // then
       assertThat(result.data()).isEmpty();
       assertThat(result.totalCount()).isEqualTo(0L);
-      verify(userSummaryQueryRepositoryImpl, never()).findByUserIds(any());
+      verify(userSummaryQueryRepository, never()).findByUserIds(any());
     }
   }
 
@@ -546,7 +546,7 @@ class FollowServiceTest {
 
       FollowerListParams params = new FollowerListParams(followeeId, null, null, 10, null);
       given(followRepository.findFollowers(params)).willReturn(repoPage);
-      given(userSummaryQueryRepositoryImpl.findByUserIds(any()))
+      given(userSummaryQueryRepository.findByUserIds(any()))
           .willReturn(List.of(followerSummary, followeeSummary));
       given(followMapper.toDto(follow, followerSummary, followeeSummary)).willReturn(dto);
 
@@ -574,7 +574,7 @@ class FollowServiceTest {
       // then
       assertThat(result.data()).isEmpty();
       assertThat(result.totalCount()).isEqualTo(0L);
-      verify(userSummaryQueryRepositoryImpl, never()).findByUserIds(any());
+      verify(userSummaryQueryRepository, never()).findByUserIds(any());
     }
   }
 }
