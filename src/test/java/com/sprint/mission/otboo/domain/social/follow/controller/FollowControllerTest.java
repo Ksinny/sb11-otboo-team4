@@ -3,9 +3,11 @@ package com.sprint.mission.otboo.domain.social.follow.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -16,6 +18,7 @@ import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPl
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
 import com.sprint.mission.otboo.domain.social.follow.service.FollowService;
@@ -129,6 +132,52 @@ class FollowControllerTest {
           .andExpect(status().isBadRequest());
     }
   }
+
+  @Nested
+  @DisplayName("팔로우 요약 조회 - GET /api/follows/summary")
+  class getFollowSummary {
+
+    @Test
+    @DisplayName("정상 요청이면 200과 FollowSummaryDto를 반환한다")
+    void 정상_요청이면_200과_FollowSummaryDto를_반환한다() throws Exception {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID me = UUID.randomUUID();
+      UUID followId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(me));
+
+      FollowSummaryDto response =
+          new FollowSummaryDto(userId, 10L, 5L, true, followId, false);
+      when(followService.getSummary(userId, me)).thenReturn(response);
+
+      // when & then
+      mockMvc.perform(get("/api/follows/summary").param("userId", userId.toString()))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.followeeId").value(userId.toString()))
+          .andExpect(jsonPath("$.followerCount").value(10))
+          .andExpect(jsonPath("$.followingCount").value(5))
+          .andExpect(jsonPath("$.followedByMe").value(true))
+          .andExpect(jsonPath("$.followedByMeId").value(followId.toString()))
+          .andExpect(jsonPath("$.followingMe").value(false));
+
+      verify(followService).getSummary(userId, me);
+    }
+
+    @Test
+    @DisplayName("userId 파라미터가 없으면 400을 반환한다")
+    void userId_파라미터가_없으면_400을_반환한다() throws Exception {
+      // given
+      UUID me = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(me));
+
+      // when & then
+      mockMvc.perform(get("/api/follows/summary"))
+          .andExpect(status().isBadRequest());
+
+      verify(followService, never()).getSummary(any(), any());
+    }
+  }
+
 
   @Nested
   @DisplayName("팔로우 취소 - DELETE /api/follows/{followId}")

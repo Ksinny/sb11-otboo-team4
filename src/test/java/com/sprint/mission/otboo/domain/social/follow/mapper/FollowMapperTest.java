@@ -7,6 +7,7 @@ import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitra
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +49,35 @@ class FollowMapperTest {
       assertThat(result.id()).isEqualTo(follow.getId());
       assertThat(result.follower()).isEqualTo(follower);
       assertThat(result.followee()).isEqualTo(followee);
+    }
+  }
+
+  @Nested
+  @DisplayName("toSummaryDto")
+  class ToSummaryDto {
+
+    @Test
+    @DisplayName("전달받은 정보를 FollowSummaryDto로 변환한다")
+    void 전달받은_정보를_FollowSummaryDto로_변환한다() {
+      // given
+      UUID followeeId = UUID.randomUUID();
+      long followerCount = 10L;
+      long followingCount = 5L;
+      boolean followedByMe = true;
+      UUID followedByMeId = UUID.randomUUID();
+      boolean followingMe = false;
+
+      // when
+      FollowSummaryDto result = followMapper.toSummaryDto(
+          followeeId, followerCount, followingCount, followedByMe, followedByMeId, followingMe);
+
+      // then
+      assertThat(result.followeeId()).isEqualTo(followeeId);
+      assertThat(result.followerCount()).isEqualTo(followerCount);
+      assertThat(result.followingCount()).isEqualTo(followingCount);
+      assertThat(result.followedByMe()).isEqualTo(followedByMe);
+      assertThat(result.followedByMeId()).isEqualTo(followedByMeId);
+      assertThat(result.followingMe()).isEqualTo(followingMe);
     }
   }
 }

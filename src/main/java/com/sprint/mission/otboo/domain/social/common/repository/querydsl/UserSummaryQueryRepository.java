@@ -6,4 +6,6 @@ import java.util.UUID;
 public interface UserSummaryQueryRepository {
 
   UserSummary findByUserId(UUID userId);
+
+  boolean existsByUserId(UUID userId);
 }

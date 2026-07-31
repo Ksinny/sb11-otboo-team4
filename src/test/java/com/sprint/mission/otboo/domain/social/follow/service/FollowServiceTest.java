@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -16,6 +17,7 @@ import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.UserSummaryQueryRepositoryImpl;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
@@ -95,6 +97,7 @@ class FollowServiceTest {
       given(userSummaryQueryRepositoryImpl.findByUserId(followeeId)).willReturn(followeeSummary);
       given(followMapper.toDto(eq(persistedFollow), eq(followerSummary), eq(followeeSummary)))
           .willReturn(expected);
+
       // when
       FollowDto result = followService.create(request, followerId);
 
@@ -125,7 +128,6 @@ class FollowServiceTest {
       assertThatThrownBy(() -> followService.create(request, userId))
           .isInstanceOf(SelfFollowNotAllowedException.class);
     }
-
 
     @Test
     @DisplayName("요청자가 인증 사용자와 다르면 FollowForbiddenException을 던진다")
@@ -345,8 +347,7 @@ class FollowServiceTest {
       // given
       UUID followId = UUID.randomUUID();
       UUID currentUserId = UUID.randomUUID();
-      Follow follow = Follow.create(currentUserId,
-          UUID.randomUUID());
+      Follow follow = Follow.create(currentUserId, UUID.randomUUID());
       given(followRepository.findById(followId)).willReturn(Optional.of(follow));
 
       // when
@@ -354,6 +355,110 @@ class FollowServiceTest {
 
       // then
       verify(followRepository).delete(follow);
+    }
+  }
+
+  @Nested
+  @DisplayName("팔로우 요약 조회")
+  class GetSummary {
+
+    @Test
+    @DisplayName("조회 대상 유저가 존재하지 않으면 UserNotFoundException을 던진다")
+    void 조회_대상_유저가_존재하지_않으면_UserNotFoundException을_던진다() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID me = UUID.randomUUID();
+      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(false);
+
+      // when & then
+      assertThatThrownBy(() -> followService.getSummary(userId, me))
+          .isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("팔로우 요약 정보를 반환한다")
+    void 팔로우_요약_정보를_반환한다() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID me = UUID.randomUUID();
+      UUID followId = UUID.randomUUID();
+
+      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(true);
+
+      Follow follow = mock(Follow.class);
+      given(follow.getId()).willReturn(followId);
+
+      given(followRepository.countByFolloweeId(userId)).willReturn(10L);
+      given(followRepository.countByFollowerId(userId)).willReturn(5L);
+      given(followRepository.findByFollowerIdAndFolloweeId(me, userId)).willReturn(
+          Optional.of(follow));
+      given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(false);
+
+      FollowSummaryDto expected = new FollowSummaryDto(userId, 10L, 5L, true, followId, false);
+      given(followMapper.toSummaryDto(userId, 10L, 5L, true, followId, false))
+          .willReturn(expected);
+
+      // when
+      FollowSummaryDto result = followService.getSummary(userId, me);
+
+      // then
+      assertThat(result).isEqualTo(expected);
+      verify(userSummaryQueryRepositoryImpl).existsByUserId(userId);
+    }
+
+    @Test
+    @DisplayName("내가 팔로우하지 않으면 followedByMe는 false, followedByMeId는 null이다")
+    void 내가_팔로우하지_않으면_followedByMe는_false이고_followedByMeId는_null이다() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID me = UUID.randomUUID();
+
+      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(true);
+
+      given(followRepository.countByFolloweeId(userId)).willReturn(0L);
+      given(followRepository.countByFollowerId(userId)).willReturn(0L);
+      given(followRepository.findByFollowerIdAndFolloweeId(me, userId)).willReturn(
+          Optional.empty());
+      given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(false);
+
+      FollowSummaryDto expected = new FollowSummaryDto(userId, 0L, 0L, false, null, false);
+      given(followMapper.toSummaryDto(userId, 0L, 0L, false, null, false))
+          .willReturn(expected);
+
+      // when
+      FollowSummaryDto result = followService.getSummary(userId, me);
+
+      // then
+      assertThat(result).isEqualTo(expected);
+      assertThat(result.followedByMe()).isFalse();
+      assertThat(result.followedByMeId()).isNull();
+    }
+
+    @Test
+    @DisplayName("대상이 나를 팔로우하면 followingMe는 true이다")
+    void 대상이_나를_팔로우하면_followingMe는_true이다() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID me = UUID.randomUUID();
+
+      given(userSummaryQueryRepositoryImpl.existsByUserId(userId)).willReturn(true);
+
+      given(followRepository.countByFolloweeId(userId)).willReturn(0L);
+      given(followRepository.countByFollowerId(userId)).willReturn(0L);
+      given(followRepository.findByFollowerIdAndFolloweeId(me, userId)).willReturn(
+          Optional.empty());
+      given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(true);
+
+      FollowSummaryDto expected = new FollowSummaryDto(userId, 0L, 0L, false, null, true);
+      given(followMapper.toSummaryDto(userId, 0L, 0L, false, null, true))
+          .willReturn(expected);
+
+      // when
+      FollowSummaryDto result = followService.getSummary(userId, me);
+
+      // then
+      assertThat(result).isEqualTo(expected);
+      assertThat(result.followingMe()).isTrue();
     }
   }
 }

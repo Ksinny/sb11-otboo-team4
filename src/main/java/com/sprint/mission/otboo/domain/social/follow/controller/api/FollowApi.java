@@ -2,6 +2,7 @@ package com.sprint.mission.otboo.domain.social.follow.controller.api;
 
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
 import com.sprint.mission.otboo.global.security.jwt.filter.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,6 +24,13 @@ public interface FollowApi {
   })
   ResponseEntity<FollowDto> createFollow(@Valid @RequestBody FollowCreateRequest request,
       UserPrincipal principal);
+
+  @Operation(summary = "팔로우 요약 정보 조회", operationId = "getFollowSummary")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "팔로우 요약 정보 조회 성공"),
+      @ApiResponse(responseCode = "400", description = "팔로우 조회 실패")
+  })
+  ResponseEntity<FollowSummaryDto> getFollowSummary(UUID userId, UserPrincipal principal);
 
   @Operation(summary = "팔로우 취소", operationId = "cancelFollow")
   @ApiResponses({
