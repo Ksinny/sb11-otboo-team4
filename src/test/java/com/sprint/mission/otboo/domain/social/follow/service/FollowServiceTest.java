@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,14 +19,18 @@ import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.Us
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
 import com.sprint.mission.otboo.domain.social.follow.exception.SelfFollowNotAllowedException;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
+import com.sprint.mission.otboo.global.dto.SortDirection;
 import com.sprint.mission.otboo.global.event.NotificationLevel;
 import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
@@ -459,6 +464,29 @@ class FollowServiceTest {
       // then
       assertThat(result).isEqualTo(expected);
       assertThat(result.followingMe()).isTrue();
+    }
+  }
+
+  @Nested
+  @DisplayName("팔로잉 조회")
+  class GetFollowings {
+
+    @Test
+    @DisplayName("파라미터를 리포지토리에 위임하고 결과를 그대로 반환한다")
+    void 파라미터를_리포지토리에_위임하고_결과를_그대로_반환한다() {
+      // given
+      FollowingListParams params =
+          new FollowingListParams(UUID.randomUUID(), null, null, 10, null);
+      CursorPageResponse<FollowDto> expected = new CursorPageResponse<>(
+          List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
+      given(followRepository.findFollowings(params)).willReturn(expected);
+
+      // when
+      CursorPageResponse<FollowDto> result = followService.getFollowings(params);
+
+      // then
+      assertThat(result).isEqualTo(expected);
+      then(followRepository).should().findFollowings(params);
     }
   }
 }

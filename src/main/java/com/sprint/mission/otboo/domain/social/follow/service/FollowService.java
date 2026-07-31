@@ -6,12 +6,14 @@ import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.Us
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
 import com.sprint.mission.otboo.domain.social.follow.exception.SelfFollowNotAllowedException;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.event.NotificationLevel;
 import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
 import java.util.Set;
@@ -90,6 +92,11 @@ public class FollowService {
 
     return followMapper.toSummaryDto(
         userId, followerCount, followingCount, followedByMe, followedByMeId, followingMe);
+  }
+
+  @Transactional(readOnly = true)
+  public CursorPageResponse<FollowDto> getFollowings(FollowingListParams params) {
+    return followRepository.findFollowings(params);
   }
 
   @Transactional
