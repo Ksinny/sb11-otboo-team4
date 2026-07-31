@@ -65,7 +65,7 @@ public class FollowController implements FollowApi {
   @GetMapping("/followers")
   @Override
   public ResponseEntity<CursorPageResponse<FollowDto>> getFollowers(
-      @ModelAttribute FollowerListParams params) {
+      @Valid @ModelAttribute FollowerListParams params) {
     log.debug("팔로워 목록 조회 요청: followeeId={}", params.followeeId());
     return ResponseEntity.ok(followService.getFollowers(params));
   }

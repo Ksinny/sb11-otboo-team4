@@ -40,15 +40,15 @@ public interface FollowApi {
       @ApiResponse(responseCode = "200", description = "팔로잉 목록 조회 성공"),
       @ApiResponse(responseCode = "400", description = "팔로잉 목록 조회 실패")
   })
-  ResponseEntity<CursorPageResponse<FollowDto>> getFollowings(FollowingListParams params);
+  ResponseEntity<CursorPageResponse<FollowDto>> getFollowings(@Valid FollowingListParams params);
 
   @Operation(summary = "팔로워 목록 조회", operationId = "getFollowers")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "팔로워 목록 조회 성공"),
       @ApiResponse(responseCode = "400", description = "팔로워 목록 조회 실패")
   })
-  ResponseEntity<CursorPageResponse<FollowDto>> getFollowers(FollowerListParams params);
-  
+  ResponseEntity<CursorPageResponse<FollowDto>> getFollowers(@Valid FollowerListParams params);
+
   @Operation(summary = "팔로우 취소", operationId = "cancelFollow")
   @ApiResponses({
       @ApiResponse(responseCode = "204", description = "팔로우 취소 성공"),
