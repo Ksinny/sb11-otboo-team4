@@ -1,5 +1,6 @@
 package com.sprint.mission.otboo.domain.social.follow.repository.querydsl.impl;
 
+import static com.sprint.mission.otboo.domain.authuser.user.entity.QUser.user;
 import static com.sprint.mission.otboo.domain.social.follow.entity.QFollow.follow;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -36,13 +37,32 @@ public class FollowCustomRepositoryImpl implements FollowCustomRepository {
   private List<Follow> fetchFollowings(FollowingListParams params) {
     return queryFactory
         .selectFrom(follow)
+        .leftJoin(user).on(user.id.eq(follow.followeeId))
         .where(
             follow.followerId.eq(params.followerId()),
+            nameLikeContains(params.nameLike()),
             cursorCondition(params)
         )
         .orderBy(follow.createdAt.desc(), follow.id.desc())
         .limit(params.limit() + 1L)
         .fetch();
+  }
+
+  private long countFollowings(FollowingListParams params) {
+    return Optional.ofNullable(
+        queryFactory.select(follow.count())
+            .from(follow)
+            .leftJoin(user).on(user.id.eq(follow.followeeId))
+            .where(
+                follow.followerId.eq(params.followerId()),
+                nameLikeContains(params.nameLike())
+            )
+            .fetchOne()
+    ).orElse(0L);
+  }
+
+  private BooleanExpression nameLikeContains(String nameLike) {
+    return nameLike == null ? null : user.name.containsIgnoreCase(nameLike);
   }
 
   private BooleanExpression cursorCondition(FollowingListParams params) {
@@ -53,15 +73,6 @@ public class FollowCustomRepositoryImpl implements FollowCustomRepository {
     UUID cursorId = params.idAfter();
     return follow.createdAt.lt(value)
         .or(follow.createdAt.eq(value).and(follow.id.lt(cursorId)));
-  }
-
-  private long countFollowings(FollowingListParams params) {
-    return Optional.ofNullable(
-        queryFactory.select(follow.count())
-            .from(follow)
-            .where(follow.followerId.eq(params.followerId()))
-            .fetchOne()
-    ).orElse(0L);
   }
 
   private CursorInfo createCursorInfo(List<Follow> page, boolean hasNext) {
