@@ -3,12 +3,9 @@ package com.sprint.mission.otboo.domain.social.follow.repository.querydsl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sprint.mission.otboo.domain.authuser.user.entity.User;
-import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.UserSummaryQueryRepositoryImpl;
-import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowerListParams;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
-import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
 import com.sprint.mission.otboo.global.config.JpaConfig;
 import com.sprint.mission.otboo.global.config.QuerydslConfig;
@@ -29,8 +26,7 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({JpaConfig.class, QuerydslConfig.class,
-    UserSummaryQueryRepositoryImpl.class, FollowMapper.class})
+@Import({JpaConfig.class, QuerydslConfig.class})
 @DisplayName("FollowCustomRepository")
 class FollowCustomRepositoryTest {
 
@@ -73,14 +69,14 @@ class FollowCustomRepositoryTest {
       FollowingListParams params = new FollowingListParams(follower.getId(), null, null, 2, null);
 
       // when
-      CursorPageResponse<FollowDto> result = followRepository.findFollowings(params);
+      CursorPageResponse<Follow> result = followRepository.findFollowings(params);
 
       // then
       assertThat(result.data()).hasSize(2);
       assertThat(result.hasNext()).isTrue();
       assertThat(result.totalCount()).isEqualTo(3);
       assertThat(result.data())
-          .allSatisfy(dto -> assertThat(dto.follower().userId()).isEqualTo(follower.getId()));
+          .allSatisfy(f -> assertThat(f.getFollowerId()).isEqualTo(follower.getId()));
     }
 
     @Test
@@ -102,11 +98,11 @@ class FollowCustomRepositoryTest {
           follower.getId(), third.getCreatedAt().toString(), third.getId(), 10, null);
 
       // when
-      CursorPageResponse<FollowDto> result = followRepository.findFollowings(params);
+      CursorPageResponse<Follow> result = followRepository.findFollowings(params);
 
       // then
       assertThat(result.data())
-          .extracting(dto -> dto.followee().userId())
+          .extracting(Follow::getFolloweeId)
           .containsExactly(f2.getId(), f1.getId());
     }
 
@@ -127,11 +123,11 @@ class FollowCustomRepositoryTest {
       FollowingListParams params = new FollowingListParams(follower.getId(), null, null, 10, "우디");
 
       // when
-      CursorPageResponse<FollowDto> result = followRepository.findFollowings(params);
+      CursorPageResponse<Follow> result = followRepository.findFollowings(params);
 
       // then
       assertThat(result.data())
-          .extracting(dto -> dto.followee().userId())
+          .extracting(Follow::getFolloweeId)
           .containsExactlyInAnyOrder(woody.getId(), woodyFriend.getId());
       assertThat(result.totalCount()).isEqualTo(2);
     }
@@ -155,15 +151,15 @@ class FollowCustomRepositoryTest {
       FollowingListParams params = new FollowingListParams(follower.getId(), null, null, 10, null);
 
       // when
-      CursorPageResponse<FollowDto> result = followRepository.findFollowings(params);
+      CursorPageResponse<Follow> result = followRepository.findFollowings(params);
 
       // then
       // 같은 createdAt이므로 follow id DESC로 tie-break되어 두 건 모두 조회됨
       assertThat(result.data())
-          .extracting(FollowDto::id)
+          .extracting(Follow::getId)
           .containsExactlyInAnyOrder(a.getId(), b.getId());
-      assertThat(result.data().get(0).id().toString())
-          .isGreaterThan(result.data().get(1).id().toString());
+      assertThat(result.data().get(0).getId().toString())
+          .isGreaterThan(result.data().get(1).getId().toString());
     }
 
     @Test
@@ -182,11 +178,11 @@ class FollowCustomRepositoryTest {
       setCreatedAt(b.getId(), sameTime);
       testEntityManager.clear();
 
-      FollowingListParams firstPage = new FollowingListParams(follower.getId(), null, null, 1,
-          null);
+      FollowingListParams firstPage =
+          new FollowingListParams(follower.getId(), null, null, 1, null);
 
       // when: 첫 페이지 조회
-      CursorPageResponse<FollowDto> first = followRepository.findFollowings(firstPage);
+      CursorPageResponse<Follow> first = followRepository.findFollowings(firstPage);
 
       // then
       assertThat(first.data()).hasSize(1);
@@ -194,16 +190,16 @@ class FollowCustomRepositoryTest {
       assertThat(first.nextCursor()).isNotNull();
       assertThat(first.nextIdAfter()).isNotNull();
 
-      UUID firstId = first.data().get(0).id();
+      UUID firstId = first.data().get(0).getId();
 
       // when: 커서로 다음 페이지 조회
       FollowingListParams secondPage = new FollowingListParams(
           follower.getId(), first.nextCursor(), first.nextIdAfter(), 1, null);
-      CursorPageResponse<FollowDto> second = followRepository.findFollowings(secondPage);
+      CursorPageResponse<Follow> second = followRepository.findFollowings(secondPage);
 
       // then
       assertThat(second.data()).hasSize(1);
-      UUID secondId = second.data().get(0).id();
+      UUID secondId = second.data().get(0).getId();
       assertThat(secondId).isNotEqualTo(firstId);
       assertThat(List.of(firstId, secondId)).containsExactlyInAnyOrder(a.getId(), b.getId());
     }
@@ -229,14 +225,14 @@ class FollowCustomRepositoryTest {
       FollowerListParams params = new FollowerListParams(followee.getId(), null, null, 2, null);
 
       // when
-      CursorPageResponse<FollowDto> result = followRepository.findFollowers(params);
+      CursorPageResponse<Follow> result = followRepository.findFollowers(params);
 
       // then
       assertThat(result.data()).hasSize(2);
       assertThat(result.hasNext()).isTrue();
       assertThat(result.totalCount()).isEqualTo(3);
       assertThat(result.data())
-          .allSatisfy(dto -> assertThat(dto.followee().userId()).isEqualTo(followee.getId()));
+          .allSatisfy(f -> assertThat(f.getFolloweeId()).isEqualTo(followee.getId()));
     }
 
     @Test
@@ -256,11 +252,11 @@ class FollowCustomRepositoryTest {
       FollowerListParams params = new FollowerListParams(followee.getId(), null, null, 10, "우디");
 
       // when
-      CursorPageResponse<FollowDto> result = followRepository.findFollowers(params);
+      CursorPageResponse<Follow> result = followRepository.findFollowers(params);
 
       // then
       assertThat(result.data())
-          .extracting(dto -> dto.follower().userId())
+          .extracting(Follow::getFollowerId)
           .containsExactlyInAnyOrder(woody.getId(), woodyFriend.getId());
       assertThat(result.totalCount()).isEqualTo(2);
     }
@@ -284,11 +280,11 @@ class FollowCustomRepositoryTest {
           followee.getId(), third.getCreatedAt().toString(), third.getId(), 10, null);
 
       // when
-      CursorPageResponse<FollowDto> result = followRepository.findFollowers(params);
+      CursorPageResponse<Follow> result = followRepository.findFollowers(params);
 
       // then
       assertThat(result.data())
-          .extracting(dto -> dto.follower().userId())
+          .extracting(Follow::getFollowerId)
           .containsExactly(f2.getId(), f1.getId());
     }
   }

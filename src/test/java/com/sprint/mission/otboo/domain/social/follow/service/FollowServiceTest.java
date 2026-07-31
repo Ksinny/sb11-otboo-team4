@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -473,44 +472,71 @@ class FollowServiceTest {
   class GetFollowings {
 
     @Test
-    @DisplayName("파라미터를 리포지토리에 위임하고 결과를 그대로 반환한다")
-    void 파라미터를_리포지토리에_위임하고_결과를_그대로_반환한다() {
+    @DisplayName("리포 결과를 배치 조회·매핑해 FollowDto 페이지로 반환한다")
+    void 리포_결과를_배치_조회_매핑해_FollowDto_페이지로_반환한다() {
       // given
-      FollowingListParams params =
-          new FollowingListParams(UUID.randomUUID(), null, null, 10, null);
-      CursorPageResponse<FollowDto> expected = new CursorPageResponse<>(
-          List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
-      given(followRepository.findFollowings(params)).willReturn(expected);
+      UUID followerId = UUID.randomUUID();
+      UUID followeeId = UUID.randomUUID();
+      Follow follow = Follow.create(followerId, followeeId);
+      CursorPageResponse<Follow> repoPage = new CursorPageResponse<>(
+          List.of(follow), "cursor", follow.getId(), false, 1L, "createdAt",
+          SortDirection.DESCENDING);
+
+      UserSummary followerSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followerId).sample();
+      UserSummary followeeSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followeeId).sample();
+      FollowDto dto = new FollowDto(follow.getId(), followeeSummary, followerSummary);
+
+      FollowingListParams params = new FollowingListParams(followerId, null, null, 10, null);
+      given(followRepository.findFollowings(params)).willReturn(repoPage);
+      given(userSummaryQueryRepositoryImpl.findByUserIds(any()))
+          .willReturn(List.of(followerSummary, followeeSummary));
+      given(followMapper.toDto(follow, followerSummary, followeeSummary)).willReturn(dto);
 
       // when
       CursorPageResponse<FollowDto> result = followService.getFollowings(params);
 
       // then
-      assertThat(result).isEqualTo(expected);
-      then(followRepository).should().findFollowings(params);
+      assertThat(result.data()).containsExactly(dto);
+      assertThat(result.hasNext()).isFalse();
+      assertThat(result.totalCount()).isEqualTo(1L);
+      assertThat(result.nextCursor()).isEqualTo("cursor");
     }
   }
 
   @Nested
-  @DisplayName("getFollowers")
+  @DisplayName("팔로워 조회")
   class GetFollowers {
 
     @Test
-    @DisplayName("파라미터를 리포지토리에 위임하고 결과를 그대로 반환한다")
-    void 파라미터를_리포지토리에_위임하고_결과를_그대로_반환한다() {
+    @DisplayName("리포 결과를 배치 조회·매핑해 FollowDto 페이지로 반환한다")
+    void 리포_결과를_배치_조회_매핑해_FollowDto_페이지로_반환한다() {
       // given
-      FollowerListParams params =
-          new FollowerListParams(UUID.randomUUID(), null, null, 10, null);
-      CursorPageResponse<FollowDto> expected = new CursorPageResponse<>(
-          List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
-      given(followRepository.findFollowers(params)).willReturn(expected);
+      UUID followerId = UUID.randomUUID();
+      UUID followeeId = UUID.randomUUID();
+      Follow follow = Follow.create(followerId, followeeId);
+      CursorPageResponse<Follow> repoPage = new CursorPageResponse<>(
+          List.of(follow), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
+
+      UserSummary followerSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followerId).sample();
+      UserSummary followeeSummary = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", followeeId).sample();
+      FollowDto dto = new FollowDto(follow.getId(), followeeSummary, followerSummary);
+
+      FollowerListParams params = new FollowerListParams(followeeId, null, null, 10, null);
+      given(followRepository.findFollowers(params)).willReturn(repoPage);
+      given(userSummaryQueryRepositoryImpl.findByUserIds(any()))
+          .willReturn(List.of(followerSummary, followeeSummary));
+      given(followMapper.toDto(follow, followerSummary, followeeSummary)).willReturn(dto);
 
       // when
       CursorPageResponse<FollowDto> result = followService.getFollowers(params);
 
       // then
-      assertThat(result).isEqualTo(expected);
-      then(followRepository).should().findFollowers(params);
+      assertThat(result.data()).containsExactly(dto);
+      assertThat(result.totalCount()).isEqualTo(1L);
     }
   }
 }
