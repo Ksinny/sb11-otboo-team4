@@ -19,6 +19,7 @@ import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.Us
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowerListParams;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
@@ -487,6 +488,29 @@ class FollowServiceTest {
       // then
       assertThat(result).isEqualTo(expected);
       then(followRepository).should().findFollowings(params);
+    }
+  }
+
+  @Nested
+  @DisplayName("getFollowers")
+  class GetFollowers {
+
+    @Test
+    @DisplayName("파라미터를 리포지토리에 위임하고 결과를 그대로 반환한다")
+    void 파라미터를_리포지토리에_위임하고_결과를_그대로_반환한다() {
+      // given
+      FollowerListParams params =
+          new FollowerListParams(UUID.randomUUID(), null, null, 10, null);
+      CursorPageResponse<FollowDto> expected = new CursorPageResponse<>(
+          List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
+      given(followRepository.findFollowers(params)).willReturn(expected);
+
+      // when
+      CursorPageResponse<FollowDto> result = followService.getFollowers(params);
+
+      // then
+      assertThat(result).isEqualTo(expected);
+      then(followRepository).should().findFollowers(params);
     }
   }
 }

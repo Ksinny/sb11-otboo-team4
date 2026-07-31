@@ -6,6 +6,7 @@ import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.Us
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowerListParams;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
@@ -92,6 +93,11 @@ public class FollowService {
 
     return followMapper.toSummaryDto(
         userId, followerCount, followingCount, followedByMe, followedByMeId, followingMe);
+  }
+
+  @Transactional(readOnly = true)
+  public CursorPageResponse<FollowDto> getFollowers(FollowerListParams params) {
+    return followRepository.findFollowers(params);
   }
 
   @Transactional(readOnly = true)
