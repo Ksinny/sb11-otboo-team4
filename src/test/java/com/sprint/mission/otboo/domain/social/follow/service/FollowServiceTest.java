@@ -503,6 +503,25 @@ class FollowServiceTest {
       assertThat(result.totalCount()).isEqualTo(1L);
       assertThat(result.nextCursor()).isEqualTo("cursor");
     }
+
+    @Test
+    @DisplayName("결과가 없으면 빈 데이터 페이지를 반환하고 배치 조회를 하지 않는다")
+    void 결과가_없으면_빈_데이터_페이지를_반환하고_배치_조회를_하지_않는다() {
+      // given
+      FollowingListParams params =
+          new FollowingListParams(UUID.randomUUID(), null, null, 10, null);
+      CursorPageResponse<Follow> emptyPage = new CursorPageResponse<>(
+          List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
+      given(followRepository.findFollowings(params)).willReturn(emptyPage);
+
+      // when
+      CursorPageResponse<FollowDto> result = followService.getFollowings(params);
+
+      // then
+      assertThat(result.data()).isEmpty();
+      assertThat(result.totalCount()).isEqualTo(0L);
+      verify(userSummaryQueryRepositoryImpl, never()).findByUserIds(any());
+    }
   }
 
   @Nested
@@ -537,6 +556,25 @@ class FollowServiceTest {
       // then
       assertThat(result.data()).containsExactly(dto);
       assertThat(result.totalCount()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("결과가 없으면 빈 데이터 페이지를 반환하고 배치 조회를 하지 않는다")
+    void 결과가_없으면_빈_데이터_페이지를_반환하고_배치_조회를_하지_않는다() {
+      // given
+      FollowerListParams params =
+          new FollowerListParams(UUID.randomUUID(), null, null, 10, null);
+      CursorPageResponse<Follow> emptyPage = new CursorPageResponse<>(
+          List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
+      given(followRepository.findFollowers(params)).willReturn(emptyPage);
+
+      // when
+      CursorPageResponse<FollowDto> result = followService.getFollowers(params);
+
+      // then
+      assertThat(result.data()).isEmpty();
+      assertThat(result.totalCount()).isEqualTo(0L);
+      verify(userSummaryQueryRepositoryImpl, never()).findByUserIds(any());
     }
   }
 }
