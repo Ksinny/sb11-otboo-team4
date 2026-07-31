@@ -4,6 +4,7 @@ import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.UserSummaryQueryRepositoryImpl;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
@@ -68,6 +69,11 @@ public class FollowService {
       }
       throw e; // UQ 외 제약 위반은 전파
     }
+  }
+
+  @Transactional(readOnly = true)
+  public FollowSummaryDto getSummary(UUID userId, UUID currentUserId) {
+    return null;
   }
 
   @Transactional

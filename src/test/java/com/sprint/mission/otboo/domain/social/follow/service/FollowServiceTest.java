@@ -16,6 +16,7 @@ import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.UserSummaryQueryRepositoryImpl;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowCreateRequest;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
@@ -354,6 +355,35 @@ class FollowServiceTest {
 
       // then
       verify(followRepository).delete(follow);
+    }
+  }
+
+  @Nested
+  @DisplayName("팔로우 요약 조회")
+  class GetSummary {
+
+    @Test
+    @DisplayName("팔로우 요약 정보를 반환한다")
+    void 팔로우_요약_정보를_반환한다() {
+      UUID userId = UUID.randomUUID();
+      UUID me = UUID.randomUUID();
+      Follow follow = Follow.create(me, userId);
+
+      given(followRepository.countByFolloweeId(userId)).willReturn(10L);
+      given(followRepository.countByFollowerId(userId)).willReturn(5L);
+      given(followRepository.existsByFollowerIdAndFolloweeId(me, userId)).willReturn(true);
+      given(followRepository.findByFollowerIdAndFolloweeId(me, userId)).willReturn(
+          Optional.of(follow));
+      given(followRepository.existsByFollowerIdAndFolloweeId(userId, me)).willReturn(false);
+
+      FollowSummaryDto result = followService.getSummary(userId, me);
+
+      assertThat(result.followeeId()).isEqualTo(userId);
+      assertThat(result.followerCount()).isEqualTo(10L);
+      assertThat(result.followingCount()).isEqualTo(5L);
+      assertThat(result.followedByMe()).isTrue();
+      assertThat(result.followedByMeId()).isEqualTo(follow.getId());
+      assertThat(result.followingMe()).isFalse();
     }
   }
 }
