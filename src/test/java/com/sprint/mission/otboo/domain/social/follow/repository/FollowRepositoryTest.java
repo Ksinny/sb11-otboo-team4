@@ -128,4 +128,43 @@ class FollowRepositoryTest {
       ).isInstanceOf(DataIntegrityViolationException.class);
     }
   }
+
+  @Nested
+  @DisplayName("count")
+  class Count {
+
+    @Test
+    @DisplayName("followeeId로 팔로워 수를 센다")
+    void followeeId로_팔로워_수를_센다() {
+      // given
+      UUID target = UUID.randomUUID();
+      followRepository.save(Follow.create(UUID.randomUUID(), target));
+      followRepository.save(Follow.create(UUID.randomUUID(), target));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      long count = followRepository.countByFolloweeId(target);
+
+      // then
+      assertThat(count).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("followerId로 팔로잉 수를 센다")
+    void followerId로_팔로잉_수를_센다() {
+      // given
+      UUID user = UUID.randomUUID();
+      followRepository.save(Follow.create(user, UUID.randomUUID()));
+      followRepository.save(Follow.create(user, UUID.randomUUID()));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      long count = followRepository.countByFollowerId(user);
+
+      // then
+      assertThat(count).isEqualTo(2);
+    }
+  }
 }

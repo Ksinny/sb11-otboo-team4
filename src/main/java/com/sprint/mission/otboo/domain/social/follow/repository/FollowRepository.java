@@ -10,4 +10,8 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
   boolean existsByFollowerIdAndFolloweeId(UUID followerId, UUID followeeId);
 
   Optional<Follow> findByFollowerIdAndFolloweeId(UUID followerId, UUID followeeId);
+
+  long countByFolloweeId(UUID followeeId);
+
+  long countByFollowerId(UUID followerId);
 }
