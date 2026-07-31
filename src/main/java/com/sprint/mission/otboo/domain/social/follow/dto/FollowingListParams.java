@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.UUID;
+import org.springframework.util.StringUtils;
 
 public record FollowingListParams(
     @NotNull UUID followerId,
@@ -18,12 +19,12 @@ public record FollowingListParams(
 
   @AssertTrue(message = "cursor, idAfter는 함께 전달되어야 합니다")
   public boolean isCursorAndIdAfterConsistent() {
-    return (cursor == null && idAfter == null) || (cursor != null && idAfter != null);
+    return StringUtils.hasText(cursor) == (idAfter != null);
   }
 
   @AssertTrue(message = "cursor는 Instant 형식이어야 합니다")
   public boolean isCursorFormatValid() {
-    if (cursor == null) {
+    if (!StringUtils.hasText(cursor)) {
       return true;
     }
     try {
