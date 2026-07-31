@@ -1,5 +1,6 @@
 package com.sprint.mission.otboo.global.config;
 
+import com.sprint.mission.otboo.domain.authuser.user.entity.enums.Role;
 import com.sprint.mission.otboo.domain.authuser.user.repository.UserRepository;
 import com.sprint.mission.otboo.global.exception.ErrorResponseWriter;
 import com.sprint.mission.otboo.global.security.details.CustomUserDetailsService;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -28,6 +30,7 @@ import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
   @Bean
@@ -92,6 +95,10 @@ public class SecurityConfig {
         .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
         .requestMatchers(HttpMethod.GET, "/api/auth/csrf-token").permitAll()
         .requestMatchers(HttpMethod.GET, "/api/users").permitAll()
+        .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}/role")
+        .hasAuthority(Role.ADMIN.name())
+        .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}/lock")
+        .hasAuthority(Role.ADMIN.name())
 
         .anyRequest().authenticated()
     );
