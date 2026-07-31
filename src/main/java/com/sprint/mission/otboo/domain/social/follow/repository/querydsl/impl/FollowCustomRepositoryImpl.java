@@ -9,6 +9,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowerListParams;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
@@ -51,6 +52,12 @@ public class FollowCustomRepositoryImpl implements FollowCustomRepository {
     return new CursorPageResponse<>(data, nextCursor, nextIdAfter, hasNext, countFollowings(params),
         "createdAt", SortDirection.DESCENDING
     );
+  }
+
+  @Override
+  public CursorPageResponse<FollowDto> findFollowers(FollowerListParams params) {
+    return new CursorPageResponse<>(List.of(), null, null, false, 0L, "createdAt",
+        SortDirection.DESCENDING);
   }
 
   private List<FollowDto> toFollowDtos(List<Follow> page, UUID followerId) {

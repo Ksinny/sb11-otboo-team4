@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.sprint.mission.otboo.domain.authuser.user.entity.User;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.impl.UserSummaryQueryRepositoryImpl;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowDto;
+import com.sprint.mission.otboo.domain.social.follow.dto.FollowerListParams;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
@@ -205,6 +206,90 @@ class FollowCustomRepositoryTest {
       UUID secondId = second.data().get(0).id();
       assertThat(secondId).isNotEqualTo(firstId);
       assertThat(List.of(firstId, secondId)).containsExactlyInAnyOrder(a.getId(), b.getId());
+    }
+  }
+
+  @Nested
+  @DisplayName("findFollowers")
+  class FindFollowers {
+
+    @Test
+    @DisplayName("특정 followee의 팔로워만 limit + 1개까지 조회한다")
+    void 특정_followee의_팔로워만_limit_플러스_1개까지_조회한다() {
+      // given
+      User followee = persistUser("팔로위");
+      for (int i = 0; i < 3; i++) {
+        User f = persistUser("팔로워" + i);
+        followRepository.save(Follow.create(f.getId(), followee.getId()));
+      }
+      followRepository.save(Follow.create(UUID.randomUUID(), UUID.randomUUID())); // 다른 followee
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      FollowerListParams params = new FollowerListParams(followee.getId(), null, null, 2, null);
+
+      // when
+      CursorPageResponse<FollowDto> result = followRepository.findFollowers(params);
+
+      // then
+      assertThat(result.data()).hasSize(2);
+      assertThat(result.hasNext()).isTrue();
+      assertThat(result.totalCount()).isEqualTo(3);
+      assertThat(result.data())
+          .allSatisfy(dto -> assertThat(dto.followee().userId()).isEqualTo(followee.getId()));
+    }
+
+    @Test
+    @DisplayName("nameLike가 주어지면 팔로워 이름에 해당 키워드를 포함한 팔로워만 조회한다")
+    void nameLike가_주어지면_팔로워_이름에_해당_키워드를_포함한_팔로워만_조회한다() {
+      // given
+      User followee = persistUser("팔로위");
+      User woody = persistUser("우디");
+      User buzz = persistUser("버즈");
+      User woodyFriend = persistUser("우디친구");
+      followRepository.save(Follow.create(woody.getId(), followee.getId()));
+      followRepository.save(Follow.create(buzz.getId(), followee.getId()));
+      followRepository.save(Follow.create(woodyFriend.getId(), followee.getId()));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      FollowerListParams params = new FollowerListParams(followee.getId(), null, null, 10, "우디");
+
+      // when
+      CursorPageResponse<FollowDto> result = followRepository.findFollowers(params);
+
+      // then
+      assertThat(result.data())
+          .extracting(dto -> dto.follower().userId())
+          .containsExactlyInAnyOrder(woody.getId(), woodyFriend.getId());
+      assertThat(result.totalCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("커서 이후의 팔로워만 조회한다")
+    void 커서_이후의_팔로워만_조회한다() {
+      // given
+      User followee = persistUser("팔로위");
+      User f1 = persistUser("팔로워1");
+      User f2 = persistUser("팔로워2");
+      User f3 = persistUser("팔로워3");
+      followRepository.save(Follow.create(f1.getId(), followee.getId()));
+      followRepository.save(Follow.create(f2.getId(), followee.getId()));
+      Follow third = followRepository.save(Follow.create(f3.getId(), followee.getId()));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // createdAt DESC: f3 → f2 → f1, 커서 = third
+      FollowerListParams params = new FollowerListParams(
+          followee.getId(), third.getCreatedAt().toString(), third.getId(), 10, null);
+
+      // when
+      CursorPageResponse<FollowDto> result = followRepository.findFollowers(params);
+
+      // then
+      assertThat(result.data())
+          .extracting(dto -> dto.follower().userId())
+          .containsExactly(f2.getId(), f1.getId());
     }
   }
 }
