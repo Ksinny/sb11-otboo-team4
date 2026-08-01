@@ -3,7 +3,6 @@ package com.sprint.mission.otboo.domain.social.follow.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -31,6 +30,7 @@ import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
 import com.sprint.mission.otboo.global.event.NotificationLevel;
 import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -489,9 +489,14 @@ class FollowServiceTest {
           .set("userId", followeeId).sample();
       FollowDto dto = new FollowDto(follow.getId(), followeeSummary, followerSummary);
 
-      FollowingListParams params = new FollowingListParams(followerId, null, null, 10, null);
+      FollowingListParams params = fm.giveMeBuilder(FollowingListParams.class)
+          .set("followerId", followerId)
+          .set("limit", 10)
+          .set("cursor", null)
+          .set("idAfter", null)
+          .sample();
       given(followRepository.findFollowings(params)).willReturn(repoPage);
-      given(userSummaryQueryRepository.findByUserIds(anyList()))
+      given(userSummaryQueryRepository.findByUserIds(any()))
           .willReturn(List.of(followerSummary, followeeSummary));
       given(followMapper.toDto(follow, followerSummary, followeeSummary)).willReturn(dto);
 
@@ -501,9 +506,13 @@ class FollowServiceTest {
       // then
       assertThat(result.data()).containsExactly(dto);
       assertThat(result.totalCount()).isEqualTo(1L);
+      assertThat(result.hasNext()).isFalse();
       assertThat(result.nextCursor()).isEqualTo("cursor");
+      assertThat(result.nextIdAfter()).isEqualTo(follow.getId());
+      assertThat(result.sortBy()).isEqualTo("createdAt");
+      assertThat(result.sortDirection()).isEqualTo(SortDirection.DESCENDING);
 
-      ArgumentCaptor<List<UUID>> idsCaptor = ArgumentCaptor.forClass(List.class);
+      ArgumentCaptor<Collection<UUID>> idsCaptor = ArgumentCaptor.forClass(Collection.class);
       verify(userSummaryQueryRepository).findByUserIds(idsCaptor.capture());
       assertThat(idsCaptor.getValue()).contains(followerId, followeeId);
       verify(userSummaryQueryRepository, never()).findByUserId(any());
@@ -513,8 +522,12 @@ class FollowServiceTest {
     @DisplayName("결과가 없으면 빈 데이터 페이지를 반환하고 배치 조회를 하지 않는다")
     void 결과가_없으면_빈_데이터_페이지를_반환하고_배치_조회를_하지_않는다() {
       // given
-      FollowingListParams params =
-          new FollowingListParams(UUID.randomUUID(), null, null, 10, null);
+      FollowingListParams params = fm.giveMeBuilder(FollowingListParams.class)
+          .set("followerId", UUID.randomUUID())
+          .set("limit", 10)
+          .set("cursor", null)
+          .set("idAfter", null)
+          .sample();
       CursorPageResponse<Follow> emptyPage = new CursorPageResponse<>(
           List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
       given(followRepository.findFollowings(params)).willReturn(emptyPage);
@@ -543,16 +556,21 @@ class FollowServiceTest {
       CursorPageResponse<Follow> repoPage = new CursorPageResponse<>(
           List.of(follow), "cursor", follow.getId(), false, 1L, "createdAt",
           SortDirection.DESCENDING);
-      
+
       UserSummary followerSummary = fm.giveMeBuilder(UserSummary.class)
           .set("userId", followerId).sample();
       UserSummary followeeSummary = fm.giveMeBuilder(UserSummary.class)
           .set("userId", followeeId).sample();
       FollowDto dto = new FollowDto(follow.getId(), followeeSummary, followerSummary);
 
-      FollowerListParams params = new FollowerListParams(followeeId, null, null, 10, null);
+      FollowerListParams params = fm.giveMeBuilder(FollowerListParams.class)
+          .set("followeeId", followeeId)
+          .set("limit", 10)
+          .set("cursor", null)
+          .set("idAfter", null)
+          .sample();
       given(followRepository.findFollowers(params)).willReturn(repoPage);
-      given(userSummaryQueryRepository.findByUserIds(anyList()))
+      given(userSummaryQueryRepository.findByUserIds(any()))
           .willReturn(List.of(followerSummary, followeeSummary));
       given(followMapper.toDto(follow, followerSummary, followeeSummary)).willReturn(dto);
 
@@ -562,11 +580,15 @@ class FollowServiceTest {
       // then
       assertThat(result.data()).containsExactly(dto);
       assertThat(result.totalCount()).isEqualTo(1L);
+      assertThat(result.hasNext()).isFalse();
       assertThat(result.nextCursor()).isEqualTo("cursor");
+      assertThat(result.nextIdAfter()).isEqualTo(follow.getId());
+      assertThat(result.sortBy()).isEqualTo("createdAt");
+      assertThat(result.sortDirection()).isEqualTo(SortDirection.DESCENDING);
 
-      ArgumentCaptor<List<UUID>> idsCaptor = ArgumentCaptor.forClass(List.class);
+      ArgumentCaptor<Collection<UUID>> idsCaptor = ArgumentCaptor.forClass(Collection.class);
       verify(userSummaryQueryRepository).findByUserIds(idsCaptor.capture());
-      assertThat(idsCaptor.getValue()).contains(followeeId, followerId);
+      assertThat(idsCaptor.getValue()).contains(followerId, followeeId);
       verify(userSummaryQueryRepository, never()).findByUserId(any());
     }
 
@@ -574,8 +596,12 @@ class FollowServiceTest {
     @DisplayName("결과가 없으면 빈 데이터 페이지를 반환하고 배치 조회를 하지 않는다")
     void 결과가_없으면_빈_데이터_페이지를_반환하고_배치_조회를_하지_않는다() {
       // given
-      FollowerListParams params =
-          new FollowerListParams(UUID.randomUUID(), null, null, 10, null);
+      FollowerListParams params = fm.giveMeBuilder(FollowerListParams.class)
+          .set("followeeId", UUID.randomUUID())
+          .set("limit", 10)
+          .set("cursor", null)
+          .set("idAfter", null)
+          .sample();
       CursorPageResponse<Follow> emptyPage = new CursorPageResponse<>(
           List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
       given(followRepository.findFollowers(params)).willReturn(emptyPage);
