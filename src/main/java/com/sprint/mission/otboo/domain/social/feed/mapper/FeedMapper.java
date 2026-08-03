@@ -35,14 +35,14 @@ public class FeedMapper {
         feed.getSkyStatus(),
         new PrecipitationDto(
             feed.getPrecipitationType(),
-            feed.getPrecipitationAmount() != null ? feed.getPrecipitationAmount() : 0.0,
-            feed.getPrecipitationProbability() != null ? feed.getPrecipitationProbability() : 0.0
+            feed.getPrecipitationAmount(),
+            feed.getPrecipitationProbability()
         ),
         new TemperatureDto(
-            feed.getTemperatureCurrent() != null ? feed.getTemperatureCurrent() : 0.0,
-            feed.getTemperatureCompared() != null ? feed.getTemperatureCompared() : 0.0,
-            feed.getTemperatureMin() != null ? feed.getTemperatureMin() : 0.0,
-            feed.getTemperatureMax() != null ? feed.getTemperatureMax() : 0.0
+            feed.getTemperatureCurrent(),
+            feed.getTemperatureCompared(),
+            feed.getTemperatureMin(),
+            feed.getTemperatureMax()
         )
     );
   }
