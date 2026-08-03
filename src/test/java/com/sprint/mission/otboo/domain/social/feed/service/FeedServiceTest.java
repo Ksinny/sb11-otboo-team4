@@ -84,9 +84,9 @@ class FeedServiceTest {
           .sample();
 
       FeedDto expected = new FeedDto(
-          UUID.randomUUID(), null, null, request.content(), 0L, 0, false);
+          UUID.randomUUID(), null, null, null, request.content(), 0L, 0, false);
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
-      when(feedMapper.toDto(any(Feed.class), any(Boolean.class))).thenReturn(expected);
+      when(feedMapper.toDto(any(Feed.class), null, any(Boolean.class))).thenReturn(expected);
 
       // when
       FeedDto result = feedService.create(request, currentUserId);
@@ -126,10 +126,10 @@ class FeedServiceTest {
           "createdAt", SortDirection.DESCENDING);
       when(feedRepository.findFeeds(params)).thenReturn(repoPage);
 
-      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, "피드1", 0L, 0, false);
-      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, "피드2", 0L, 0, false);
-      when(feedMapper.toDto(feed1, false)).thenReturn(dto1);
-      when(feedMapper.toDto(feed2, false)).thenReturn(dto2);
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, null, "피드1", 0L, 0, false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, null, "피드2", 0L, 0, false);
+      when(feedMapper.toDto(feed1, null, false)).thenReturn(dto1);
+      when(feedMapper.toDto(feed2, null, false)).thenReturn(dto2);
 
       // when
       CursorPageResponse<FeedDto> result = feedService.getFeeds(params);
@@ -159,10 +159,10 @@ class FeedServiceTest {
           "createdAt", SortDirection.DESCENDING);
       when(feedRepository.findFeeds(params)).thenReturn(repoPage);
 
-      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, "피드1", 0L, 0, false);
-      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, "피드2", 0L, 0, false);
-      when(feedMapper.toDto(feed1, false)).thenReturn(dto1);
-      when(feedMapper.toDto(feed2, false)).thenReturn(dto2);
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, null, "피드1", 0L, 0, false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, null, "피드2", 0L, 0, false);
+      when(feedMapper.toDto(feed1, null, false)).thenReturn(dto1);
+      when(feedMapper.toDto(feed2, null, false)).thenReturn(dto2);
 
       // when
       CursorPageResponse<FeedDto> result = feedService.getFeeds(params);

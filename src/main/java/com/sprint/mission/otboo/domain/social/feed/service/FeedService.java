@@ -32,13 +32,13 @@ public class FeedService {
     Feed feed = feedRepository.save(
         Feed.create(request.authorId(), request.weatherId(), request.content()));
     log.info("피드 등록 완료: feedId={}, authorId={}", feed.getId(), feed.getAuthorId());
-    return feedMapper.toDto(feed, false);
+    return feedMapper.toDto(feed, null, false);
   }
 
   public CursorPageResponse<FeedDto> getFeeds(FeedListParams params) {
     CursorPageResponse<Feed> page = feedRepository.findFeeds(params);
     List<FeedDto> data = page.data().stream()
-        .map(feed -> feedMapper.toDto(feed, false))
+        .map(feed -> feedMapper.toDto(feed, null, false))
         .toList();
     log.info("피드 목록 조회 완료: 조회 건수={}, hasNext={}", data.size(), page.hasNext());
     return new CursorPageResponse<>(

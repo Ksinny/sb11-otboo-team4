@@ -34,7 +34,7 @@ class FeedMapperTest {
           .sample();
 
       // when
-      FeedDto result = feedMapper.toDto(feed, false);
+      FeedDto result = feedMapper.toDto(feed, null, false);
 
       // then
       assertThat(result.content()).isEqualTo("오늘의 착장");
