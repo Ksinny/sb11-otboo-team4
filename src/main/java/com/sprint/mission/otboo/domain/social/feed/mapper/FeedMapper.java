@@ -18,6 +18,7 @@ public class FeedMapper {
         feed.getUpdatedAt(),
         author,
         toWeatherSummaryDto(feed),
+        feed.getOotds(),
         feed.getContent(),
         feed.getLikeCount(),
         feed.getCommentCount(),

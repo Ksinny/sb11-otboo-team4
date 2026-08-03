@@ -112,7 +112,7 @@ class FeedServiceTest {
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
 
       FeedDto expected = new FeedDto(
-          UUID.randomUUID(), null, null, mockAuthor, null, request.content(), 0L, 0, false);
+          UUID.randomUUID(), null, null, mockAuthor, null, null, request.content(), 0L, 0, false);
       when(feedMapper.toDto(any(Feed.class), eq(mockAuthor), eq(false))).thenReturn(expected);
 
       // when
@@ -172,7 +172,7 @@ class FeedServiceTest {
       when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
       when(feedMapper.toDto(any(Feed.class), eq(author), eq(false)))
-          .thenReturn(new FeedDto(UUID.randomUUID(), null, null, author, null,
+          .thenReturn(new FeedDto(UUID.randomUUID(), null, null, author, null, null,
               request.content(), 0L, 0, false));
 
       // when
@@ -228,7 +228,7 @@ class FeedServiceTest {
           new PrecipitationDto(PrecipitationType.NONE, 0.0, 0.0),
           new TemperatureDto(28.0, 2.0, 16.0, 31.0));
       FeedDto expected = new FeedDto(
-          UUID.randomUUID(), null, null, author, expectedWeather,
+          UUID.randomUUID(), null, null, author, expectedWeather, null,
           request.content(), 0L, 0, false);
 
       when(weatherSnapshotProvider.readSnapshot(request.weatherId())).thenReturn(DUMMY_SNAPSHOT);
@@ -265,8 +265,8 @@ class FeedServiceTest {
       UserSummary summary1 = new UserSummary(authorId1, "유저1", "img1.png");
       UserSummary summary2 = new UserSummary(authorId2, "유저2", "img2.png");
 
-      Feed feed1 = Feed.create(authorId1, UUID.randomUUID(), "피드1", DUMMY_SNAPSHOT);
-      Feed feed2 = Feed.create(authorId2, UUID.randomUUID(), "피드2", DUMMY_SNAPSHOT);
+      Feed feed1 = Feed.create(authorId1, UUID.randomUUID(), "피드1", DUMMY_SNAPSHOT, List.of());
+      Feed feed2 = Feed.create(authorId2, UUID.randomUUID(), "피드2", DUMMY_SNAPSHOT, List.of());
 
       CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
           List.of(feed1, feed2), "커서값", feed2.getId(), true, 2L,
@@ -275,8 +275,10 @@ class FeedServiceTest {
       given(userSummaryQueryRepository.findByUserIds(anyList()))
           .willReturn(List.of(summary1, summary2));
 
-      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, summary1, null, "피드1", 0L, 0, false);
-      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, summary2, null, "피드2", 0L, 0, false);
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, summary1, null, null, "피드1", 0L, 0,
+          false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, summary2, null, null, "피드2", 0L, 0,
+          false);
       when(feedMapper.toDto(feed1, summary1, false)).thenReturn(dto1);
       when(feedMapper.toDto(feed2, summary2, false)).thenReturn(dto2);
 
@@ -304,8 +306,8 @@ class FeedServiceTest {
       UserSummary summary1 = new UserSummary(authorId1, "유저1", "img1.png");
       UserSummary summary2 = new UserSummary(authorId2, "유저2", "img2.png");
 
-      Feed feed1 = Feed.create(authorId1, UUID.randomUUID(), "피드1", DUMMY_SNAPSHOT);
-      Feed feed2 = Feed.create(authorId2, UUID.randomUUID(), "피드2", DUMMY_SNAPSHOT);
+      Feed feed1 = Feed.create(authorId1, UUID.randomUUID(), "피드1", DUMMY_SNAPSHOT, List.of());
+      Feed feed2 = Feed.create(authorId2, UUID.randomUUID(), "피드2", DUMMY_SNAPSHOT, List.of());
 
       CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
           List.of(feed1, feed2), null, null, false, 2L,
@@ -314,8 +316,10 @@ class FeedServiceTest {
       given(userSummaryQueryRepository.findByUserIds(anyList()))
           .willReturn(List.of(summary1, summary2));
 
-      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, summary1, null, "피드1", 0L, 0, false);
-      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, summary2, null, "피드2", 0L, 0, false);
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, summary1, null, null, "피드1", 0L, 0,
+          false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, summary2, null, null, "피드2", 0L, 0,
+          false);
       when(feedMapper.toDto(feed1, summary1, false)).thenReturn(dto1);
       when(feedMapper.toDto(feed2, summary2, false)).thenReturn(dto2);
 
@@ -341,8 +345,8 @@ class FeedServiceTest {
       UUID authorId1 = UUID.randomUUID();
       UUID authorId2 = UUID.randomUUID();
 
-      Feed feed1 = Feed.create(authorId1, UUID.randomUUID(), "피드1", DUMMY_SNAPSHOT);
-      Feed feed2 = Feed.create(authorId2, UUID.randomUUID(), "피드2", DUMMY_SNAPSHOT);
+      Feed feed1 = Feed.create(authorId1, UUID.randomUUID(), "피드1", DUMMY_SNAPSHOT, List.of());
+      Feed feed2 = Feed.create(authorId2, UUID.randomUUID(), "피드2", DUMMY_SNAPSHOT, List.of());
 
       CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
           List.of(feed1, feed2), null, null, false, 2L,
@@ -354,8 +358,10 @@ class FeedServiceTest {
       given(userSummaryQueryRepository.findByUserIds(anyList()))
           .willReturn(List.of(summary1, summary2));
 
-      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, summary1, null, "피드1", 0L, 0, false);
-      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, summary2, null, "피드2", 0L, 0, false);
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, summary1, null, null, "피드1", 0L, 0,
+          false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, summary2, null, null, "피드2", 0L, 0,
+          false);
       when(feedMapper.toDto(feed1, summary1, false)).thenReturn(dto1);
       when(feedMapper.toDto(feed2, summary2, false)).thenReturn(dto2);
 

@@ -1,5 +1,6 @@
 package com.sprint.mission.otboo.domain.social.feed.entity;
 
+import com.sprint.mission.otboo.domain.social.feed.dto.OotdDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
@@ -15,6 +16,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -82,10 +84,9 @@ public class Feed {
   @Column(name = "temperature_max")
   private Double temperatureMax;
 
-  // TODO: 착장 스냅샷 — clothes 연결 이슈에서 채움 (String → List<OotdDto>)
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "ootds", columnDefinition = "jsonb")
-  private String ootds;
+  private List<OotdDto> ootds;
 
   @Column(name = "content", columnDefinition = "text", nullable = false)
   private String content;
@@ -96,24 +97,28 @@ public class Feed {
   @Column(name = "comment_count", nullable = false)
   private int commentCount;
 
-  private Feed(UUID authorId, UUID weatherId, String content, WeatherSnapshot snapshot) {
+  private Feed(UUID authorId, UUID weatherId, String content,
+      WeatherSnapshot snapshot, List<OotdDto> ootds) {
     this.authorId = authorId;
     this.weatherId = weatherId;
     this.content = content;
-    this.skyStatus = snapshot.skyStatus();
-    this.precipitationType = snapshot.precipitationType();
-    this.precipitationAmount = snapshot.precipitationAmount();
-    this.precipitationProbability = snapshot.precipitationProbability();
-    this.temperatureCurrent = snapshot.temperatureCurrent();
-    this.temperatureCompared = snapshot.temperatureCompared();
-    this.temperatureMin = snapshot.temperatureMin();
-    this.temperatureMax = snapshot.temperatureMax();
+    if (snapshot != null) {
+      this.skyStatus = snapshot.skyStatus();
+      this.precipitationType = snapshot.precipitationType();
+      this.precipitationAmount = snapshot.precipitationAmount();
+      this.precipitationProbability = snapshot.precipitationProbability();
+      this.temperatureCurrent = snapshot.temperatureCurrent();
+      this.temperatureCompared = snapshot.temperatureCompared();
+      this.temperatureMin = snapshot.temperatureMin();
+      this.temperatureMax = snapshot.temperatureMax();
+    }
+    this.ootds = ootds;
     this.likeCount = 0;
     this.commentCount = 0;
   }
 
   public static Feed create(UUID authorId, UUID weatherId, String content,
-      WeatherSnapshot snapshot) {
-    return new Feed(authorId, weatherId, content, snapshot);
+      WeatherSnapshot snapshot, List<OotdDto> ootds) {
+    return new Feed(authorId, weatherId, content, snapshot, ootds);
   }
 }

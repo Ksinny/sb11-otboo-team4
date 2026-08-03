@@ -42,7 +42,8 @@ public class FeedService {
     WeatherSnapshot snapshot = weatherSnapshotProvider.readSnapshot(request.weatherId());
 
     Feed feed = feedRepository.save(
-        Feed.create(request.authorId(), request.weatherId(), request.content(), snapshot));
+        Feed.create(request.authorId(), request.weatherId(), request.content(),
+            snapshot, List.of()));
     log.info("피드 등록 완료: feedId={}, authorId={}", feed.getId(), feed.getAuthorId());
 
     UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());

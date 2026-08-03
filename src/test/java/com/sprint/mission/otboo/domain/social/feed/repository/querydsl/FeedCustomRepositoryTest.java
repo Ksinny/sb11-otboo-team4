@@ -37,14 +37,16 @@ class FeedCustomRepositoryTest {
   static final WeatherSnapshot DUMMY_SNAPSHOT = new WeatherSnapshot(
       SkyStatus.CLEAR, PrecipitationType.NONE,
       0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
+
   @Autowired
   private FeedRepository feedRepository;
+
   @Autowired
   private TestEntityManager testEntityManager;
 
   private Feed createAndSaveFeed(UUID authorId, String content) {
     return feedRepository.save(
-        Feed.create(authorId, UUID.randomUUID(), content, DUMMY_SNAPSHOT));
+        Feed.create(authorId, UUID.randomUUID(), content, DUMMY_SNAPSHOT, List.of()));
   }
 
   private Feed createAndSaveFeed(String content) {
