@@ -107,11 +107,16 @@ class FeedCustomRepositoryTest {
       Feed second = createAndSaveFeed("두번째");
       Feed third = createAndSaveFeed("세번째");
       testEntityManager.flush();
+
+      setCreatedAt(first.getId(), Instant.parse("2026-07-28T00:00:01Z"));
+      setCreatedAt(second.getId(), Instant.parse("2026-07-28T00:00:02Z"));
+      setCreatedAt(third.getId(), Instant.parse("2026-07-28T00:00:03Z"));
+      testEntityManager.flush();
       testEntityManager.clear();
 
-      // DESC 정렬 시 순서: third → second → first
+      // DESC: 세번째(t3) → 두번째(t2) → 첫번째(t1), 커서 = third(t3)
       FeedListParams params = new FeedListParams(
-          third.getCreatedAt().toString(), third.getId(), 10,
+          Instant.parse("2026-07-28T00:00:03Z").toString(), third.getId(), 10,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
           null, null);
 
@@ -205,9 +210,14 @@ class FeedCustomRepositoryTest {
     @DisplayName("sortDirection이 ASCENDING이면 오래된 순으로 조회한다")
     void sortDirection이_ASCENDING이면_오래된_순으로_조회한다() {
       // given
-      createAndSaveFeed("첫번째");
-      createAndSaveFeed("두번째");
-      createAndSaveFeed("세번째");
+      Feed first = createAndSaveFeed("첫번째");
+      Feed second = createAndSaveFeed("두번째");
+      Feed third = createAndSaveFeed("세번째");
+      testEntityManager.flush();
+
+      setCreatedAt(first.getId(), Instant.parse("2026-07-28T00:00:01Z"));
+      setCreatedAt(second.getId(), Instant.parse("2026-07-28T00:00:02Z"));
+      setCreatedAt(third.getId(), Instant.parse("2026-07-28T00:00:03Z"));
       testEntityManager.flush();
       testEntityManager.clear();
 
@@ -262,11 +272,15 @@ class FeedCustomRepositoryTest {
       Feed second = createAndSaveFeed("두번째");
       Feed third = createAndSaveFeed("세번째");
       testEntityManager.flush();
+
+      setCreatedAt(first.getId(), Instant.parse("2026-07-28T00:00:01Z"));
+      setCreatedAt(second.getId(), Instant.parse("2026-07-28T00:00:02Z"));
+      setCreatedAt(third.getId(), Instant.parse("2026-07-28T00:00:03Z"));
+      testEntityManager.flush();
       testEntityManager.clear();
 
-      // ASC 순서: 첫번째 → 두번째 → 세번째
       FeedListParams params = new FeedListParams(
-          first.getCreatedAt().toString(), first.getId(), 10,
+          Instant.parse("2026-07-28T00:00:01Z").toString(), first.getId(), 10,
           FeedSortBy.CREATED_AT, SortDirection.ASCENDING,
           null, null);
 
