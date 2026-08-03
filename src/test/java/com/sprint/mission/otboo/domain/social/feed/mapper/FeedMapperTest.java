@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.navercorp.fixturemonkey.FixtureMonkey;
 import com.navercorp.fixturemonkey.api.introspector.FieldReflectionArbitraryIntrospector;
+import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -41,6 +43,28 @@ class FeedMapperTest {
       assertThat(result.likeCount()).isZero();
       assertThat(result.commentCount()).isZero();
       assertThat(result.likedByMe()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Feed 엔티티와 UserSummary를 받아 FeedDto의 author 필드를 올바르게 채운다")
+    void Feed_엔티티와_UserSummary를_받아_FeedDto의_author_필드를_올바르게_채운다() {
+      // given
+      Feed feed = fm.giveMeBuilder(Feed.class)
+          .set("content", "오늘의 착장")
+          .set("likeCount", 0L)
+          .set("commentCount", 0)
+          .sample();
+
+      UserSummary mockAuthor = new UserSummary(UUID.randomUUID(), "테스트유저", "profile.png");
+
+      // when
+      FeedDto result = feedMapper.toDto(feed, mockAuthor, false);
+
+      // then
+      assertThat(result.author()).isNotNull();
+      assertThat(result.author().userId()).isEqualTo(mockAuthor.userId());
+      assertThat(result.author().name()).isEqualTo("테스트유저");
+      assertThat(result.author().profileImageUrl()).isEqualTo("profile.png");
     }
   }
 }
