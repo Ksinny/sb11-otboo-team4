@@ -3,12 +3,16 @@ package com.sprint.mission.otboo.domain.social.feed.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.navercorp.fixturemonkey.FixtureMonkey;
 import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitraryIntrospector;
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
+import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
+import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
@@ -49,6 +53,9 @@ class FeedServiceTest {
   @Mock
   FeedMapper feedMapper;
 
+  @Mock
+  UserSummaryQueryRepository userSummaryQueryRepository;
+
   @Nested
   @DisplayName("피드 등록")
   class CreateFeed {
@@ -75,18 +82,23 @@ class FeedServiceTest {
     }
 
     @Test
-    @DisplayName("정상 요청이면 피드를 저장하고 FeedDto를 반환한다")
-    void 정상_요청이면_피드를_저장하고_FeedDto를_반환한다() {
+    @DisplayName("정상 요청이면 피드를 저장하고 UserSummary를 조회하여 FeedDto를 반환한다")
+    void 정상_요청이면_피드를_저장하고_UserSummary를_조회하여_FeedDto를_반환한다() {
       // given
       UUID currentUserId = UUID.randomUUID();
       FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
           .set("authorId", currentUserId)
           .sample();
 
+      UserSummary mockAuthor = new UserSummary(currentUserId, "작성자명", "img.png");
+      given(userSummaryQueryRepository.findByUserId(currentUserId)).willReturn(mockAuthor);
+
       FeedDto expected = new FeedDto(
-          UUID.randomUUID(), null, null, null, request.content(), 0L, 0, false);
+          UUID.randomUUID(), null, null, mockAuthor, request.content(), 0L, 0, false);
+
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
-      when(feedMapper.toDto(any(Feed.class), null, any(Boolean.class))).thenReturn(expected);
+      when(feedMapper.toDto(any(Feed.class), eq(mockAuthor), any(Boolean.class))).thenReturn(
+          expected);
 
       // when
       FeedDto result = feedService.create(request, currentUserId);
@@ -94,6 +106,8 @@ class FeedServiceTest {
       // then
       ArgumentCaptor<Feed> captor = ArgumentCaptor.forClass(Feed.class);
       verify(feedRepository).save(captor.capture());
+      verify(userSummaryQueryRepository).findByUserId(currentUserId);
+
       Feed saved = captor.getValue();
       assertThat(saved.getAuthorId()).isEqualTo(currentUserId);
       assertThat(saved.getWeatherId()).isEqualTo(request.weatherId());
@@ -101,6 +115,8 @@ class FeedServiceTest {
       assertThat(saved.getLikeCount()).isZero();
       assertThat(saved.getCommentCount()).isZero();
       assertThat(result).isEqualTo(expected);
+      assertThat(result.author()).isEqualTo(mockAuthor);
+      assertThat(result.author().name()).isEqualTo("작성자명");
     }
   }
 
