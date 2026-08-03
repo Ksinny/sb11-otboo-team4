@@ -3,6 +3,7 @@ package com.sprint.mission.otboo.domain.social.feed.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -210,6 +211,45 @@ class FeedServiceTest {
       assertThat(result.hasNext()).isFalse();
       assertThat(result.nextCursor()).isNull();
       assertThat(result.nextIdAfter()).isNull();
+      assertThat(result.data()).containsExactly(dto1, dto2);
+    }
+
+    @Test
+    @DisplayName("여러 author를 findByUserIds 1회로 배치 조회하여 채운다")
+    void 여러_author를_findByUserIds_1회로_배치_조회하여_채운다() {
+      // given
+      FeedListParams params = new FeedListParams(
+          null, null, 2,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null
+      );
+
+      UUID authorId1 = UUID.randomUUID();
+      UUID authorId2 = UUID.randomUUID();
+
+      Feed feed1 = Feed.create(authorId1, UUID.randomUUID(), "피드1");
+      Feed feed2 = Feed.create(authorId2, UUID.randomUUID(), "피드2");
+
+      CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
+          List.of(feed1, feed2), null, null, false, 2L,
+          "createdAt", SortDirection.DESCENDING);
+      when(feedRepository.findFeeds(params)).thenReturn(repoPage);
+
+      UserSummary summary1 = new UserSummary(authorId1, "유저1", "img1.png");
+      UserSummary summary2 = new UserSummary(authorId2, "유저2", "img2.png");
+      given(userSummaryQueryRepository.findByUserIds(anyList()))
+          .willReturn(List.of(summary1, summary2));
+
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, summary1, "피드1", 0L, 0, false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, summary2, "피드2", 0L, 0, false);
+      when(feedMapper.toDto(feed1, summary1, false)).thenReturn(dto1);
+      when(feedMapper.toDto(feed2, summary2, false)).thenReturn(dto2);
+
+      // when
+      CursorPageResponse<FeedDto> result = feedService.getFeeds(params);
+
+      // then
+      verify(userSummaryQueryRepository).findByUserIds(anyList());
       assertThat(result.data()).containsExactly(dto1, dto2);
     }
   }
