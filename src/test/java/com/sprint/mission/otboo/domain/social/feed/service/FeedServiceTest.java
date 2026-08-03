@@ -18,6 +18,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
+import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
@@ -117,6 +118,28 @@ class FeedServiceTest {
       assertThat(result).isEqualTo(expected);
       assertThat(result.author()).isEqualTo(mockAuthor);
       assertThat(result.author().name()).isEqualTo("작성자명");
+    }
+
+    @Test
+    @DisplayName("작성자 정보가 존재하지 않으면 AuthorNotFoundException을 던진다")
+    void 작성자_정보가_존재하지_않으면_AuthorNotFoundException을_던진다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
+          .set("authorId", currentUserId)
+          .sample();
+
+      given(userSummaryQueryRepository.findByUserId(currentUserId)).willReturn(null);
+      when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
+
+      // when & then
+      assertThatThrownBy(() -> feedService.create(request, currentUserId))
+          .isInstanceOf(AuthorNotFoundException.class)
+          .satisfies(ex -> {
+            AuthorNotFoundException ae = (AuthorNotFoundException) ex;
+            assertThat(ae.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(ae.getDetails()).containsEntry("authorId", currentUserId);
+          });
     }
   }
 
