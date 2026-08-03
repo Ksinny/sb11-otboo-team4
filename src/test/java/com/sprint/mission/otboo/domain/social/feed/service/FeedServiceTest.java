@@ -18,11 +18,14 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
+import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
+import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
+import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
 import java.util.List;
@@ -57,6 +60,9 @@ class FeedServiceTest {
 
   @Mock
   UserSummaryQueryRepository userSummaryQueryRepository;
+
+  @Mock
+  WeatherSnapshotProvider weatherSnapshotProvider;
 
   @Nested
   @DisplayName("피드 등록")
@@ -96,8 +102,8 @@ class FeedServiceTest {
       given(userSummaryQueryRepository.findByUserId(currentUserId)).willReturn(mockAuthor);
 
       FeedDto expected = new FeedDto(
-          UUID.randomUUID(), null, null, mockAuthor, request.content(), 0L, 0, false);
-
+          UUID.randomUUID(), null, null, null, null,
+          request.content(), 0L, 0, false);
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
       when(feedMapper.toDto(any(Feed.class), eq(mockAuthor), any(Boolean.class))).thenReturn(
           expected);
@@ -158,16 +164,19 @@ class FeedServiceTest {
           null, null
       );
 
-      Feed feed1 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드1");
-      Feed feed2 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드2");
+      WeatherSnapshot snapshot = new WeatherSnapshot(SkyStatus.CLEAR, PrecipitationType.NONE,
+          0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
+
+      Feed feed1 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드1", snapshot);
+      Feed feed2 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드2", snapshot);
 
       CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
           List.of(feed1, feed2), "커서값", feed2.getId(), true, 2L,
           "createdAt", SortDirection.DESCENDING);
       when(feedRepository.findFeeds(params)).thenReturn(repoPage);
 
-      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, null, "피드1", 0L, 0, false);
-      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, null, "피드2", 0L, 0, false);
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, null, null, "피드1", 0L, 0, false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, null, null, "피드2", 0L, 0, false);
       when(feedMapper.toDto(feed1, null, false)).thenReturn(dto1);
       when(feedMapper.toDto(feed2, null, false)).thenReturn(dto2);
 
@@ -191,16 +200,19 @@ class FeedServiceTest {
           null, null
       );
 
-      Feed feed1 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드1");
-      Feed feed2 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드2");
+      WeatherSnapshot snapshot = new WeatherSnapshot(SkyStatus.CLEAR, PrecipitationType.NONE,
+          0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
+
+      Feed feed1 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드1", snapshot);
+      Feed feed2 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드2", snapshot);
 
       CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
           List.of(feed1, feed2), null, null, false, 2L,
           "createdAt", SortDirection.DESCENDING);
       when(feedRepository.findFeeds(params)).thenReturn(repoPage);
 
-      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, null, "피드1", 0L, 0, false);
-      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, null, "피드2", 0L, 0, false);
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, null, null, "피드1", 0L, 0, false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, null, null, "피드2", 0L, 0, false);
       when(feedMapper.toDto(feed1, null, false)).thenReturn(dto1);
       when(feedMapper.toDto(feed2, null, false)).thenReturn(dto2);
 
@@ -227,8 +239,11 @@ class FeedServiceTest {
       UUID authorId1 = UUID.randomUUID();
       UUID authorId2 = UUID.randomUUID();
 
-      Feed feed1 = Feed.create(authorId1, UUID.randomUUID(), "피드1");
-      Feed feed2 = Feed.create(authorId2, UUID.randomUUID(), "피드2");
+      WeatherSnapshot snapshot = new WeatherSnapshot(SkyStatus.CLEAR, PrecipitationType.NONE,
+          0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
+
+      Feed feed1 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드1", snapshot);
+      Feed feed2 = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "피드2", snapshot);
 
       CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
           List.of(feed1, feed2), null, null, false, 2L,
@@ -240,8 +255,8 @@ class FeedServiceTest {
       given(userSummaryQueryRepository.findByUserIds(anyList()))
           .willReturn(List.of(summary1, summary2));
 
-      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, summary1, "피드1", 0L, 0, false);
-      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, summary2, "피드2", 0L, 0, false);
+      FeedDto dto1 = new FeedDto(feed1.getId(), null, null, summary1, null, "피드1", 0L, 0, false);
+      FeedDto dto2 = new FeedDto(feed2.getId(), null, null, summary2, null, "피드2", 0L, 0, false);
       when(feedMapper.toDto(feed1, summary1, false)).thenReturn(dto1);
       when(feedMapper.toDto(feed2, summary2, false)).thenReturn(dto2);
 
