@@ -1,9 +1,12 @@
 package com.sprint.mission.otboo.domain.social.feed.service;
 
+import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
+import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
+import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
@@ -22,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class FeedService {
 
   private final FeedRepository feedRepository;
+  private final UserSummaryQueryRepository userSummaryQueryRepository;
   private final FeedMapper feedMapper;
 
   @Transactional
@@ -32,14 +36,25 @@ public class FeedService {
     Feed feed = feedRepository.save(
         Feed.create(request.authorId(), request.weatherId(), request.content()));
     log.info("피드 등록 완료: feedId={}, authorId={}", feed.getId(), feed.getAuthorId());
-    return feedMapper.toDto(feed, null, false);
+
+    UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
+    if (author == null) {
+      throw AuthorNotFoundException.from(feed.getAuthorId());
+    }
+
+    return feedMapper.toDto(feed, author, false);
   }
 
   public CursorPageResponse<FeedDto> getFeeds(FeedListParams params) {
     CursorPageResponse<Feed> page = feedRepository.findFeeds(params);
+
     List<FeedDto> data = page.data().stream()
-        .map(feed -> feedMapper.toDto(feed, null, false))
+        .map(feed -> {
+          UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
+          return feedMapper.toDto(feed, author, false);
+        })
         .toList();
+
     log.info("피드 목록 조회 완료: 조회 건수={}, hasNext={}", data.size(), page.hasNext());
     return new CursorPageResponse<>(
         data, page.nextCursor(), page.nextIdAfter(), page.hasNext(),
