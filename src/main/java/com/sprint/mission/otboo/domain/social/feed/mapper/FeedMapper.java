@@ -13,7 +13,7 @@ public class FeedMapper {
         feed.getId(),
         feed.getCreatedAt(),
         feed.getUpdatedAt(),
-        null,
+        author,
         feed.getContent(),
         feed.getLikeCount(),
         feed.getCommentCount(),
