@@ -12,7 +12,10 @@ import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,14 +51,24 @@ public class FeedService {
   public CursorPageResponse<FeedDto> getFeeds(FeedListParams params) {
     CursorPageResponse<Feed> page = feedRepository.findFeeds(params);
 
-    List<FeedDto> data = page.data().stream()
+    List<Feed> feeds = page.data();
+
+    List<UUID> authorIds = feeds.stream()
+        .map(Feed::getAuthorId)
+        .distinct()
+        .toList();
+
+    Map<UUID, UserSummary> authorMap = userSummaryQueryRepository.findByUserIds(authorIds).stream()
+        .collect(Collectors.toMap(UserSummary::userId, Function.identity(),
+            (existing, replacement) -> existing));
+
+    List<FeedDto> data = feeds.stream()
         .map(feed -> {
-          UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
+          UserSummary author = authorMap.get(feed.getAuthorId());
           return feedMapper.toDto(feed, author, false);
         })
         .toList();
 
-    log.info("피드 목록 조회 완료: 조회 건수={}, hasNext={}", data.size(), page.hasNext());
     return new CursorPageResponse<>(
         data, page.nextCursor(), page.nextIdAfter(), page.hasNext(),
         page.totalCount(), page.sortBy(), page.sortDirection());
