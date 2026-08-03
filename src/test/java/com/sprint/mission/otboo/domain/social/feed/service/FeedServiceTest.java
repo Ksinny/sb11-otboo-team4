@@ -18,6 +18,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
+import com.sprint.mission.otboo.domain.social.feed.dto.OotdDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
@@ -71,6 +72,9 @@ class FeedServiceTest {
 
   @Mock
   WeatherSnapshotProvider weatherSnapshotProvider;
+
+  @Mock
+  OotdSnapshotProvider ootdSnapshotProvider;
 
   @Nested
   @DisplayName("피드 등록")
@@ -244,6 +248,77 @@ class FeedServiceTest {
       assertThat(result.weather().skyStatus()).isEqualTo(SkyStatus.CLEAR);
       assertThat(result.weather().temperature().min()).isEqualTo(16.0);
       assertThat(result.weather().temperature().max()).isEqualTo(31.0);
+    }
+
+    @Test
+    @DisplayName("정상 등록 시 clothesIds로 조회한 OotdDto가 Feed에 저장된다")
+    void 정상_등록_시_clothesIds로_조회한_OotdDto가_Feed에_저장된다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
+          .set("authorId", currentUserId)
+          .sample();
+
+      OotdDto ootd1 = fm.giveMeBuilder(OotdDto.class)
+          .set("name", "패딩")
+          .sample();
+      OotdDto ootd2 = fm.giveMeBuilder(OotdDto.class)
+          .set("name", "청바지")
+          .sample();
+      List<OotdDto> ootds = List.of(ootd1, ootd2);
+
+      UserSummary author = new UserSummary(currentUserId, "테스터", null);
+
+      when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
+      when(ootdSnapshotProvider.readOotds(request.clothesIds())).thenReturn(ootds);
+      when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
+      when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
+      when(feedMapper.toDto(any(Feed.class), eq(author), eq(false)))
+          .thenReturn(new FeedDto(UUID.randomUUID(), null, null, author, null,
+              ootds, "내용", 0L, 0, false));
+
+      // when
+      feedService.create(request, currentUserId);
+
+      // then
+      ArgumentCaptor<Feed> captor = ArgumentCaptor.forClass(Feed.class);
+      verify(feedRepository).save(captor.capture());
+      verify(ootdSnapshotProvider).readOotds(request.clothesIds());
+      Feed saved = captor.getValue();
+      assertThat(saved.getOotds()).hasSize(2);
+      assertThat(saved.getOotds().get(0).name()).isEqualTo("패딩");
+      assertThat(saved.getOotds().get(1).name()).isEqualTo("청바지");
+    }
+
+    @Test
+    @DisplayName("정상 등록 시 반환 FeedDto.ootds에 착장 정보가 채워진다")
+    void 정상_등록_시_반환_FeedDto_ootds에_착장_정보가_채워진다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
+          .set("authorId", currentUserId)
+          .sample();
+
+      OotdDto ootd = fm.giveMeBuilder(OotdDto.class)
+          .set("name", "패딩")
+          .sample();
+      List<OotdDto> ootds = List.of(ootd);
+      UserSummary author = new UserSummary(currentUserId, "테스터", null);
+      FeedDto expected = new FeedDto(
+          UUID.randomUUID(), null, null, author, null, ootds, "내용", 0L, 0, false);
+
+      when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
+      when(ootdSnapshotProvider.readOotds(request.clothesIds())).thenReturn(ootds);
+      when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
+      when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
+      when(feedMapper.toDto(any(Feed.class), eq(author), eq(false))).thenReturn(expected);
+
+      // when
+      FeedDto result = feedService.create(request, currentUserId);
+
+      // then
+      assertThat(result.ootds()).hasSize(1);
+      assertThat(result.ootds().get(0).name()).isEqualTo("패딩");
     }
   }
 
