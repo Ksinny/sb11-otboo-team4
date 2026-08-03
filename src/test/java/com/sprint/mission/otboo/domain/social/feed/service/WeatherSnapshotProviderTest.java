@@ -42,7 +42,7 @@ class WeatherSnapshotProviderTest {
 
     @Test
     @DisplayName("존재하는 weatherId면 WeatherSnapshot을 반환한다")
-    void returnsWeatherSnapshot_whenWeatherIdExists() {
+    void 존재하는_weatherId면_WeatherSnapshot을_반환한다() {
       // given
       UUID weatherId = UUID.randomUUID();
       Weather weather = fm.giveMeBuilder(Weather.class)
@@ -71,7 +71,7 @@ class WeatherSnapshotProviderTest {
 
     @Test
     @DisplayName("존재하지 않는 weatherId면 WeatherNotFoundException을 던진다")
-    void throwsWeatherNotFoundException_whenWeatherIdNotFound() {
+    void 존재하지_않는_weatherId면_WeatherNotFoundException을_던진다() {
       // given
       UUID weatherId = UUID.randomUUID();
       when(weatherRepository.findById(weatherId)).thenReturn(Optional.empty());
