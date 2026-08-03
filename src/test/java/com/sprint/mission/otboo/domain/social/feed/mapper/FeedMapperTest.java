@@ -86,5 +86,50 @@ class FeedMapperTest {
       assertThat(result.author().name()).isEqualTo("테스트유저");
       assertThat(result.author().profileImageUrl()).isEqualTo("profile.png");
     }
+
+    @Test
+    @DisplayName("Feed flat 컬럼을 WeatherSummaryDto로 조립한다")
+    void Feed_flat_컬럼을_WeatherSummaryDto로_조립한다() {
+      // given
+      UserSummary author = new UserSummary(UUID.randomUUID(), "테스터", null);
+      Feed feed = fm.giveMeBuilder(Feed.class)
+          .set("weatherId", UUID.randomUUID())
+          .set("skyStatus", SkyStatus.CLEAR)
+          .set("precipitationType", PrecipitationType.NONE)
+          .set("precipitationAmount", 0.0)
+          .set("precipitationProbability", 0.0)
+          .set("temperatureCurrent", 28.0)
+          .set("temperatureCompared", 2.0)
+          .set("temperatureMin", 16.0)
+          .set("temperatureMax", 31.0)
+          .sample();
+
+      // when
+      FeedDto result = feedMapper.toDto(feed, author, false);
+
+      // then
+      assertThat(result.weather()).isNotNull();
+      assertThat(result.weather().skyStatus()).isEqualTo(SkyStatus.CLEAR);
+      assertThat(result.weather().precipitation().type()).isEqualTo(PrecipitationType.NONE);
+      assertThat(result.weather().temperature().current()).isEqualTo(28.0);
+      assertThat(result.weather().temperature().min()).isEqualTo(16.0);
+      assertThat(result.weather().temperature().max()).isEqualTo(31.0);
+    }
+
+    @Test
+    @DisplayName("skyStatus가 null이면 weather를 null로 반환한다")
+    void skyStatus가_null이면_weather를_null로_반환한다() {
+      // given
+      UserSummary author = new UserSummary(UUID.randomUUID(), "테스터", null);
+      Feed feed = fm.giveMeBuilder(Feed.class)
+          .setNull("skyStatus")
+          .sample();
+
+      // when
+      FeedDto result = feedMapper.toDto(feed, author, false);
+
+      // then
+      assertThat(result.weather()).isNull();
+    }
   }
 }
