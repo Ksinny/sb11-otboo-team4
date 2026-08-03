@@ -22,8 +22,12 @@ import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
+import com.sprint.mission.otboo.domain.social.feed.exception.WeatherNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
+import com.sprint.mission.otboo.domain.weathernotification.weather.dto.PrecipitationDto;
+import com.sprint.mission.otboo.domain.weathernotification.weather.dto.TemperatureDto;
+import com.sprint.mission.otboo.domain.weathernotification.weather.dto.WeatherSummaryDto;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
@@ -103,6 +107,7 @@ class FeedServiceTest {
           .sample();
 
       UserSummary mockAuthor = new UserSummary(currentUserId, "작성자명", "img.png");
+      when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
       given(userSummaryQueryRepository.findByUserId(currentUserId)).willReturn(mockAuthor);
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -139,6 +144,7 @@ class FeedServiceTest {
           .sample();
 
       given(userSummaryQueryRepository.findByUserId(currentUserId)).willReturn(null);
+      when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
 
       // when & then
@@ -149,6 +155,95 @@ class FeedServiceTest {
             assertThat(ae.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
             assertThat(ae.getDetails()).containsEntry("authorId", currentUserId);
           });
+    }
+
+    @Test
+    @DisplayName("정상 등록 시 WeatherSnapshot이 Feed 스냅샷 컬럼에 저장된다")
+    void 정상_등록_시_WeatherSnapshot이_Feed_스냅샷_컬럼에_저장된다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
+          .set("authorId", currentUserId)
+          .sample();
+
+      UserSummary author = new UserSummary(currentUserId, "테스터", null);
+
+      when(weatherSnapshotProvider.readSnapshot(request.weatherId())).thenReturn(DUMMY_SNAPSHOT);
+      when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
+      when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
+      when(feedMapper.toDto(any(Feed.class), eq(author), eq(false)))
+          .thenReturn(new FeedDto(UUID.randomUUID(), null, null, author, null,
+              request.content(), 0L, 0, false));
+
+      // when
+      feedService.create(request, currentUserId);
+
+      // then
+      ArgumentCaptor<Feed> captor = ArgumentCaptor.forClass(Feed.class);
+      verify(feedRepository).save(captor.capture());
+      verify(weatherSnapshotProvider).readSnapshot(request.weatherId());
+      Feed saved = captor.getValue();
+      assertThat(saved.getSkyStatus()).isEqualTo(SkyStatus.CLEAR);
+      assertThat(saved.getPrecipitationType()).isEqualTo(PrecipitationType.NONE);
+      assertThat(saved.getTemperatureCurrent()).isEqualTo(28.0);
+      assertThat(saved.getTemperatureMin()).isEqualTo(16.0);
+      assertThat(saved.getTemperatureMax()).isEqualTo(31.0);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 weatherId면 WeatherNotFoundException을 던진다")
+    void 존재하지_않는_weatherId면_WeatherNotFoundException을_던진다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
+          .set("authorId", currentUserId)
+          .sample();
+
+      when(weatherSnapshotProvider.readSnapshot(request.weatherId()))
+          .thenThrow(WeatherNotFoundException.withId(request.weatherId()));
+
+      // when & then
+      assertThatThrownBy(() -> feedService.create(request, currentUserId))
+          .isInstanceOf(WeatherNotFoundException.class)
+          .satisfies(ex -> {
+            WeatherNotFoundException e = (WeatherNotFoundException) ex;
+            assertThat(e.getStatus().value()).isEqualTo(400);
+            assertThat(e.getDetails()).containsEntry("weatherId", request.weatherId());
+          });
+    }
+
+    @Test
+    @DisplayName("정상 등록 시 반환 FeedDto.weather에 WeatherSummaryDto가 채워진다")
+    void 정상_등록_시_반환_FeedDto_weather에_WeatherSummaryDto가_채워진다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
+          .set("authorId", currentUserId)
+          .sample();
+
+      UserSummary author = new UserSummary(currentUserId, "테스터", null);
+
+      WeatherSummaryDto expectedWeather = new WeatherSummaryDto(
+          request.weatherId(), SkyStatus.CLEAR,
+          new PrecipitationDto(PrecipitationType.NONE, 0.0, 0.0),
+          new TemperatureDto(28.0, 2.0, 16.0, 31.0));
+      FeedDto expected = new FeedDto(
+          UUID.randomUUID(), null, null, author, expectedWeather,
+          request.content(), 0L, 0, false);
+
+      when(weatherSnapshotProvider.readSnapshot(request.weatherId())).thenReturn(DUMMY_SNAPSHOT);
+      when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
+      when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
+      when(feedMapper.toDto(any(Feed.class), eq(author), eq(false))).thenReturn(expected);
+
+      // when
+      FeedDto result = feedService.create(request, currentUserId);
+
+      // then
+      assertThat(result.weather()).isNotNull();
+      assertThat(result.weather().skyStatus()).isEqualTo(SkyStatus.CLEAR);
+      assertThat(result.weather().temperature().min()).isEqualTo(16.0);
+      assertThat(result.weather().temperature().max()).isEqualTo(31.0);
     }
   }
 
