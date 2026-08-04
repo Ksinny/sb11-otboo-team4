@@ -47,7 +47,7 @@ public class FeedService {
     Feed feed = feedRepository.save(
         Feed.create(request.authorId(), request.weatherId(), request.content(), weatherSnapshot,
             ootdSnapshots));
-    log.info("피드 등록 완료: feedId={}, authorId={}", feed.getId(), feed.getAuthorId());
+    log.info("피드 등록 완료: feedId={}", feed.getId());
 
     UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
     return feedMapper.toDto(feed, author, false);
