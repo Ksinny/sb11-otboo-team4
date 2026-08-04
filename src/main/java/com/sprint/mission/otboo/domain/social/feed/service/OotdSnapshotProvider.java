@@ -29,7 +29,7 @@ public class OotdSnapshotProvider {
         .anyMatch(clothes -> !clothes.ownerId().equals(authorId));
     if (hasOthersClothes) {
       log.warn("착장 소유권 불일치: authorId={}", authorId);
-      throw ClothesOwnershipException.of(authorId);
+      throw ClothesOwnershipException.withNone();
     }
 
     log.debug("착장 조회 완료: 요청={}, 조회={}", clothesIds.size(), clothesList.size());

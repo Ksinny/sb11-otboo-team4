@@ -52,7 +52,7 @@ public class FeedService {
 
     UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
     if (author == null) {
-      throw AuthorNotFoundException.from(feed.getAuthorId());
+      throw AuthorNotFoundException.withNone();
     }
 
     return feedMapper.toDto(feed, author, false);

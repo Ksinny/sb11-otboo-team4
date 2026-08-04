@@ -211,9 +211,9 @@ class FeedServiceTest {
       assertThatThrownBy(() -> feedService.create(request, currentUserId))
           .isInstanceOf(WeatherNotFoundException.class)
           .satisfies(ex -> {
-            WeatherNotFoundException e = (WeatherNotFoundException) ex;
-            assertThat(e.getStatus().value()).isEqualTo(400);
-            assertThat(e.getDetails()).containsEntry("weatherId", request.weatherId());
+            AuthorNotFoundException ae = (AuthorNotFoundException) ex;
+            assertThat(ae.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(ae.getDetails()).isEmpty();
           });
     }
 

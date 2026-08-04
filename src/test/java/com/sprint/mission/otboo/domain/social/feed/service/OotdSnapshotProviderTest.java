@@ -137,7 +137,7 @@ class OotdSnapshotProviderTest {
           .satisfies(ex -> {
             ClothesOwnershipException e = (ClothesOwnershipException) ex;
             assertThat(e.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
-            assertThat(e.getDetails()).containsEntry("authorId", authorId);
+            assertThat(e.getDetails()).isEmpty();
           });
     }
   }

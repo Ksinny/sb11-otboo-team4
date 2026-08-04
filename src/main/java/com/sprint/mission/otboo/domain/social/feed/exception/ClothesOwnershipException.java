@@ -1,7 +1,7 @@
 package com.sprint.mission.otboo.domain.social.feed.exception;
 
+import java.util.Collections;
 import java.util.Map;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 
 public class ClothesOwnershipException extends FeedException {
@@ -12,7 +12,7 @@ public class ClothesOwnershipException extends FeedException {
     super(HttpStatus.FORBIDDEN, MESSAGE, details);
   }
 
-  public static ClothesOwnershipException of(UUID authorId) {
-    return new ClothesOwnershipException(Map.of("authorId", authorId));
+  public static ClothesOwnershipException withNone() {
+    return new ClothesOwnershipException(Collections.emptyMap());
   }
 }

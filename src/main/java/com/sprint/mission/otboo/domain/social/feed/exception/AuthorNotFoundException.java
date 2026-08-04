@@ -1,7 +1,7 @@
 package com.sprint.mission.otboo.domain.social.feed.exception;
 
+import java.util.Collections;
 import java.util.Map;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 
 public class AuthorNotFoundException extends FeedException {
@@ -12,7 +12,7 @@ public class AuthorNotFoundException extends FeedException {
     super(HttpStatus.NOT_FOUND, MESSAGE, details);
   }
 
-  public static AuthorNotFoundException from(UUID authorId) {
-    return new AuthorNotFoundException(Map.of("authorId", authorId));
+  public static AuthorNotFoundException withNone() {
+    return new AuthorNotFoundException(Collections.emptyMap());
   }
 }
