@@ -28,7 +28,7 @@ public class OotdSnapshotProvider {
     boolean hasOthersClothes = clothesList.stream()
         .anyMatch(clothes -> !clothes.ownerId().equals(authorId));
     if (hasOthersClothes) {
-      log.warn("착장 소유권 불일치: authorId={}", authorId);
+      log.warn("착장 소유권 불일치로 피드 등록 실패");
       throw ClothesOwnershipException.withNone();
     }
 
