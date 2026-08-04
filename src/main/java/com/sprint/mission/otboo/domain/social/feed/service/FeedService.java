@@ -42,7 +42,8 @@ public class FeedService {
     }
 
     WeatherSnapshot weatherSnapshot = weatherSnapshotProvider.readSnapshot(request.weatherId());
-    List<OotdSnapshot> ootdSnapshots = ootdSnapshotProvider.readOotds(request.clothesIds());
+    List<OotdSnapshot> ootdSnapshots = ootdSnapshotProvider.readOotds(request.clothesIds(),
+        request.authorId());
 
     Feed feed = feedRepository.save(
         Feed.create(request.authorId(), request.weatherId(), request.content(),

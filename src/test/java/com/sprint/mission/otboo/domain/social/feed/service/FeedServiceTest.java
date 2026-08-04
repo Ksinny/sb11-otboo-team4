@@ -271,7 +271,8 @@ class FeedServiceTest {
       UserSummary author = new UserSummary(currentUserId, "테스터", null);
 
       when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
-      when(ootdSnapshotProvider.readOotds(request.clothesIds())).thenReturn(ootds);
+      when(ootdSnapshotProvider.readOotds(request.clothesIds(), request.authorId()))
+          .thenReturn(ootds);
       when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
       when(feedMapper.toDto(any(Feed.class), eq(author), eq(false)))
@@ -284,7 +285,7 @@ class FeedServiceTest {
       // then
       ArgumentCaptor<Feed> captor = ArgumentCaptor.forClass(Feed.class);
       verify(feedRepository).save(captor.capture());
-      verify(ootdSnapshotProvider).readOotds(request.clothesIds());
+      verify(ootdSnapshotProvider).readOotds(request.clothesIds(), request.authorId());
       Feed saved = captor.getValue();
       assertThat(saved.getOotds()).hasSize(2);
       assertThat(saved.getOotds().get(0).name()).isEqualTo("패딩");
@@ -311,7 +312,8 @@ class FeedServiceTest {
           UUID.randomUUID(), null, null, author, null, List.of(ootdDto), "내용", 0L, 0, false);
 
       when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
-      when(ootdSnapshotProvider.readOotds(request.clothesIds())).thenReturn(List.of(ootdSnapshot));
+      when(ootdSnapshotProvider.readOotds(request.clothesIds(), request.authorId()))
+          .thenReturn(List.of(ootdSnapshot));
       when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
       when(feedMapper.toDto(any(Feed.class), eq(author), eq(false))).thenReturn(expected);
