@@ -23,7 +23,6 @@ import com.sprint.mission.otboo.domain.social.feed.dto.OotdDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
-import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.exception.WeatherNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
@@ -209,9 +208,10 @@ class FeedServiceTest {
       assertThatThrownBy(() -> feedService.create(request, currentUserId))
           .isInstanceOf(WeatherNotFoundException.class)
           .satisfies(ex -> {
-            AuthorNotFoundException ae = (AuthorNotFoundException) ex;
-            assertThat(ae.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
-            assertThat(ae.getDetails()).isEmpty();
+            WeatherNotFoundException e = (WeatherNotFoundException) ex;
+            assertThat(e.getStatus().value()).isEqualTo(400);
+            assertThat(e.getDetails()).containsEntry("weatherId",
+                request.weatherId());
           });
     }
 
