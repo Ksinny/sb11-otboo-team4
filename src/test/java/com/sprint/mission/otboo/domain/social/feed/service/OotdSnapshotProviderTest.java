@@ -8,7 +8,7 @@ import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitra
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
 import com.sprint.mission.otboo.domain.clothesrecommend.clothes.dto.ClothesDto;
 import com.sprint.mission.otboo.domain.clothesrecommend.clothes.service.ClothesService;
-import com.sprint.mission.otboo.domain.social.feed.dto.OotdDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -57,7 +57,7 @@ class OotdSnapshotProviderTest {
       when(clothesService.getClothesByIds(clothesIds)).thenReturn(List.of(dto1, dto2));
 
       // when
-      List<OotdDto> result = ootdSnapshotProvider.readOotds(clothesIds);
+      List<OotdSnapshot> result = ootdSnapshotProvider.readOotds(clothesIds);
 
       // then
       assertThat(result).hasSize(2);
@@ -71,7 +71,7 @@ class OotdSnapshotProviderTest {
     @DisplayName("빈 clothesIds면 빈 리스트를 반환한다")
     void 빈_clothesIds면_빈_리스트를_반환한다() {
       // when
-      List<OotdDto> result = ootdSnapshotProvider.readOotds(List.of());
+      List<OotdSnapshot> result = ootdSnapshotProvider.readOotds(List.of());
 
       // then
       assertThat(result).isEmpty();
@@ -92,7 +92,7 @@ class OotdSnapshotProviderTest {
       when(clothesService.getClothesByIds(clothesIds)).thenReturn(List.of(dto));
 
       // when
-      List<OotdDto> result = ootdSnapshotProvider.readOotds(clothesIds);
+      List<OotdSnapshot> result = ootdSnapshotProvider.readOotds(clothesIds);
 
       // then
       assertThat(result).hasSize(1);

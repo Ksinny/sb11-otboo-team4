@@ -2,10 +2,13 @@ package com.sprint.mission.otboo.domain.social.feed.mapper;
 
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.OotdDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.weathernotification.weather.dto.PrecipitationDto;
 import com.sprint.mission.otboo.domain.weathernotification.weather.dto.TemperatureDto;
 import com.sprint.mission.otboo.domain.weathernotification.weather.dto.WeatherSummaryDto;
+import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,7 +21,7 @@ public class FeedMapper {
         feed.getUpdatedAt(),
         author,
         toWeatherSummaryDto(feed),
-        feed.getOotds(),
+        toOotdDtos(feed.getOotds()),
         feed.getContent(),
         feed.getLikeCount(),
         feed.getCommentCount(),
@@ -45,5 +48,14 @@ public class FeedMapper {
             feed.getTemperatureMax()
         )
     );
+  }
+
+  private List<OotdDto> toOotdDtos(List<OotdSnapshot> snapshots) {
+    if (snapshots == null) {
+      return List.of();
+    }
+    return snapshots.stream()
+        .map(s -> new OotdDto(s.clothesId(), s.name(), s.imageUrl(), s.type(), s.attributes()))
+        .toList();
   }
 }

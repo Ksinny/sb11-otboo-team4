@@ -19,6 +19,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.dto.OotdDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
@@ -251,21 +252,21 @@ class FeedServiceTest {
     }
 
     @Test
-    @DisplayName("정상 등록 시 clothesIds로 조회한 OotdDto가 Feed에 저장된다")
-    void 정상_등록_시_clothesIds로_조회한_OotdDto가_Feed에_저장된다() {
+    @DisplayName("정상 등록 시 clothesIds로 조회한 OotdSnapshot이 Feed에 저장된다")
+    void 정상_등록_시_clothesIds로_조회한_OotdSnapshot이_Feed에_저장된다() {
       // given
       UUID currentUserId = UUID.randomUUID();
       FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
           .set("authorId", currentUserId)
           .sample();
 
-      OotdDto ootd1 = fm.giveMeBuilder(OotdDto.class)
+      OotdSnapshot ootd1 = fm.giveMeBuilder(OotdSnapshot.class)
           .set("name", "패딩")
           .sample();
-      OotdDto ootd2 = fm.giveMeBuilder(OotdDto.class)
+      OotdSnapshot ootd2 = fm.giveMeBuilder(OotdSnapshot.class)
           .set("name", "청바지")
           .sample();
-      List<OotdDto> ootds = List.of(ootd1, ootd2);
+      List<OotdSnapshot> ootds = List.of(ootd1, ootd2);
 
       UserSummary author = new UserSummary(currentUserId, "테스터", null);
 
@@ -275,7 +276,7 @@ class FeedServiceTest {
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
       when(feedMapper.toDto(any(Feed.class), eq(author), eq(false)))
           .thenReturn(new FeedDto(UUID.randomUUID(), null, null, author, null,
-              ootds, "내용", 0L, 0, false));
+              null, "내용", 0L, 0, false));
 
       // when
       feedService.create(request, currentUserId);
@@ -299,16 +300,18 @@ class FeedServiceTest {
           .set("authorId", currentUserId)
           .sample();
 
-      OotdDto ootd = fm.giveMeBuilder(OotdDto.class)
+      OotdSnapshot ootdSnapshot = fm.giveMeBuilder(OotdSnapshot.class)
           .set("name", "패딩")
           .sample();
-      List<OotdDto> ootds = List.of(ootd);
+      OotdDto ootdDto = fm.giveMeBuilder(OotdDto.class)
+          .set("name", "패딩")
+          .sample();
       UserSummary author = new UserSummary(currentUserId, "테스터", null);
       FeedDto expected = new FeedDto(
-          UUID.randomUUID(), null, null, author, null, ootds, "내용", 0L, 0, false);
+          UUID.randomUUID(), null, null, author, null, List.of(ootdDto), "내용", 0L, 0, false);
 
       when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
-      when(ootdSnapshotProvider.readOotds(request.clothesIds())).thenReturn(ootds);
+      when(ootdSnapshotProvider.readOotds(request.clothesIds())).thenReturn(List.of(ootdSnapshot));
       when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
       when(feedMapper.toDto(any(Feed.class), eq(author), eq(false))).thenReturn(expected);

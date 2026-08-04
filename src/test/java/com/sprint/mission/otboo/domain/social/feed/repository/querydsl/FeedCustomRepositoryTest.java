@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.sprint.mission.otboo.domain.clothesrecommend.clothes.dto.ClothesType;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
-import com.sprint.mission.otboo.domain.social.feed.dto.OotdDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
@@ -398,13 +398,13 @@ class FeedCustomRepositoryTest {
   class OotdsJsonbPersistence {
 
     @Test
-    @DisplayName("OotdDto 리스트가 JSONB로 저장 후 역직렬화돼 그대로 반환된다")
-    void OotdDto_리스트가_JSONB로_저장_후_역직렬화돼_그대로_반환된다() {
+    @DisplayName("OotdSnapshot 리스트가 JSONB로 저장 후 역직렬화돼 그대로 반환된다")
+    void OotdSnapshot_리스트가_JSONB로_저장_후_역직렬화돼_그대로_반환된다() {
       // given
-      OotdDto ootd1 = new OotdDto(
+      OotdSnapshot ootd1 = new OotdSnapshot(
           UUID.randomUUID(), "패딩", "https://img.url/padding.jpg",
           ClothesType.OUTER, List.of());
-      OotdDto ootd2 = new OotdDto(
+      OotdSnapshot ootd2 = new OotdSnapshot(
           UUID.randomUUID(), "청바지", "https://img.url/jeans.jpg",
           ClothesType.BOTTOM, List.of());
 

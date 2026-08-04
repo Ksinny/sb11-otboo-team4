@@ -5,7 +5,7 @@ import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSum
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
-import com.sprint.mission.otboo.domain.social.feed.dto.OotdDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
@@ -41,12 +41,12 @@ public class FeedService {
       throw FeedForbiddenException.authorMismatch(currentUserId, request.authorId());
     }
 
-    WeatherSnapshot snapshot = weatherSnapshotProvider.readSnapshot(request.weatherId());
-    List<OotdDto> ootds = ootdSnapshotProvider.readOotds(request.clothesIds());
+    WeatherSnapshot weatherSnapshot = weatherSnapshotProvider.readSnapshot(request.weatherId());
+    List<OotdSnapshot> ootdSnapshots = ootdSnapshotProvider.readOotds(request.clothesIds());
 
     Feed feed = feedRepository.save(
         Feed.create(request.authorId(), request.weatherId(), request.content(),
-            snapshot, ootds));
+            weatherSnapshot, ootdSnapshots));
     log.info("피드 등록 완료: feedId={}, authorId={}", feed.getId(), feed.getAuthorId());
 
     UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());

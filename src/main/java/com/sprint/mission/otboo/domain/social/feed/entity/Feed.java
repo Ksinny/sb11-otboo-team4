@@ -1,6 +1,6 @@
 package com.sprint.mission.otboo.domain.social.feed.entity;
 
-import com.sprint.mission.otboo.domain.social.feed.dto.OotdDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
@@ -86,7 +86,7 @@ public class Feed {
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "ootds", columnDefinition = "jsonb")
-  private List<OotdDto> ootds;
+  private List<OotdSnapshot> ootds;
 
   @Column(name = "content", columnDefinition = "text", nullable = false)
   private String content;
@@ -98,27 +98,27 @@ public class Feed {
   private int commentCount;
 
   private Feed(UUID authorId, UUID weatherId, String content,
-      WeatherSnapshot snapshot, List<OotdDto> ootds) {
+      WeatherSnapshot weatherSnapshot, List<OotdSnapshot> ootdSnapshots) {
     this.authorId = authorId;
     this.weatherId = weatherId;
     this.content = content;
-    if (snapshot != null) {
-      this.skyStatus = snapshot.skyStatus();
-      this.precipitationType = snapshot.precipitationType();
-      this.precipitationAmount = snapshot.precipitationAmount();
-      this.precipitationProbability = snapshot.precipitationProbability();
-      this.temperatureCurrent = snapshot.temperatureCurrent();
-      this.temperatureCompared = snapshot.temperatureCompared();
-      this.temperatureMin = snapshot.temperatureMin();
-      this.temperatureMax = snapshot.temperatureMax();
+    if (weatherSnapshot != null) {
+      this.skyStatus = weatherSnapshot.skyStatus();
+      this.precipitationType = weatherSnapshot.precipitationType();
+      this.precipitationAmount = weatherSnapshot.precipitationAmount();
+      this.precipitationProbability = weatherSnapshot.precipitationProbability();
+      this.temperatureCurrent = weatherSnapshot.temperatureCurrent();
+      this.temperatureCompared = weatherSnapshot.temperatureCompared();
+      this.temperatureMin = weatherSnapshot.temperatureMin();
+      this.temperatureMax = weatherSnapshot.temperatureMax();
     }
-    this.ootds = ootds;
+    this.ootds = ootdSnapshots;
     this.likeCount = 0;
     this.commentCount = 0;
   }
 
   public static Feed create(UUID authorId, UUID weatherId, String content,
-      WeatherSnapshot snapshot, List<OotdDto> ootds) {
-    return new Feed(authorId, weatherId, content, snapshot, ootds);
+      WeatherSnapshot weatherSnapshot, List<OotdSnapshot> ootdSnapshots) {
+    return new Feed(authorId, weatherId, content, weatherSnapshot, ootdSnapshots);
   }
 }

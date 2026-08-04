@@ -6,9 +6,11 @@ import com.navercorp.fixturemonkey.FixtureMonkey;
 import com.navercorp.fixturemonkey.api.introspector.FieldReflectionArbitraryIntrospector;
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,6 +22,10 @@ class FeedMapperTest {
   static final FixtureMonkey fm = FixtureMonkey.builder()
       .objectIntrospector(FieldReflectionArbitraryIntrospector.INSTANCE)
       .build();
+
+  static final WeatherSnapshot DUMMY_SNAPSHOT = new WeatherSnapshot(
+      SkyStatus.CLEAR, PrecipitationType.NONE,
+      0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
 
   FeedMapper feedMapper = new FeedMapper();
 
@@ -45,6 +51,7 @@ class FeedMapperTest {
           .set("temperatureCompared", 2.0)
           .set("temperatureMin", 16.0)
           .set("temperatureMax", 31.0)
+          .set("ootds", List.of())
           .sample();
 
       // when
@@ -73,6 +80,7 @@ class FeedMapperTest {
           .set("temperatureCompared", 2.0)
           .set("temperatureMin", 16.0)
           .set("temperatureMax", 31.0)
+          .set("ootds", List.of())
           .sample();
 
       UserSummary mockAuthor = new UserSummary(UUID.randomUUID(), "테스트유저", "profile.png");
@@ -102,6 +110,7 @@ class FeedMapperTest {
           .set("temperatureCompared", 2.0)
           .set("temperatureMin", 16.0)
           .set("temperatureMax", 31.0)
+          .set("ootds", List.of())
           .sample();
 
       // when
@@ -123,6 +132,7 @@ class FeedMapperTest {
       UserSummary author = new UserSummary(UUID.randomUUID(), "테스터", null);
       Feed feed = fm.giveMeBuilder(Feed.class)
           .setNull("skyStatus")
+          .set("ootds", List.of())
           .sample();
 
       // when
@@ -130,6 +140,21 @@ class FeedMapperTest {
 
       // then
       assertThat(result.weather()).isNull();
+    }
+
+    @Test
+    @DisplayName("ootds가 null이면 빈 리스트로 반환한다")
+    void ootds가_null이면_빈_리스트로_반환한다() {
+      // given
+      UserSummary author = new UserSummary(UUID.randomUUID(), "테스터", null);
+      Feed feed = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "내용",
+          DUMMY_SNAPSHOT, null);   // ootds = null
+
+      // when
+      FeedDto result = feedMapper.toDto(feed, author, false);
+
+      // then
+      assertThat(result.ootds()).isEmpty();
     }
   }
 }
