@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.navercorp.fixturemonkey.FixtureMonkey;
 import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitraryIntrospector;
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
+import com.sprint.mission.otboo.domain.authuser.user.exception.UserNotFoundException;
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
@@ -140,26 +141,23 @@ class FeedServiceTest {
     }
 
     @Test
-    @DisplayName("작성자 정보가 존재하지 않으면 AuthorNotFoundException을 던진다")
-    void 작성자_정보가_존재하지_않으면_AuthorNotFoundException을_던진다() {
+    @DisplayName("작성자 정보가 존재하지 않으면 UserNotFoundException을 전파한다")
+    void 작성자_정보가_존재하지_않으면_UserNotFoundException을_전파한다() {
       // given
       UUID currentUserId = UUID.randomUUID();
       FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
           .set("authorId", currentUserId)
           .sample();
 
-      given(userSummaryQueryRepository.findByUserId(currentUserId)).willReturn(null);
       when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
+      when(ootdSnapshotProvider.readOotds(any(), any())).thenReturn(List.of());
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
+      when(userSummaryQueryRepository.findByUserId(currentUserId))
+          .thenThrow(UserNotFoundException.withNone());
 
       // when & then
       assertThatThrownBy(() -> feedService.create(request, currentUserId))
-          .isInstanceOf(AuthorNotFoundException.class)
-          .satisfies(ex -> {
-            AuthorNotFoundException ae = (AuthorNotFoundException) ex;
-            assertThat(ae.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
-            assertThat(ae.getDetails()).containsEntry("authorId", currentUserId);
-          });
+          .isInstanceOf(UserNotFoundException.class);
     }
 
     @Test

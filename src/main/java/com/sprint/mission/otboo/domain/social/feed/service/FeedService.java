@@ -8,7 +8,6 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
-import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
@@ -46,15 +45,11 @@ public class FeedService {
         request.authorId());
 
     Feed feed = feedRepository.save(
-        Feed.create(request.authorId(), request.weatherId(), request.content(),
-            weatherSnapshot, ootdSnapshots));
+        Feed.create(request.authorId(), request.weatherId(), request.content(), weatherSnapshot,
+            ootdSnapshots));
     log.info("피드 등록 완료: feedId={}, authorId={}", feed.getId(), feed.getAuthorId());
 
     UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
-    if (author == null) {
-      throw AuthorNotFoundException.withNone();
-    }
-
     return feedMapper.toDto(feed, author, false);
   }
 
