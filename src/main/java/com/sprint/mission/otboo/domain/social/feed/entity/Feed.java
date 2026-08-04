@@ -112,7 +112,7 @@ public class Feed {
       this.temperatureMin = weatherSnapshot.temperatureMin();
       this.temperatureMax = weatherSnapshot.temperatureMax();
     }
-    this.ootds = ootdSnapshots;
+    this.ootds = ootdSnapshots == null ? List.of() : List.copyOf(ootdSnapshots);
     this.likeCount = 0;
     this.commentCount = 0;
   }
