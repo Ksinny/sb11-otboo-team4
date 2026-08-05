@@ -15,6 +15,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
 import com.sprint.mission.otboo.domain.social.feed.entity.Comment;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
+import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.CommentMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.CommentRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
@@ -147,6 +148,24 @@ class CommentServiceTest {
 
       // then
       assertThat(result).isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("피드가 존재하지 않으면 FeedNotFoundException을 던진다")
+    void 피드가_존재하지_않으면_FeedNotFoundException을_던진다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
+          .set("feedId", feedId)
+          .set("authorId", userId)
+          .set("content", "댓글 내용")
+          .sample();
+      given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(false);
+
+      // when & then
+      assertThatThrownBy(() -> commentService.create(request, userId))
+          .isInstanceOf(FeedNotFoundException.class);
     }
   }
 }
