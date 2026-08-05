@@ -74,5 +74,27 @@ class CommentServiceTest {
       assertThat(result).isEqualTo(expected);
       verify(commentRepository).save(any(Comment.class));
     }
+
+    @Test
+    @DisplayName("댓글을 저장하면 피드의 댓글 카운트를 증가시킨다")
+    void 댓글을_저장하면_피드의_댓글_카운트를_증가시킨다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
+          .set("feedId", feedId)
+          .set("authorId", userId)
+          .set("content", "댓글 내용")
+          .sample();
+
+      Comment saved = Comment.create(feedId, userId, "댓글 내용");
+      given(commentRepository.save(any(Comment.class))).willReturn(saved);
+
+      // when
+      commentService.create(request, userId);
+
+      // then
+      verify(feedRepository).incrementCommentCount(feedId);
+    }
   }
 }
