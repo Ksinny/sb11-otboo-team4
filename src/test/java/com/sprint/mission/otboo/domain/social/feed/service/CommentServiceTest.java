@@ -49,24 +49,6 @@ class CommentServiceTest {
   @InjectMocks
   CommentService commentService;
 
-  @Test
-  @DisplayName("요청 authorId가 인증 사용자와 다르면 FeedForbiddenException을 던진다")
-  void 요청_authorId가_인증_사용자와_다르면_FeedForbiddenException을_던진다() {
-    // given
-    UUID feedId = UUID.randomUUID();
-    UUID currentUserId = UUID.randomUUID();
-    UUID otherAuthorId = UUID.randomUUID();
-    CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
-        .set("feedId", feedId)
-        .set("authorId", otherAuthorId)
-        .set("content", "댓글 내용")
-        .sample();
-
-    // when & then
-    assertThatThrownBy(() -> commentService.create(request, currentUserId))
-        .isInstanceOf(FeedForbiddenException.class);
-  }
-
   @Nested
   @DisplayName("댓글 등록")
   class Create {
@@ -91,6 +73,7 @@ class CommentServiceTest {
 
       CommentDto expected = new CommentDto(UUID.randomUUID(), null, feedId, author, "댓글 내용");
       given(commentMapper.toDto(saved, author)).willReturn(expected);
+      given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
 
       // when
       CommentDto result = commentService.create(request, userId);
@@ -114,6 +97,7 @@ class CommentServiceTest {
 
       Comment saved = Comment.create(feedId, userId, "댓글 내용");
       given(commentRepository.save(any(Comment.class))).willReturn(saved);
+      given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
 
       // when
       commentService.create(request, userId);
@@ -142,6 +126,7 @@ class CommentServiceTest {
 
       CommentDto expected = new CommentDto(UUID.randomUUID(), null, feedId, author, "댓글 내용");
       given(commentMapper.toDto(saved, author)).willReturn(expected);
+      given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
 
       // when
       CommentDto result = commentService.create(request, userId);
@@ -166,6 +151,24 @@ class CommentServiceTest {
       // when & then
       assertThatThrownBy(() -> commentService.create(request, userId))
           .isInstanceOf(FeedNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("요청 authorId가 인증 사용자와 다르면 FeedForbiddenException을 던진다")
+    void 요청_authorId가_인증_사용자와_다르면_FeedForbiddenException을_던진다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      UUID otherAuthorId = UUID.randomUUID();
+      CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
+          .set("feedId", feedId)
+          .set("authorId", otherAuthorId)
+          .set("content", "댓글 내용")
+          .sample();
+
+      // when & then
+      assertThatThrownBy(() -> commentService.create(request, currentUserId))
+          .isInstanceOf(FeedForbiddenException.class);
     }
   }
 }

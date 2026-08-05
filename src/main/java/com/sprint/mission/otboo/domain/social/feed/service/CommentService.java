@@ -6,6 +6,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
 import com.sprint.mission.otboo.domain.social.feed.entity.Comment;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
+import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.CommentMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.CommentRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
@@ -30,6 +31,9 @@ public class CommentService {
   public CommentDto create(CommentCreateRequest request, UUID currentUserId) {
     if (!request.authorId().equals(currentUserId)) {
       throw FeedForbiddenException.authorMismatch(currentUserId, request.authorId());
+    }
+    if (!feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(request.feedId())) {
+      throw FeedNotFoundException.withId(request.feedId());
     }
     Comment comment = commentRepository.save(
         Comment.create(request.feedId(), request.authorId(), request.content()));
