@@ -3,6 +3,7 @@ package com.sprint.mission.otboo.domain.social.feed.service;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
+import com.sprint.mission.otboo.domain.social.feed.entity.Comment;
 import com.sprint.mission.otboo.domain.social.feed.mapper.CommentMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.CommentRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
@@ -25,6 +26,9 @@ public class CommentService {
 
   @Transactional
   public CommentDto create(CommentCreateRequest request, UUID currentUserId) {
-    return null;
+    Comment comment = commentRepository.save(
+        Comment.create(request.feedId(), request.authorId(), request.content()));
+    log.info("피드 댓글 등록 완료: feedId={}, commentId={}", request.feedId(), comment.getId());
+    return commentMapper.toDto(comment, null);
   }
 }
