@@ -28,6 +28,7 @@ public class CommentService {
   public CommentDto create(CommentCreateRequest request, UUID currentUserId) {
     Comment comment = commentRepository.save(
         Comment.create(request.feedId(), request.authorId(), request.content()));
+    feedRepository.incrementCommentCount(request.feedId());
     log.info("피드 댓글 등록 완료: feedId={}, commentId={}", request.feedId(), comment.getId());
     return commentMapper.toDto(comment, null);
   }
