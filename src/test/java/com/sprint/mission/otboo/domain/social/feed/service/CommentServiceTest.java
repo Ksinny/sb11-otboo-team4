@@ -80,6 +80,7 @@ class CommentServiceTest {
       CommentDto expected = new CommentDto(UUID.randomUUID(), null, feedId, author, "댓글 내용");
       given(commentMapper.toDto(saved, author)).willReturn(expected);
       given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
+      given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(UUID.randomUUID()));
 
       // when
       CommentDto result = commentService.create(request, userId);
@@ -104,6 +105,9 @@ class CommentServiceTest {
       Comment saved = Comment.create(feedId, userId, "댓글 내용");
       given(commentRepository.save(any(Comment.class))).willReturn(saved);
       given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
+      given(userSummaryQueryRepository.findByUserId(userId))
+          .willReturn(new UserSummary(userId, "경신", null));
+      given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(UUID.randomUUID()));
 
       // when
       commentService.create(request, userId);
@@ -133,6 +137,7 @@ class CommentServiceTest {
       CommentDto expected = new CommentDto(UUID.randomUUID(), null, feedId, author, "댓글 내용");
       given(commentMapper.toDto(saved, author)).willReturn(expected);
       given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
+      given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(UUID.randomUUID()));
 
       // when
       CommentDto result = commentService.create(request, userId);

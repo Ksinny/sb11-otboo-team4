@@ -10,6 +10,9 @@ import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundExcepti
 import com.sprint.mission.otboo.domain.social.feed.mapper.CommentMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.CommentRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
+import com.sprint.mission.otboo.global.event.NotificationLevel;
+import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +46,13 @@ public class CommentService {
     log.info("피드 댓글 등록 완료: feedId={}, commentId={}", request.feedId(), comment.getId());
 
     UserSummary author = userSummaryQueryRepository.findByUserId(comment.getAuthorId());
+
+    UUID feedAuthorId = feedRepository.findAuthorId(comment.getFeedId())
+        .orElseThrow(() -> FeedNotFoundException.withId(comment.getFeedId()));
+    eventPublisher.publishEvent(new NotificationRequestedEvent(
+        Set.of(feedAuthorId), author.name() + "님이 댓글을 달았어요.",
+        comment.getContent(), NotificationLevel.INFO));
+
     return commentMapper.toDto(comment, author);
   }
 }
