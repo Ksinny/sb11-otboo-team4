@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import com.navercorp.fixturemonkey.FixtureMonkey;
 import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitraryIntrospector;
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
+import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
@@ -95,6 +96,34 @@ class CommentServiceTest {
 
       // then
       verify(feedRepository).incrementCommentCount(feedId);
+    }
+
+    @Test
+    @DisplayName("반환하는 CommentDto에 작성자 정보를 채운다")
+    void 반환하는_CommentDto에_작성자_정보를_채운다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
+          .set("feedId", feedId)
+          .set("authorId", userId)
+          .set("content", "댓글 내용")
+          .sample();
+
+      Comment saved = Comment.create(feedId, userId, "댓글 내용");
+      given(commentRepository.save(any(Comment.class))).willReturn(saved);
+
+      UserSummary author = new UserSummary(userId, "경신", null);
+      given(userSummaryQueryRepository.findByUserId(userId)).willReturn(author);
+
+      CommentDto expected = new CommentDto(UUID.randomUUID(), null, feedId, author, "댓글 내용");
+      given(commentMapper.toDto(saved, author)).willReturn(expected);
+
+      // when
+      CommentDto result = commentService.create(request, userId);
+
+      // then
+      assertThat(result).isEqualTo(expected);
     }
   }
 }
