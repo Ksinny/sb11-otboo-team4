@@ -19,9 +19,13 @@ public interface FeedRepository extends JpaRepository<Feed, UUID>, FeedCustomRep
   @Query("update Feed f set f.likeCount = f.likeCount - 1 where f.id = :feedId and f.likeCount > 0")
   void decrementLikeCount(@Param("feedId") UUID feedId);
 
+  default void incrementCommentCount(UUID feedId) {
+
+  }
+
   boolean existsByIdAndSoftDeletable_DeletedAtIsNull(UUID id);
 
   @Query("select f.authorId from Feed f where f.id = :feedId and f.softDeletable.deletedAt is null")
   Optional<UUID> findAuthorId(@Param("feedId") UUID feedId);
-  
+
 }

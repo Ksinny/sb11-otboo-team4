@@ -200,4 +200,23 @@ class FeedRepositoryTest {
       assertThat(result).isEmpty();
     }
   }
+
+  @Nested
+  @DisplayName("incrementCommentCount")
+  class IncrementCommentCount {
+
+    @Test
+    @DisplayName("댓글 카운트를 1 증가시킨다")
+    void 댓글_카운트를_1_증가시킨다() {
+      // given
+      Feed feed = createAndSaveFeed("내용");
+
+      // when
+      feedRepository.incrementCommentCount(feed.getId());
+
+      // then
+      Feed found = feedRepository.findById(feed.getId()).orElseThrow();
+      assertThat(found.getCommentCount()).isEqualTo(1);
+    }
+  }
 }
