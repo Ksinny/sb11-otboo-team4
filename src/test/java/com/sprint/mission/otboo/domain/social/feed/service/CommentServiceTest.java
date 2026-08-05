@@ -19,14 +19,18 @@ import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundExcepti
 import com.sprint.mission.otboo.domain.social.feed.mapper.CommentMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.CommentRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
+import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CommentService")
@@ -45,6 +49,8 @@ class CommentServiceTest {
   CommentMapper commentMapper;
   @Mock
   UserSummaryQueryRepository userSummaryQueryRepository;
+  @Mock
+  ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   CommentService commentService;
@@ -169,6 +175,39 @@ class CommentServiceTest {
       // when & then
       assertThatThrownBy(() -> commentService.create(request, currentUserId))
           .isInstanceOf(FeedForbiddenException.class);
+    }
+
+    @Test
+    @DisplayName("댓글 등록에 성공하면 피드 작성자에게 알림 이벤트를 발행한다")
+    void 댓글_등록에_성공하면_피드_작성자에게_알림_이벤트를_발행한다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      UUID feedAuthorId = UUID.randomUUID();
+      CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
+          .set("feedId", feedId)
+          .set("authorId", userId)
+          .set("content", "댓글 내용")
+          .sample();
+
+      given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
+      Comment saved = Comment.create(feedId, userId, "댓글 내용");
+      given(commentRepository.save(any(Comment.class))).willReturn(saved);
+      given(userSummaryQueryRepository.findByUserId(userId))
+          .willReturn(new UserSummary(userId, "경신", null));
+      given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(feedAuthorId));
+
+      // when
+      commentService.create(request, userId);
+
+      // then
+      ArgumentCaptor<NotificationRequestedEvent> captor =
+          ArgumentCaptor.forClass(NotificationRequestedEvent.class);
+      verify(eventPublisher).publishEvent(captor.capture());
+      NotificationRequestedEvent event = captor.getValue();
+      assertThat(event.receiverIds()).containsExactly(feedAuthorId);
+      assertThat(event.title()).contains("경신");
+      assertThat(event.content()).isEqualTo("댓글 내용");
     }
   }
 }

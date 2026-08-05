@@ -13,6 +13,7 @@ import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ public class CommentService {
   private final FeedRepository feedRepository;
   private final CommentMapper commentMapper;
   private final UserSummaryQueryRepository userSummaryQueryRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public CommentDto create(CommentCreateRequest request, UUID currentUserId) {
