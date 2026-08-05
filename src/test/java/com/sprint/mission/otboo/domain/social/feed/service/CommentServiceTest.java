@@ -1,6 +1,7 @@
 package com.sprint.mission.otboo.domain.social.feed.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -13,6 +14,7 @@ import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSum
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
 import com.sprint.mission.otboo.domain.social.feed.entity.Comment;
+import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.CommentMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.CommentRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
@@ -45,6 +47,24 @@ class CommentServiceTest {
 
   @InjectMocks
   CommentService commentService;
+
+  @Test
+  @DisplayName("요청 authorId가 인증 사용자와 다르면 FeedForbiddenException을 던진다")
+  void 요청_authorId가_인증_사용자와_다르면_FeedForbiddenException을_던진다() {
+    // given
+    UUID feedId = UUID.randomUUID();
+    UUID currentUserId = UUID.randomUUID();
+    UUID otherAuthorId = UUID.randomUUID();
+    CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
+        .set("feedId", feedId)
+        .set("authorId", otherAuthorId)
+        .set("content", "댓글 내용")
+        .sample();
+
+    // when & then
+    assertThatThrownBy(() -> commentService.create(request, currentUserId))
+        .isInstanceOf(FeedForbiddenException.class);
+  }
 
   @Nested
   @DisplayName("댓글 등록")
