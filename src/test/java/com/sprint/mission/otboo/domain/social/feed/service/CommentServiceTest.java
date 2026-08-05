@@ -65,8 +65,11 @@ class CommentServiceTest {
       Comment saved = Comment.create(feedId, userId, "댓글 내용");
       given(commentRepository.save(any(Comment.class))).willReturn(saved);
 
-      CommentDto expected = new CommentDto(UUID.randomUUID(), null, feedId, null, "댓글 내용");
-      given(commentMapper.toDto(saved, null)).willReturn(expected);
+      UserSummary author = new UserSummary(userId, "경신", null);
+      given(userSummaryQueryRepository.findByUserId(userId)).willReturn(author);
+
+      CommentDto expected = new CommentDto(UUID.randomUUID(), null, feedId, author, "댓글 내용");
+      given(commentMapper.toDto(saved, author)).willReturn(expected);
 
       // when
       CommentDto result = commentService.create(request, userId);

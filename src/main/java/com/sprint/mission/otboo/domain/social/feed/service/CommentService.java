@@ -1,5 +1,6 @@
 package com.sprint.mission.otboo.domain.social.feed.service;
 
+import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
@@ -30,6 +31,8 @@ public class CommentService {
         Comment.create(request.feedId(), request.authorId(), request.content()));
     feedRepository.incrementCommentCount(request.feedId());
     log.info("피드 댓글 등록 완료: feedId={}, commentId={}", request.feedId(), comment.getId());
-    return commentMapper.toDto(comment, null);
+
+    UserSummary author = userSummaryQueryRepository.findByUserId(comment.getAuthorId());
+    return commentMapper.toDto(comment, author);
   }
 }
