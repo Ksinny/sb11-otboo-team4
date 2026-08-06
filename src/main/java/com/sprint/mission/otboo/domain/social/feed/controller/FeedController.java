@@ -57,6 +57,7 @@ public class FeedController implements FeedApi {
   }
 
   @PostMapping("/{feedId}/like")
+  @Override
   public ResponseEntity<Void> likeFeed(
       @PathVariable UUID feedId,
       @CurrentUser UserPrincipal principal) {
@@ -65,6 +66,7 @@ public class FeedController implements FeedApi {
   }
 
   @DeleteMapping("/{feedId}/like")
+  @Override
   public ResponseEntity<Void> unlikeFeed(
       @PathVariable UUID feedId,
       @CurrentUser UserPrincipal principal) {
@@ -73,6 +75,7 @@ public class FeedController implements FeedApi {
   }
 
   @PostMapping("/{feedId}/comments")
+  @Override
   public ResponseEntity<CommentDto> createFeedComment(
       @PathVariable UUID feedId,
       @Valid @RequestBody CommentCreateRequest request,
@@ -82,6 +85,7 @@ public class FeedController implements FeedApi {
   }
 
   @GetMapping("/{feedId}/comments")
+  @Override
   public ResponseEntity<CursorPageResponse<CommentDto>> getFeedComments(
       @PathVariable UUID feedId,
       @Valid @ModelAttribute FeedCommentParams params) {
