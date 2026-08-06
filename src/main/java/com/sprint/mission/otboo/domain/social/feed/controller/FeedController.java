@@ -84,7 +84,8 @@ public class FeedController implements FeedApi {
   @GetMapping("/{feedId}/comments")
   public ResponseEntity<CursorPageResponse<CommentDto>> getFeedComments(
       @PathVariable UUID feedId,
-      @ModelAttribute FeedCommentParams params) {
-    return ResponseEntity.ok(commentService.getComments(feedId, params));
+      @Valid @ModelAttribute FeedCommentParams params) {
+    CursorPageResponse<CommentDto> response = commentService.getComments(feedId, params);
+    return ResponseEntity.ok(response);
   }
 }
