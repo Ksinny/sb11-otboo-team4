@@ -149,5 +149,41 @@ class CommentCustomRepositoryImplTest {
       assertThat(secondId).isNotEqualTo(firstId);
       assertThat(List.of(firstId, secondId)).containsExactlyInAnyOrder(a.getId(), b.getId());
     }
+
+    @Test
+    @DisplayName("createdAt이 동일하면 id 내림차순으로 정렬하고 커서로 나머지를 조회한다")
+    void createdAt이_동일하면_id_내림차순으로_정렬하고_커서로_나머지를_조회한다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      Instant sameTime = Instant.parse("2026-08-05T08:00:00Z");
+      Comment a = saveComment(feedId, "A");
+      Comment b = saveComment(feedId, "B");
+      testEntityManager.flush();
+      setCreatedAt(a.getId(), sameTime);
+      setCreatedAt(b.getId(), sameTime);
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when — 첫 페이지
+      FeedCommentParams firstPage = new FeedCommentParams(null, null, 1);
+      CursorPageResponse<Comment> first = commentRepository.findComments(feedId, firstPage);
+
+      // then — 동일 시각이면 id가 큰 쪽이 먼저
+      assertThat(first.data()).hasSize(1);
+      assertThat(first.hasNext()).isTrue();
+      UUID firstId = first.data().get(0).getId();
+
+      // when — 다음 페이지
+      FeedCommentParams nextPage = new FeedCommentParams(
+          first.nextCursor(), first.nextIdAfter(), 1);
+      CursorPageResponse<Comment> second = commentRepository.findComments(feedId, nextPage);
+
+      // then
+      assertThat(second.data()).hasSize(1);
+      UUID secondId = second.data().get(0).getId();
+      assertThat(firstId).isGreaterThan(secondId);
+      assertThat(List.of(firstId, secondId))
+          .containsExactlyInAnyOrder(a.getId(), b.getId());
+    }
   }
 }
