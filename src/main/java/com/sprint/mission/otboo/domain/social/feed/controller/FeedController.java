@@ -3,6 +3,7 @@ package com.sprint.mission.otboo.domain.social.feed.controller;
 import com.sprint.mission.otboo.domain.social.feed.controller.api.FeedApi;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedCommentParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
@@ -80,5 +81,10 @@ public class FeedController implements FeedApi {
     return ResponseEntity.ok(response);
   }
 
-
+  @GetMapping("/{feedId}/comments")
+  public ResponseEntity<CursorPageResponse<CommentDto>> getFeedComments(
+      @PathVariable UUID feedId,
+      @ModelAttribute FeedCommentParams params) {
+    return null;
+  }
 }

@@ -18,6 +18,7 @@ import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPl
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedCommentParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
@@ -395,6 +396,38 @@ class FeedControllerTest {
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isForbidden());
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 댓글 조회 - GET /api/feeds/{feedId}/comments")
+  class GetFeedComments {
+
+    @Test
+    @DisplayName("정상 요청이면 200과 CursorPageResponse를 반환한다")
+    void 정상_요청이면_200과_CursorPageResponse를_반환한다() throws Exception {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+
+      CommentDto commentDto = new CommentDto(
+          UUID.randomUUID(), Instant.now(), feedId,
+          new UserSummary(UUID.randomUUID(), "경신", null), "댓글 내용");
+      CursorPageResponse<CommentDto> response = new CursorPageResponse<>(
+          List.of(commentDto), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
+      when(commentService.getComments(eq(feedId), any(FeedCommentParams.class)))
+          .thenReturn(response);
+
+      // when & then
+      mockMvc.perform(get("/api/feeds/{feedId}/comments", feedId)
+              .param("limit", "10"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data[0].content").value("댓글 내용"))
+          .andExpect(jsonPath("$.hasNext").value(false))
+          .andExpect(jsonPath("$.sortBy").value("createdAt"));
+
+      verify(commentService).getComments(eq(feedId), any(FeedCommentParams.class));
     }
   }
 }
