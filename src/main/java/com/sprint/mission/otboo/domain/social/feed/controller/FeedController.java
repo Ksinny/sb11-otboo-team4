@@ -74,9 +74,11 @@ public class FeedController implements FeedApi {
   @PostMapping("/{feedId}/comments")
   public ResponseEntity<CommentDto> createFeedComment(
       @PathVariable UUID feedId,
-      @RequestBody CommentCreateRequest request,
+      @Valid @RequestBody CommentCreateRequest request,
       @CurrentUser UserPrincipal principal) {
     CommentDto response = commentService.create(feedId, request, principal.userId());
     return ResponseEntity.ok(response);
   }
+
+
 }
