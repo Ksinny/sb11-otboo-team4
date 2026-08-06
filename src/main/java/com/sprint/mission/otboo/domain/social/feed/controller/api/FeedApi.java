@@ -52,7 +52,7 @@ public interface FeedApi {
 
   @Operation(summary = "피드 댓글 등록", description = "피드 댓글 등록 API")
   @ApiResponses({
-      @ApiResponse(responseCode = "200", description = "피드 댓글 등록 성공"),
+      @ApiResponse(responseCode = "201", description = "피드 댓글 등록 성공"),
       @ApiResponse(responseCode = "400", description = "피드 댓글 등록 실패"),
       @ApiResponse(responseCode = "403", description = "작성자 불일치"),
       @ApiResponse(responseCode = "404", description = "피드 없음")

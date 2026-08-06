@@ -303,8 +303,8 @@ class FeedControllerTest {
   class CreateFeedComment {
 
     @Test
-    @DisplayName("정상 요청이면 200과 CommentDto를 반환한다")
-    void 정상_요청이면_200과_CommentDto를_반환한다() throws Exception {
+    @DisplayName("정상 요청이면 201과 CommentDto를 반환한다")
+    void 정상_요청이면_201과_CommentDto를_반환한다() throws Exception {
       // given
       UUID currentUserId = UUID.randomUUID();
       UUID feedId = UUID.randomUUID();
@@ -326,7 +326,7 @@ class FeedControllerTest {
       mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isOk())
+          .andExpect(status().isCreated())
           .andExpect(jsonPath("$.content").value("댓글 내용"))
           .andExpect(jsonPath("$.author.name").value("경신"));
 
