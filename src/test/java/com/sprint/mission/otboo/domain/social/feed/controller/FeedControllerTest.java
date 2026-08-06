@@ -15,11 +15,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.navercorp.fixturemonkey.FixtureMonkey;
 import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitraryIntrospector;
 import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
+import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
+import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
+import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundException;
+import com.sprint.mission.otboo.domain.social.feed.service.CommentService;
 import com.sprint.mission.otboo.domain.social.feed.service.FeedService;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
@@ -66,6 +70,9 @@ class FeedControllerTest {
 
   @MockitoBean
   FeedService feedService;
+
+  @MockitoBean
+  CommentService commentService;
 
   private Authentication authenticationOf(UUID userId) {
     UserPrincipal principal = new UserPrincipal(userId, "USER");
@@ -286,6 +293,42 @@ class FeedControllerTest {
       // when & then
       mockMvc.perform(delete("/api/feeds/{feedId}/like", feedId))
           .andExpect(status().isNotFound());
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 댓글 등록 - POST /api/feeds/{feedId}/comments")
+  class CreateFeedComment {
+
+    @Test
+    @DisplayName("정상 요청이면 200과 CommentDto를 반환한다")
+    void 정상_요청이면_200과_CommentDto를_반환한다() throws Exception {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+
+      CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
+          .set("feedId", feedId)
+          .set("authorId", currentUserId)
+          .set("content", "댓글 내용")
+          .sample();
+
+      CommentDto response = new CommentDto(
+          UUID.randomUUID(), Instant.now(), feedId,
+          new UserSummary(currentUserId, "경신", null), "댓글 내용");
+      when(commentService.create(eq(feedId), any(CommentCreateRequest.class), eq(currentUserId)))
+          .thenReturn(response);
+
+      // when & then
+      mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.content").value("댓글 내용"))
+          .andExpect(jsonPath("$.author.name").value("경신"));
+
+      verify(commentService).create(eq(feedId), any(CommentCreateRequest.class), eq(currentUserId));
     }
   }
 }

@@ -1,9 +1,12 @@
 package com.sprint.mission.otboo.domain.social.feed.controller;
 
 import com.sprint.mission.otboo.domain.social.feed.controller.api.FeedApi;
+import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
+import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
+import com.sprint.mission.otboo.domain.social.feed.service.CommentService;
 import com.sprint.mission.otboo.domain.social.feed.service.FeedService;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.security.details.CurrentUser;
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class FeedController implements FeedApi {
 
   private final FeedService feedService;
+  private final CommentService commentService;
 
   @PostMapping
   @Override
@@ -65,5 +69,13 @@ public class FeedController implements FeedApi {
       @CurrentUser UserPrincipal principal) {
     feedService.unlike(feedId, principal.userId());
     return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/{feedId}/comments")
+  public ResponseEntity<CommentDto> createFeedComment(
+      @PathVariable UUID feedId,
+      @RequestBody CommentCreateRequest request,
+      @CurrentUser UserPrincipal principal) {
+    return null;
   }
 }
