@@ -1,4 +1,4 @@
-package com.sprint.mission.otboo.domain.social.feed.repository.querydsl;
+package com.sprint.mission.otboo.domain.social.feed.repository.querydsl.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
