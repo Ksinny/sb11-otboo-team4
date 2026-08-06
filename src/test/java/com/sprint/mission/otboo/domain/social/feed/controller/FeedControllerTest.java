@@ -22,6 +22,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
+import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.service.CommentService;
 import com.sprint.mission.otboo.domain.social.feed.service.FeedService;
@@ -346,6 +347,54 @@ class FeedControllerTest {
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("피드가 존재하지 않으면 404를 반환한다")
+    void 피드가_존재하지_않으면_404를_반환한다() throws Exception {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+
+      CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
+          .set("feedId", feedId)
+          .set("authorId", currentUserId)
+          .set("content", "댓글 내용")
+          .sample();
+      willThrow(FeedNotFoundException.withId(feedId))
+          .given(commentService)
+          .create(eq(feedId), any(CommentCreateRequest.class), eq(currentUserId));
+
+      // when & then
+      mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("작성자가 인증 사용자와 다르면 403을 반환한다")
+    void 작성자가_인증_사용자와_다르면_403을_반환한다() throws Exception {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+
+      CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
+          .set("feedId", feedId)
+          .set("authorId", currentUserId)
+          .set("content", "댓글 내용")
+          .sample();
+      willThrow(FeedForbiddenException.authorMismatch(currentUserId, UUID.randomUUID()))
+          .given(commentService)
+          .create(eq(feedId), any(CommentCreateRequest.class), eq(currentUserId));
+
+      // when & then
+      mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isForbidden());
     }
   }
 }
