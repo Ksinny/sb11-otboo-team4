@@ -85,6 +85,6 @@ public class FeedController implements FeedApi {
   public ResponseEntity<CursorPageResponse<CommentDto>> getFeedComments(
       @PathVariable UUID feedId,
       @ModelAttribute FeedCommentParams params) {
-    return null;
+    return ResponseEntity.ok(commentService.getComments(feedId, params));
   }
 }
