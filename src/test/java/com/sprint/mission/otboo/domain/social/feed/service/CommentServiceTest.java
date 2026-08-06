@@ -227,13 +227,13 @@ class CommentServiceTest {
     void 레포가_준_페이지를_CommentDto로_변환하고_작성자를_배치로_채운다() {
       // given
       UUID feedId = UUID.randomUUID();
-      FeedCommentParams params = new FeedCommentParams(feedId, null, null, 10);
+      FeedCommentParams params = new FeedCommentParams(null, null, 10);
 
       UUID authorId = UUID.randomUUID();
       Comment comment = Comment.create(feedId, authorId, "댓글 내용");
       CursorPageResponse<Comment> repoPage = new CursorPageResponse<>(
           List.of(comment), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
-      given(commentRepository.findComments(params)).willReturn(repoPage);
+      given(commentRepository.findComments(feedId, params)).willReturn(repoPage);
 
       UserSummary author = new UserSummary(authorId, "경신", null);
       given(userSummaryQueryRepository.findByUserIds(List.of(authorId)))
@@ -243,7 +243,7 @@ class CommentServiceTest {
       given(commentMapper.toDto(comment, author)).willReturn(dto);
 
       // when
-      CursorPageResponse<CommentDto> result = commentService.getComments(params);
+      CursorPageResponse<CommentDto> result = commentService.getComments(feedId, params);
 
       // then
       assertThat(result.data()).containsExactly(dto);

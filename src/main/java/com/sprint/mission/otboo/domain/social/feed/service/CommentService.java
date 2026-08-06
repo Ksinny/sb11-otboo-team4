@@ -53,8 +53,8 @@ public class CommentService {
     return commentMapper.toDto(comment, author);
   }
 
-  public CursorPageResponse<CommentDto> getComments(FeedCommentParams params) {
-    return toDtoPage(commentRepository.findComments(params));
+  public CursorPageResponse<CommentDto> getComments(UUID feedId, FeedCommentParams params) {
+    return toDtoPage(commentRepository.findComments(feedId, params));
   }
 
   private CursorPageResponse<CommentDto> toDtoPage(CursorPageResponse<Comment> page) {

@@ -22,8 +22,8 @@ public class CommentCustomRepositoryImpl implements CommentCustomRepository {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public CursorPageResponse<Comment> findComments(FeedCommentParams params) {
-    List<Comment> raw = fetchComments(params);
+  public CursorPageResponse<Comment> findComments(UUID feedId, FeedCommentParams params) {
+    List<Comment> raw = fetchComments(feedId, params);
 
     boolean hasNext = raw.size() > params.limit();
     List<Comment> page = hasNext ? raw.subList(0, params.limit()) : raw;
@@ -37,14 +37,14 @@ public class CommentCustomRepositoryImpl implements CommentCustomRepository {
     }
 
     return new CursorPageResponse<>(page, nextCursor, nextIdAfter, hasNext,
-        countComments(params.feedId()), "createdAt", SortDirection.DESCENDING);
+        countComments(feedId), "createdAt", SortDirection.DESCENDING);
   }
 
-  private List<Comment> fetchComments(FeedCommentParams params) {
+  private List<Comment> fetchComments(UUID feedId, FeedCommentParams params) {
     return queryFactory
         .selectFrom(comment)
         .where(
-            comment.feedId.eq(params.feedId()),
+            comment.feedId.eq(feedId),
             cursorCondition(params.cursor(), params.idAfter())
         )
         .orderBy(comment.createdAt.desc(), comment.id.desc())

@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record FeedCommentParams(
-    @NotNull UUID feedId,
     String cursor,
     UUID idAfter,
     @NotNull @Min(1) @Max(100) Integer limit
