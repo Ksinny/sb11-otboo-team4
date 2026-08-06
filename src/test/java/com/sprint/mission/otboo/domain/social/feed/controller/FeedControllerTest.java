@@ -429,5 +429,17 @@ class FeedControllerTest {
 
       verify(commentService).getComments(eq(feedId), any(FeedCommentParams.class));
     }
+
+    @Test
+    @DisplayName("limit이 1 미만이면 400을 반환한다")
+    void limit이_1_미만이면_400을_반환한다() throws Exception {
+      // given
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(UUID.randomUUID()));
+
+      // when & then
+      mockMvc.perform(get("/api/feeds/{feedId}/comments", UUID.randomUUID())
+              .param("limit", "0"))
+          .andExpect(status().isBadRequest());
+    }
   }
 }
