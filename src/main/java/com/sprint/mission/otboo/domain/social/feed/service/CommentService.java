@@ -4,12 +4,14 @@ import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedCommentParams;
 import com.sprint.mission.otboo.domain.social.feed.entity.Comment;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.CommentMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.CommentRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.event.NotificationLevel;
 import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
 import java.util.Set;
@@ -45,6 +47,10 @@ public class CommentService {
     publishCommentNotification(feedId, author.name(), comment.getContent());
 
     return commentMapper.toDto(comment, author);
+  }
+
+  public CursorPageResponse<CommentDto> getComments(FeedCommentParams params) {
+    return null;
   }
 
   private void validateCreateRequest(UUID feedId, UUID authorId, UUID currentUserId) {

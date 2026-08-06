@@ -13,13 +13,17 @@ import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedCommentParams;
 import com.sprint.mission.otboo.domain.social.feed.entity.Comment;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.CommentMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.CommentRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
+import com.sprint.mission.otboo.global.dto.SortDirection;
 import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -211,6 +215,40 @@ class CommentServiceTest {
       assertThat(event.receiverIds()).containsExactly(feedAuthorId);
       assertThat(event.title()).contains("경신");
       assertThat(event.content()).isEqualTo("댓글 내용");
+    }
+  }
+
+  @Nested
+  @DisplayName("댓글 목록 조회")
+  class GetComments {
+
+    @Test
+    @DisplayName("레포가 준 페이지를 CommentDto로 변환하고 작성자를 배치로 채운다")
+    void 레포가_준_페이지를_CommentDto로_변환하고_작성자를_배치로_채운다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      FeedCommentParams params = new FeedCommentParams(feedId, null, null, 10);
+
+      UUID authorId = UUID.randomUUID();
+      Comment comment = Comment.create(feedId, authorId, "댓글 내용");
+      CursorPageResponse<Comment> repoPage = new CursorPageResponse<>(
+          List.of(comment), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
+      given(commentRepository.findComments(params)).willReturn(repoPage);
+
+      UserSummary author = new UserSummary(authorId, "경신", null);
+      given(userSummaryQueryRepository.findByUserIds(List.of(authorId)))
+          .willReturn(List.of(author));
+
+      CommentDto dto = new CommentDto(comment.getId(), null, feedId, author, "댓글 내용");
+      given(commentMapper.toDto(comment, author)).willReturn(dto);
+
+      // when
+      CursorPageResponse<CommentDto> result = commentService.getComments(params);
+
+      // then
+      assertThat(result.data()).containsExactly(dto);
+      assertThat(result.totalCount()).isEqualTo(1L);
+      assertThat(result.hasNext()).isFalse();
     }
   }
 }
