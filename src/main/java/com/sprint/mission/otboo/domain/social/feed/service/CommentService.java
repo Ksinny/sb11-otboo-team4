@@ -22,8 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Transactional(readOnly = true)
-@RequiredArgsConstructor
 @Service
+@RequiredArgsConstructor
 public class CommentService {
 
   private final CommentRepository commentRepository;
@@ -33,26 +33,43 @@ public class CommentService {
   private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
-  public CommentDto create(CommentCreateRequest request, UUID currentUserId) {
-    if (!request.authorId().equals(currentUserId)) {
-      throw FeedForbiddenException.authorMismatch(currentUserId, request.authorId());
-    }
-    if (!feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(request.feedId())) {
-      throw FeedNotFoundException.withId(request.feedId());
-    }
+  public CommentDto create(UUID feedId, CommentCreateRequest request, UUID currentUserId) {
+    validateCreateRequest(feedId, request.authorId(), currentUserId);
+
     Comment comment = commentRepository.save(
-        Comment.create(request.feedId(), request.authorId(), request.content()));
-    feedRepository.incrementCommentCount(request.feedId());
-    log.info("피드 댓글 등록 완료: feedId={}, commentId={}", request.feedId(), comment.getId());
+        Comment.create(feedId, request.authorId(), request.content()));
+    feedRepository.incrementCommentCount(feedId);
+    log.info("피드 댓글 등록 완료: feedId={}, commentId={}", feedId, comment.getId());
 
     UserSummary author = userSummaryQueryRepository.findByUserId(comment.getAuthorId());
-
-    UUID feedAuthorId = feedRepository.findAuthorId(comment.getFeedId())
-        .orElseThrow(() -> FeedNotFoundException.withId(comment.getFeedId()));
-    eventPublisher.publishEvent(new NotificationRequestedEvent(
-        Set.of(feedAuthorId), author.name() + "님이 댓글을 달았어요.",
-        comment.getContent(), NotificationLevel.INFO));
+    publishCommentNotification(feedId, author.name(), comment.getContent());
 
     return commentMapper.toDto(comment, author);
+  }
+
+  private void validateCreateRequest(UUID feedId, UUID authorId, UUID currentUserId) {
+    validateAuthorMatchesCurrentUser(authorId, currentUserId);
+    validateFeedExists(feedId);
+  }
+
+  private void validateAuthorMatchesCurrentUser(UUID authorId, UUID currentUserId) {
+    if (!authorId.equals(currentUserId)) {
+      throw FeedForbiddenException.authorMismatch(currentUserId, authorId);
+    }
+  }
+
+  private void validateFeedExists(UUID feedId) {
+    if (!feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)) {
+      throw FeedNotFoundException.withId(feedId);
+    }
+  }
+
+  private void publishCommentNotification(UUID feedId, String authorName, String content) {
+    UUID feedAuthorId = feedRepository.findAuthorId(feedId)
+        .orElseThrow(() -> FeedNotFoundException.withId(feedId));
+    String title = authorName + "님이 댓글을 달았어요.";
+    eventPublisher.publishEvent(
+        new NotificationRequestedEvent(Set.of(feedAuthorId), title, content,
+            NotificationLevel.INFO));
   }
 }
