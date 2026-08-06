@@ -14,8 +14,12 @@ import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.event.NotificationLevel;
 import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -50,7 +54,26 @@ public class CommentService {
   }
 
   public CursorPageResponse<CommentDto> getComments(FeedCommentParams params) {
-    return null;
+    return toDtoPage(commentRepository.findComments(params));
+  }
+
+  private CursorPageResponse<CommentDto> toDtoPage(CursorPageResponse<Comment> page) {
+    List<Comment> comments = page.data();
+
+    Map<UUID, UserSummary> summaryMap = comments.isEmpty() ? Map.of() :
+        userSummaryQueryRepository.findByUserIds(
+                comments.stream()
+                    .map(Comment::getAuthorId)
+                    .distinct().toList()
+            ).stream()
+            .collect(Collectors.toMap(UserSummary::userId, Function.identity()));
+
+    List<CommentDto> data = comments.stream()
+        .map(c -> commentMapper.toDto(c, summaryMap.get(c.getAuthorId())))
+        .toList();
+
+    return new CursorPageResponse<>(data, page.nextCursor(), page.nextIdAfter(),
+        page.hasNext(), page.totalCount(), page.sortBy(), page.sortDirection());
   }
 
   private void validateCreateRequest(UUID feedId, UUID authorId, UUID currentUserId) {
