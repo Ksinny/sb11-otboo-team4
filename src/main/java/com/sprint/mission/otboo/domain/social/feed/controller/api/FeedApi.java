@@ -2,6 +2,7 @@ package com.sprint.mission.otboo.domain.social.feed.controller.api;
 
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.CommentDto;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedCommentParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
@@ -58,4 +59,12 @@ public interface FeedApi {
   })
   ResponseEntity<CommentDto> createFeedComment(
       UUID feedId, CommentCreateRequest request, UserPrincipal principal);
+
+  @Operation(summary = "피드 댓글 조회", description = "피드 댓글 조회 API")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "피드 댓글 조회 성공"),
+      @ApiResponse(responseCode = "400", description = "피드 댓글 조회 실패")
+  })
+  ResponseEntity<CursorPageResponse<CommentDto>> getFeedComments(
+      UUID feedId, FeedCommentParams params);
 }
