@@ -380,14 +380,15 @@ class FeedControllerTest {
       // given
       UUID currentUserId = UUID.randomUUID();
       UUID feedId = UUID.randomUUID();
+      UUID requestedAuthorId = UUID.randomUUID();
       SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
 
       CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
           .set("feedId", feedId)
-          .set("authorId", currentUserId)
+          .set("authorId", requestedAuthorId)
           .set("content", "댓글 내용")
           .sample();
-      willThrow(FeedForbiddenException.authorMismatch(currentUserId, UUID.randomUUID()))
+      willThrow(FeedForbiddenException.authorMismatch(currentUserId, requestedAuthorId))
           .given(commentService)
           .create(eq(feedId), any(CommentCreateRequest.class), eq(currentUserId));
 

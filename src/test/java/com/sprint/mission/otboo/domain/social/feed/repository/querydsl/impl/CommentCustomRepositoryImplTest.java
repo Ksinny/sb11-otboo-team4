@@ -9,6 +9,7 @@ import com.sprint.mission.otboo.global.config.JpaConfig;
 import com.sprint.mission.otboo.global.config.QuerydslConfig;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -110,6 +111,43 @@ class CommentCustomRepositoryImplTest {
       assertThat(second.data()).extracting(Comment::getContent)
           .containsExactly("댓글1");
       assertThat(second.hasNext()).isFalse();
+    }
+
+    @Test
+    @DisplayName("createdAt이 동일하면 id 역순 tie-break로 중복·누락 없이 페이지네이션한다")
+    void createdAt이_동일하면_id_역순_tie_break로_중복_누락_없이_페이지네이션한다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      Instant sameTime = Instant.parse("2026-08-05T08:00:00Z");
+      Comment a = saveComment(feedId, "A");
+      Comment b = saveComment(feedId, "B");
+      testEntityManager.flush();
+      setCreatedAt(a.getId(), sameTime);
+      setCreatedAt(b.getId(), sameTime);
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when — 첫 페이지 (limit 1)
+      FeedCommentParams firstPage = new FeedCommentParams(null, null, 1);
+      CursorPageResponse<Comment> first = commentRepository.findComments(feedId, firstPage);
+
+      // then
+      assertThat(first.data()).hasSize(1);
+      assertThat(first.hasNext()).isTrue();
+      assertThat(first.nextCursor()).isNotNull();
+      assertThat(first.nextIdAfter()).isNotNull();
+      UUID firstId = first.data().get(0).getId();
+
+      // when — 다음 페이지 (커서 이어서)
+      FeedCommentParams nextPage = new FeedCommentParams(
+          first.nextCursor(), first.nextIdAfter(), 1);
+      CursorPageResponse<Comment> second = commentRepository.findComments(feedId, nextPage);
+
+      // then
+      assertThat(second.data()).hasSize(1);
+      UUID secondId = second.data().get(0).getId();
+      assertThat(secondId).isNotEqualTo(firstId);
+      assertThat(List.of(firstId, secondId)).containsExactlyInAnyOrder(a.getId(), b.getId());
     }
   }
 }
