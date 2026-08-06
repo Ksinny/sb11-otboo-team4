@@ -44,7 +44,8 @@ public class CommentService {
 
     Comment comment = commentRepository.save(
         Comment.create(feedId, request.authorId(), request.content()));
-    feedRepository.incrementCommentCount(feedId);
+    increaseCommentCount(feedId);
+    
     log.info("피드 댓글 등록 완료: feedId={}, commentId={}", feedId, comment.getId());
 
     UserSummary author = userSummaryQueryRepository.findByUserId(comment.getAuthorId());
@@ -74,6 +75,12 @@ public class CommentService {
 
     return new CursorPageResponse<>(data, page.nextCursor(), page.nextIdAfter(),
         page.hasNext(), page.totalCount(), page.sortBy(), page.sortDirection());
+  }
+
+  private void increaseCommentCount(UUID feedId) {
+    if (feedRepository.incrementCommentCount(feedId) != 1) {
+      throw FeedNotFoundException.withId(feedId);
+    }
   }
 
   private void validateCreateRequest(UUID feedId, UUID authorId, UUID currentUserId) {

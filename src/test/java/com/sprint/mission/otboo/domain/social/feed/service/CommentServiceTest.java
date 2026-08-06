@@ -79,6 +79,7 @@ class CommentServiceTest {
       given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
       Comment saved = Comment.create(feedId, userId, "댓글 내용");
       given(commentRepository.save(any(Comment.class))).willReturn(saved);
+      given(feedRepository.incrementCommentCount(feedId)).willReturn(1);
       UserSummary author = new UserSummary(userId, "경신", null);
       given(userSummaryQueryRepository.findByUserId(userId)).willReturn(author);
       given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(UUID.randomUUID()));
@@ -109,6 +110,7 @@ class CommentServiceTest {
       given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
       Comment saved = Comment.create(feedId, userId, "댓글 내용");
       given(commentRepository.save(any(Comment.class))).willReturn(saved);
+      given(feedRepository.incrementCommentCount(feedId)).willReturn(1);
       given(userSummaryQueryRepository.findByUserId(userId))
           .willReturn(new UserSummary(userId, "경신", null));
       given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(UUID.randomUUID()));
@@ -135,6 +137,7 @@ class CommentServiceTest {
       given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
       Comment saved = Comment.create(feedId, userId, "댓글 내용");
       given(commentRepository.save(any(Comment.class))).willReturn(saved);
+      given(feedRepository.incrementCommentCount(feedId)).willReturn(1);
       UserSummary author = new UserSummary(userId, "경신", null);
       given(userSummaryQueryRepository.findByUserId(userId)).willReturn(author);
       given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(UUID.randomUUID()));
@@ -186,6 +189,28 @@ class CommentServiceTest {
     }
 
     @Test
+    @DisplayName("카운트 증가 대상 피드가 없으면 FeedNotFoundException을 던진다")
+    void 카운트_증가_대상_피드가_없으면_FeedNotFoundException을_던진다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      CommentCreateRequest request = fm.giveMeBuilder(CommentCreateRequest.class)
+          .set("feedId", feedId)
+          .set("authorId", userId)
+          .set("content", "댓글 내용")
+          .sample();
+
+      given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
+      given(commentRepository.save(any(Comment.class)))
+          .willReturn(Comment.create(feedId, userId, "댓글 내용"));
+      given(feedRepository.incrementCommentCount(feedId)).willReturn(0);
+
+      // when & then
+      assertThatThrownBy(() -> commentService.create(feedId, request, userId))
+          .isInstanceOf(FeedNotFoundException.class);
+    }
+
+    @Test
     @DisplayName("댓글 등록에 성공하면 피드 작성자에게 알림 이벤트를 발행한다")
     void 댓글_등록에_성공하면_피드_작성자에게_알림_이벤트를_발행한다() {
       // given
@@ -201,6 +226,7 @@ class CommentServiceTest {
       given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
       Comment saved = Comment.create(feedId, userId, "댓글 내용");
       given(commentRepository.save(any(Comment.class))).willReturn(saved);
+      given(feedRepository.incrementCommentCount(feedId)).willReturn(1);
       given(userSummaryQueryRepository.findByUserId(userId))
           .willReturn(new UserSummary(userId, "경신", null));
       given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(feedAuthorId));
