@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.navercorp.fixturemonkey.FixtureMonkey;
@@ -249,6 +250,26 @@ class CommentServiceTest {
       assertThat(result.data()).containsExactly(dto);
       assertThat(result.totalCount()).isEqualTo(1L);
       assertThat(result.hasNext()).isFalse();
+    }
+
+    @Test
+    @DisplayName("댓글이 없으면 빈 페이지를 반환하고 작성자 배치 조회를 하지 않는다")
+    void 댓글이_없으면_빈_페이지를_반환하고_작성자_배치_조회를_하지_않는다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      FeedCommentParams params = new FeedCommentParams(null, null, 10);
+
+      CursorPageResponse<Comment> emptyPage = new CursorPageResponse<>(
+          List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
+      given(commentRepository.findComments(feedId, params)).willReturn(emptyPage);
+
+      // when
+      CursorPageResponse<CommentDto> result = commentService.getComments(feedId, params);
+
+      // then
+      assertThat(result.data()).isEmpty();
+      assertThat(result.totalCount()).isZero();
+      verify(userSummaryQueryRepository, never()).findByUserIds(any());
     }
   }
 }
