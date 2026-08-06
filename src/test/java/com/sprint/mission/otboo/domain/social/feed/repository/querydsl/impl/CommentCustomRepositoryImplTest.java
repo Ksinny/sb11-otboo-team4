@@ -71,5 +71,43 @@ class CommentCustomRepositoryImplTest {
       assertThat(result.totalCount()).isEqualTo(2L);
       assertThat(result.hasNext()).isFalse();
     }
+
+    @Test
+    @DisplayName("limit보다 많으면 hasNext가 true이고 다음 커서로 이어서 조회한다")
+    void limit보다_많으면_hasNext가_true이고_다음_커서로_이어서_조회한다() {
+      // given — 최신순: c3(08:00) > c2(07:00) > c1(06:00)
+      UUID feedId = UUID.randomUUID();
+      Comment c1 = saveComment(feedId, "댓글1");
+      Comment c2 = saveComment(feedId, "댓글2");
+      Comment c3 = saveComment(feedId, "댓글3");
+      testEntityManager.flush();
+
+      setCreatedAt(c1.getId(), Instant.parse("2026-08-05T06:00:00Z"));
+      setCreatedAt(c2.getId(), Instant.parse("2026-08-05T07:00:00Z"));
+      setCreatedAt(c3.getId(), Instant.parse("2026-08-05T08:00:00Z"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when — 첫 페이지 (limit 2)
+      FeedCommentParams firstPage = new FeedCommentParams(feedId, null, null, 2);
+      CursorPageResponse<Comment> first = commentRepository.findComments(firstPage);
+
+      // then — 최신 2개 + hasNext
+      assertThat(first.data()).extracting(Comment::getContent)
+          .containsExactly("댓글3", "댓글2");
+      assertThat(first.hasNext()).isTrue();
+      assertThat(first.nextCursor()).isNotNull();
+      assertThat(first.totalCount()).isEqualTo(3L);
+
+      // when — 다음 페이지
+      FeedCommentParams nextPage = new FeedCommentParams(
+          feedId, first.nextCursor(), first.nextIdAfter(), 2);
+      CursorPageResponse<Comment> second = commentRepository.findComments(nextPage);
+
+      // then — 남은 1개
+      assertThat(second.data()).extracting(Comment::getContent)
+          .containsExactly("댓글1");
+      assertThat(second.hasNext()).isFalse();
+    }
   }
 }
