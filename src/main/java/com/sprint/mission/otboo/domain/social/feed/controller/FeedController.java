@@ -76,6 +76,7 @@ public class FeedController implements FeedApi {
       @PathVariable UUID feedId,
       @RequestBody CommentCreateRequest request,
       @CurrentUser UserPrincipal principal) {
-    return null;
+    CommentDto response = commentService.create(feedId, request, principal.userId());
+    return ResponseEntity.ok(response);
   }
 }
