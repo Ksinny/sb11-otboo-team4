@@ -330,5 +330,22 @@ class FeedControllerTest {
 
       verify(commentService).create(eq(feedId), any(CommentCreateRequest.class), eq(currentUserId));
     }
+
+    @Test
+    @DisplayName("content가 비어 있으면 400을 반환한다")
+    void content가_비어있으면_400을_반환한다() throws Exception {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+
+      CommentCreateRequest request = new CommentCreateRequest(feedId, currentUserId, "");
+
+      // when & then
+      mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isBadRequest());
+    }
   }
 }
