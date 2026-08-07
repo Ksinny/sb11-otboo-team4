@@ -1,14 +1,18 @@
 package com.sprint.mission.otboo.security.interceptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.sprint.mission.otboo.security.details.UserPrincipal;
 import com.sprint.mission.otboo.security.token.dto.AccessTokenClaims;
+import com.sprint.mission.otboo.security.token.exception.business.ExpiredTokenException;
 import com.sprint.mission.otboo.security.token.provider.TokenProvider;
+import com.sprint.mission.otboo.security.usersession.exception.business.UserSessionExpiredException;
 import com.sprint.mission.otboo.security.usersession.registry.UserSessionRegistry;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -83,6 +87,36 @@ class StompAuthChannelInterceptorTest {
       StompHeaderAccessor accessor = StompHeaderAccessor.wrap(result);
       assertThat(accessor.getUser()).isNull();
       verify(tokenProvider, never()).parseAccessToken(any());
+    }
+
+    @Test
+    @DisplayName("만료된 토큰이면 예외를 전파해 연결을 거부한다")
+    void 만료된_토큰이면_예외를_전파해_연결을_거부한다() {
+      // given
+      given(tokenProvider.parseAccessToken("expired-token"))
+          .willThrow(ExpiredTokenException.withNone());
+      Message<byte[]> message = connectMessage("Bearer expired-token");
+
+      // when & then
+      assertThatThrownBy(() -> interceptor.preSend(message, null))
+          .isInstanceOf(ExpiredTokenException.class);
+    }
+
+    @Test
+    @DisplayName("세션이 만료되었으면 예외를 전파해 연결을 거부한다")
+    void 세션이_만료되었으면_예외를_전파해_연결을_거부한다() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID sessionId = UUID.randomUUID();
+      given(tokenProvider.parseAccessToken("valid-token"))
+          .willReturn(new AccessTokenClaims(userId, sessionId, "USER"));
+      willThrow(UserSessionExpiredException.withNone())
+          .given(userSessionRegistry).verifyUserSession(userId, sessionId);
+      Message<byte[]> message = connectMessage("Bearer valid-token");
+
+      // when & then
+      assertThatThrownBy(() -> interceptor.preSend(message, null))
+          .isInstanceOf(UserSessionExpiredException.class);
     }
   }
 }
