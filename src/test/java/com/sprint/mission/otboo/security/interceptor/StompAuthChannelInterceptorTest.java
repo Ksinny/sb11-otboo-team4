@@ -1,7 +1,10 @@
 package com.sprint.mission.otboo.security.interceptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.sprint.mission.otboo.security.details.UserPrincipal;
 import com.sprint.mission.otboo.security.token.dto.AccessTokenClaims;
@@ -65,6 +68,21 @@ class StompAuthChannelInterceptorTest {
       Authentication authentication = (Authentication) accessor.getUser();
       assertThat(authentication).isNotNull();
       assertThat(authentication.getPrincipal()).isEqualTo(new UserPrincipal(userId, "USER"));
+    }
+
+    @Test
+    @DisplayName("Authorization 헤더가 없으면 인증을 시도하지 않는다")
+    void Authorization_헤더가_없으면_인증을_시도하지_않는다() {
+      // given
+      Message<byte[]> message = connectMessage(null);
+
+      // when
+      Message<?> result = interceptor.preSend(message, null);
+
+      // then
+      StompHeaderAccessor accessor = StompHeaderAccessor.wrap(result);
+      assertThat(accessor.getUser()).isNull();
+      verify(tokenProvider, never()).parseAccessToken(any());
     }
   }
 }
