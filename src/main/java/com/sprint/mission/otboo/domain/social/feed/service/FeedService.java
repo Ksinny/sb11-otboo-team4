@@ -162,6 +162,7 @@ public class FeedService {
   @Transactional
   public void delete(UUID feedId, UUID currentUserId) {
     Feed feed = feedRepository.findById(feedId)
+        .filter(f -> !f.isDeleted())
         .orElseThrow(() -> FeedNotFoundException.withId(feedId));
 
     feed.delete();
