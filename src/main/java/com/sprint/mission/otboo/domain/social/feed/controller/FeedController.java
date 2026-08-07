@@ -96,6 +96,7 @@ public class FeedController implements FeedApi {
   }
 
   @PatchMapping("/{feedId}")
+  @Override
   public ResponseEntity<FeedDto> updateFeed(
       @PathVariable UUID feedId,
       @Valid @RequestBody FeedUpdateRequest request,

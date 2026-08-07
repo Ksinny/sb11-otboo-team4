@@ -6,6 +6,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedCommentParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedUpdateRequest;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.security.details.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -67,4 +68,14 @@ public interface FeedApi {
   })
   ResponseEntity<CursorPageResponse<CommentDto>> getFeedComments(
       UUID feedId, FeedCommentParams params);
+
+  @Operation(summary = "피드 수정", description = "피드 수정 API")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "피드 수정 성공"),
+      @ApiResponse(responseCode = "400", description = "피드 수정 실패"),
+      @ApiResponse(responseCode = "403", description = "작성자 불일치"),
+      @ApiResponse(responseCode = "404", description = "피드 없음")
+  })
+  ResponseEntity<FeedDto> updateFeed(
+      UUID feedId, FeedUpdateRequest request, UserPrincipal principal);
 }
