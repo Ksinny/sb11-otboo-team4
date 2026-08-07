@@ -112,5 +112,37 @@ class DirectMessageCustomRepositoryImplTest {
       assertThat(result.nextIdAfter()).isNotNull();
       assertThat(result.totalCount()).isEqualTo(3);
     }
+
+    @Test
+    @DisplayName("커서 이후의 메시지만 조회한다")
+    void 커서_이후의_메시지만_조회한다() {
+      // given
+      User me = persistUser("나");
+      User other = persistUser("상대");
+
+      DirectMessage first = saveMessage(me.getId(), other.getId(), "첫번째");
+      DirectMessage second = saveMessage(other.getId(), me.getId(), "두번째");
+      DirectMessage third = saveMessage(me.getId(), other.getId(), "세번째");
+      testEntityManager.flush();
+
+      setCreatedAt(first.getId(), Instant.parse("2026-08-07T00:00:01Z"));
+      setCreatedAt(second.getId(), Instant.parse("2026-08-07T00:00:02Z"));
+      setCreatedAt(third.getId(), Instant.parse("2026-08-07T00:00:03Z"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // DESC: 세번째(t3) → 두번째(t2) → 첫번째(t1), 커서 = third(t3)
+      DirectMessageParams params = new DirectMessageParams(
+          other.getId(), Instant.parse("2026-08-07T00:00:03Z").toString(),
+          third.getId(), 10);
+
+      // when
+      CursorPageResponse<DirectMessage> result =
+          directMessageRepository.findDirectMessages(me.getId(), params);
+
+      // then
+      assertThat(result.data()).extracting(DirectMessage::getContent)
+          .containsExactly("두번째", "첫번째");
+    }
   }
 }
