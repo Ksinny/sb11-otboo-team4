@@ -165,6 +165,10 @@ public class FeedService {
         .filter(f -> !f.isDeleted())
         .orElseThrow(() -> FeedNotFoundException.withId(feedId));
 
+    if (!feed.getAuthorId().equals(currentUserId)) {
+      throw FeedForbiddenException.authorMismatch(currentUserId, feed.getAuthorId());
+    }
+
     feed.delete();
     log.info("피드 삭제 완료: feedId={}", feedId);
   }
