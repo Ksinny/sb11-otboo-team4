@@ -1,7 +1,10 @@
 package com.sprint.mission.otboo.domain.social.directmessage.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
@@ -72,6 +75,28 @@ class DirectMessageServiceTest {
       assertThat(result.data()).containsExactly(dto);
       assertThat(result.totalCount()).isEqualTo(1L);
       assertThat(result.hasNext()).isFalse();
+    }
+
+    @Test
+    @DisplayName("메시지가 없으면 빈 페이지를 반환하고 사용자 배치 조회를 하지 않는다")
+    void 메시지가_없으면_빈_페이지를_반환하고_사용자_배치_조회를_하지_않는다() {
+      // given
+      UUID me = UUID.randomUUID();
+      UUID other = UUID.randomUUID();
+      DirectMessageParams params = new DirectMessageParams(other, null, null, 10);
+
+      CursorPageResponse<DirectMessage> emptyPage = new CursorPageResponse<>(
+          List.of(), null, null, false, 0L, "createdAt", SortDirection.DESCENDING);
+      given(directMessageRepository.findDirectMessages(me, params)).willReturn(emptyPage);
+
+      // when
+      CursorPageResponse<DirectMessageDto> result =
+          directMessageService.getDirectMessages(me, params);
+
+      // then
+      assertThat(result.data()).isEmpty();
+      assertThat(result.totalCount()).isZero();
+      verify(userSummaryQueryRepository, never()).findByUserIds(any());
     }
   }
 }
