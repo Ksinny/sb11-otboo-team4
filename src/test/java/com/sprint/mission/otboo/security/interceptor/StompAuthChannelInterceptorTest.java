@@ -28,6 +28,7 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("StompAuthChannelInterceptor")
@@ -73,6 +74,10 @@ class StompAuthChannelInterceptorTest {
       Authentication authentication = (Authentication) accessor.getUser();
       assertThat(authentication).isNotNull();
       assertThat(authentication.getPrincipal()).isEqualTo(new UserPrincipal(userId, "USER"));
+      assertThat(authentication.getAuthorities())
+          .extracting(GrantedAuthority::getAuthority)
+          .containsExactly("USER");
+      verify(userSessionRegistry).verifyUserSession(userId, sessionId);
     }
 
     @Test
