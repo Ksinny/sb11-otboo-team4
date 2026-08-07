@@ -104,4 +104,11 @@ public class FeedController implements FeedApi {
     FeedDto response = feedService.update(feedId, request, principal.userId());
     return ResponseEntity.ok(response);
   }
+
+  @DeleteMapping("/{feedId}")
+  public ResponseEntity<Void> deleteFeed(
+      @PathVariable UUID feedId,
+      @CurrentUser UserPrincipal principal) {
+    return null;
+  }
 }
