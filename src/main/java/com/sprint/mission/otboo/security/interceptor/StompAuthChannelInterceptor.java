@@ -43,6 +43,9 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
   private void authenticate(StompHeaderAccessor accessor) {
     String token = resolveToken(accessor.getFirstNativeHeader(HttpHeaders.AUTHORIZATION));
+    if (token == null) {
+      return;
+    }
 
     AccessTokenClaims claims = tokenProvider.parseAccessToken(token);
     userSessionRegistry.verifyUserSession(claims.userId(), claims.sessionId());
