@@ -144,13 +144,7 @@ public class FeedService {
 
   @Transactional
   public FeedDto update(UUID feedId, FeedUpdateRequest request, UUID currentUserId) {
-    Feed feed = feedRepository.findById(feedId)
-        .filter(f -> !f.isDeleted())
-        .orElseThrow(() -> FeedNotFoundException.withId(feedId));
-
-    if (!feed.getAuthorId().equals(currentUserId)) {
-      throw FeedForbiddenException.authorMismatch(currentUserId, feed.getAuthorId());
-    }
+    Feed feed = findActiveFeedOwnedBy(feedId, currentUserId);
 
     feed.updateContent(request.content());
     log.info("피드 수정 완료: feedId={}", feedId);
@@ -162,16 +156,24 @@ public class FeedService {
 
   @Transactional
   public void delete(UUID feedId, UUID currentUserId) {
-    Feed feed = feedRepository.findById(feedId)
-        .filter(f -> !f.isDeleted())
-        .orElseThrow(() -> FeedNotFoundException.withId(feedId));
-
-    if (!feed.getAuthorId().equals(currentUserId)) {
-      throw FeedForbiddenException.authorMismatch(currentUserId, feed.getAuthorId());
-    }
+    Feed feed = findActiveFeedOwnedBy(feedId, currentUserId);
 
     feed.delete();
     log.info("피드 삭제 완료: feedId={}", feedId);
+  }
+
+  private Feed findActiveFeedOwnedBy(UUID feedId, UUID currentUserId) {
+    Feed feed = feedRepository.findById(feedId)
+        .filter(f -> !f.isDeleted())
+        .orElseThrow(() -> FeedNotFoundException.withId(feedId));
+    validateAuthor(feed, currentUserId);
+    return feed;
+  }
+
+  private void validateAuthor(Feed feed, UUID currentUserId) {
+    if (!feed.getAuthorId().equals(currentUserId)) {
+      throw FeedForbiddenException.authorMismatch(currentUserId, feed.getAuthorId());
+    }
   }
 
   private boolean isUniqueViolation(DataIntegrityViolationException e) {
