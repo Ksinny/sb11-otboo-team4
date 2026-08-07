@@ -9,10 +9,12 @@ import com.sprint.mission.otboo.domain.social.directmessage.entity.DirectMessage
 import com.sprint.mission.otboo.domain.social.directmessage.repository.querydsl.DirectMessageCustomRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @RequiredArgsConstructor
 public class DirectMessageCustomRepositoryImpl implements DirectMessageCustomRepository {
@@ -44,7 +46,10 @@ public class DirectMessageCustomRepositoryImpl implements DirectMessageCustomRep
       DirectMessageParams params) {
     return queryFactory
         .selectFrom(directMessage)
-        .where(betweenUsers(currentUserId, params.userId()))
+        .where(
+            betweenUsers(currentUserId, params.userId()),
+            cursorCondition(params.cursor(), params.idAfter())
+        )
         .orderBy(directMessage.createdAt.desc(), directMessage.id.desc())
         .limit(params.limit() + 1L)
         .fetch();
@@ -63,5 +68,14 @@ public class DirectMessageCustomRepositoryImpl implements DirectMessageCustomRep
   private BooleanExpression betweenUsers(UUID one, UUID other) {
     return directMessage.senderId.eq(one).and(directMessage.receiverId.eq(other))
         .or(directMessage.senderId.eq(other).and(directMessage.receiverId.eq(one)));
+  }
+
+  private BooleanExpression cursorCondition(String cursor, UUID idAfter) {
+    if (!StringUtils.hasText(cursor)) {
+      return null;
+    }
+    Instant instant = Instant.parse(cursor);
+    return directMessage.createdAt.lt(instant)
+        .or(directMessage.createdAt.eq(instant).and(directMessage.id.lt(idAfter)));
   }
 }
