@@ -121,8 +121,12 @@ public class Feed {
       WeatherSnapshot weatherSnapshot, List<OotdSnapshot> ootdSnapshots) {
     return new Feed(authorId, weatherId, content, weatherSnapshot, ootdSnapshots);
   }
-  
+
   public void updateContent(String content) {
     this.content = content;
+  }
+
+  public boolean isDeleted() {
+    return softDeletable.isDeleted();
   }
 }

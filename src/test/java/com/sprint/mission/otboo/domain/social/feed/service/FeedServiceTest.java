@@ -804,4 +804,26 @@ class FeedServiceTest {
           .isInstanceOf(FeedForbiddenException.class);
     }
   }
+
+  @Nested
+  @DisplayName("피드 삭제")
+  class DeleteFeed {
+
+    @Test
+    @DisplayName("피드를 소프트 삭제한다")
+    void 피드를_소프트_삭제한다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      Feed feed = Feed.create(currentUserId, UUID.randomUUID(), "내용",
+          DUMMY_SNAPSHOT, List.of());
+      given(feedRepository.findById(feedId)).willReturn(Optional.of(feed));
+
+      // when
+      feedService.delete(feedId, currentUserId);
+
+      // then
+      assertThat(feed.isDeleted()).isTrue();
+    }
+  }
 }

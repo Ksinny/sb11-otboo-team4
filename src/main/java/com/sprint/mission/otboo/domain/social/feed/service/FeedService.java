@@ -159,6 +159,10 @@ public class FeedService {
     return feedMapper.toDto(feed, author, likedByMe);
   }
 
+  @Transactional
+  public void delete(UUID feedId, UUID currentUserId) {
+  }
+
   private boolean isUniqueViolation(DataIntegrityViolationException e) {
     return e.getCause() instanceof ConstraintViolationException cve
         && UQ_FEED_LIKES.equalsIgnoreCase(cve.getConstraintName());
