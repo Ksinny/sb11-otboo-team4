@@ -93,6 +93,30 @@ class StompAuthChannelInterceptorTest {
     }
 
     @Test
+    @DisplayName("Bearer 접두사가 아니면 예외를 전파해 연결을 거부한다")
+    void Bearer_접두사가_아니면_예외를_전파해_연결을_거부한다() {
+      // given
+      Message<byte[]> message = connectMessage("Basic abcdef");
+
+      // when & then
+      assertThatThrownBy(() -> interceptor.preSend(message, null))
+          .isInstanceOf(BadCredentialsException.class);
+      verify(tokenProvider, never()).parseAccessToken(any());
+    }
+
+    @Test
+    @DisplayName("Bearer 뒤 토큰이 비어 있으면 예외를 전파해 연결을 거부한다")
+    void Bearer_뒤_토큰이_비어_있으면_예외를_전파해_연결을_거부한다() {
+      // given
+      Message<byte[]> message = connectMessage("Bearer ");
+
+      // when & then
+      assertThatThrownBy(() -> interceptor.preSend(message, null))
+          .isInstanceOf(BadCredentialsException.class);
+      verify(tokenProvider, never()).parseAccessToken(any());
+    }
+
+    @Test
     @DisplayName("만료된 토큰이면 예외를 전파해 연결을 거부한다")
     void 만료된_토큰이면_예외를_전파해_연결을_거부한다() {
       // given
