@@ -785,5 +785,23 @@ class FeedServiceTest {
       assertThat(result).isEqualTo(expected);
       assertThat(result.likedByMe()).isTrue();
     }
+
+    @Test
+    @DisplayName("작성자가 아니면 FeedForbiddenException을 던진다")
+    void 작성자가_아니면_FeedForbiddenException을_던진다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID authorId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      Feed feed = Feed.create(authorId, UUID.randomUUID(), "원래 내용",
+          DUMMY_SNAPSHOT, List.of());
+      given(feedRepository.findById(feedId)).willReturn(Optional.of(feed));
+
+      FeedUpdateRequest request = new FeedUpdateRequest("수정된 내용");
+
+      // when & then
+      assertThatThrownBy(() -> feedService.update(feedId, request, currentUserId))
+          .isInstanceOf(FeedForbiddenException.class);
+    }
   }
 }
