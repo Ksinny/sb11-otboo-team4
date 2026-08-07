@@ -14,6 +14,7 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
@@ -44,7 +45,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
   private void authenticate(StompHeaderAccessor accessor) {
     String token = resolveToken(accessor.getFirstNativeHeader(HttpHeaders.AUTHORIZATION));
     if (token == null) {
-      return;
+      throw new BadCredentialsException("STOMP CONNECT에 유효한 인증 토큰이 없습니다.");
     }
 
     AccessTokenClaims claims = tokenProvider.parseAccessToken(token);
@@ -57,9 +58,10 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
   }
 
   private String resolveToken(String authorization) {
-    if (StringUtils.hasText(authorization) && authorization.startsWith(BEARER_PREFIX)) {
-      return authorization.substring(BEARER_PREFIX.length());
+    if (!StringUtils.hasText(authorization) || !authorization.startsWith(BEARER_PREFIX)) {
+      return null;
     }
-    return null;
+    String token = authorization.substring(BEARER_PREFIX.length());
+    return StringUtils.hasText(token) ? token : null;
   }
 }

@@ -26,6 +26,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,17 +76,14 @@ class StompAuthChannelInterceptorTest {
     }
 
     @Test
-    @DisplayName("Authorization 헤더가 없으면 인증을 시도하지 않는다")
-    void Authorization_헤더가_없으면_인증을_시도하지_않는다() {
+    @DisplayName("Authorization 헤더가 없으면 예외를 전파해 연결을 거부한다")
+    void Authorization_헤더가_없으면_예외를_전파해_연결을_거부한다() {
       // given
       Message<byte[]> message = connectMessage(null);
 
-      // when
-      Message<?> result = interceptor.preSend(message, null);
-
-      // then
-      StompHeaderAccessor accessor = StompHeaderAccessor.wrap(result);
-      assertThat(accessor.getUser()).isNull();
+      // when & then
+      assertThatThrownBy(() -> interceptor.preSend(message, null))
+          .isInstanceOf(BadCredentialsException.class);
       verify(tokenProvider, never()).parseAccessToken(any());
     }
 
