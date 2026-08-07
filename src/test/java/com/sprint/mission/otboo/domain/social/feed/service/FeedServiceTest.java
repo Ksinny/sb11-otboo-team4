@@ -803,6 +803,24 @@ class FeedServiceTest {
       assertThatThrownBy(() -> feedService.update(feedId, request, currentUserId))
           .isInstanceOf(FeedForbiddenException.class);
     }
+
+    @Test
+    @DisplayName("이미 삭제된 피드면 FeedNotFoundException을 던진다")
+    void 이미_삭제된_피드면_FeedNotFoundException을_던진다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      Feed feed = Feed.create(currentUserId, UUID.randomUUID(), "원래 내용",
+          DUMMY_SNAPSHOT, List.of());
+      feed.delete();
+      given(feedRepository.findById(feedId)).willReturn(Optional.of(feed));
+
+      FeedUpdateRequest request = new FeedUpdateRequest("수정된 내용");
+
+      // when & then
+      assertThatThrownBy(() -> feedService.update(feedId, request, currentUserId))
+          .isInstanceOf(FeedNotFoundException.class);
+    }
   }
 
   @Nested
