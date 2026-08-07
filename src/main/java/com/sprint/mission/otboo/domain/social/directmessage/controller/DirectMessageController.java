@@ -1,0 +1,29 @@
+package com.sprint.mission.otboo.domain.social.directmessage.controller;
+
+import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageDto;
+import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageParams;
+import com.sprint.mission.otboo.domain.social.directmessage.service.DirectMessageService;
+import com.sprint.mission.otboo.global.dto.CursorPageResponse;
+import com.sprint.mission.otboo.security.details.CurrentUser;
+import com.sprint.mission.otboo.security.details.UserPrincipal;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/direct-messages")
+@RequiredArgsConstructor
+public class DirectMessageController {
+
+  private final DirectMessageService directMessageService;
+
+  @GetMapping
+  public ResponseEntity<CursorPageResponse<DirectMessageDto>> getDms(
+      @ModelAttribute DirectMessageParams params,
+      @CurrentUser UserPrincipal principal) {
+    return null;
+  }
+}
