@@ -6,6 +6,7 @@ import com.sprint.mission.otboo.domain.social.directmessage.service.DirectMessag
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.security.details.CurrentUser;
 import com.sprint.mission.otboo.security.details.UserPrincipal;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,10 +23,10 @@ public class DirectMessageController {
 
   @GetMapping
   public ResponseEntity<CursorPageResponse<DirectMessageDto>> getDms(
-      @ModelAttribute DirectMessageParams params,
+      @Valid @ModelAttribute DirectMessageParams params,
       @CurrentUser UserPrincipal principal) {
-    CursorPageResponse<DirectMessageDto> response = directMessageService.getDirectMessages(
-        principal.userId(), params);
+    CursorPageResponse<DirectMessageDto> response =
+        directMessageService.getDirectMessages(principal.userId(), params);
     return ResponseEntity.ok(response);
   }
 }
