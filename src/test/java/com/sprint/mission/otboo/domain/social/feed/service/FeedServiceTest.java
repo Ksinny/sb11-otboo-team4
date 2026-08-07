@@ -756,5 +756,34 @@ class FeedServiceTest {
       assertThat(result).isEqualTo(expected);
       assertThat(result.author()).isEqualTo(author);
     }
+
+    @Test
+    @DisplayName("반환하는 FeedDto에 현재 사용자의 좋아요 여부를 채운다")
+    void 반환하는_FeedDto에_현재_사용자의_좋아요_여부를_채운다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      Feed feed = Feed.create(currentUserId, UUID.randomUUID(), "원래 내용",
+          DUMMY_SNAPSHOT, List.of());
+      given(feedRepository.findById(feedId)).willReturn(Optional.of(feed));
+
+      UserSummary author = new UserSummary(currentUserId, "경신", null);
+      given(userSummaryQueryRepository.findByUserId(currentUserId)).willReturn(author);
+      given(feedLikeRepository.existsByFeedIdAndUserId(feedId, currentUserId)).willReturn(true);
+
+      FeedUpdateRequest request = new FeedUpdateRequest("수정된 내용");
+
+      FeedDto expected = new FeedDto(
+          feedId, Instant.now(), Instant.now(), author, null, List.of(),
+          "수정된 내용", 0L, 0, true);
+      given(feedMapper.toDto(feed, author, true)).willReturn(expected);
+
+      // when
+      FeedDto result = feedService.update(feedId, request, currentUserId);
+
+      // then
+      assertThat(result).isEqualTo(expected);
+      assertThat(result.likedByMe()).isTrue();
+    }
   }
 }
