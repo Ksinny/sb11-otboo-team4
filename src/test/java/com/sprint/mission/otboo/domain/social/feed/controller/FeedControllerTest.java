@@ -494,5 +494,25 @@ class FeedControllerTest {
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("작성자가 아니면 403을 반환한다")
+    void 작성자가_아니면_403을_반환한다() throws Exception {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+
+      FeedUpdateRequest request = new FeedUpdateRequest("수정된 내용");
+      willThrow(FeedForbiddenException.authorMismatch(currentUserId, UUID.randomUUID()))
+          .given(feedService)
+          .update(eq(feedId), any(FeedUpdateRequest.class), eq(currentUserId));
+
+      // when & then
+      mockMvc.perform(patch("/api/feeds/{feedId}", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isForbidden());
+    }
   }
 }
