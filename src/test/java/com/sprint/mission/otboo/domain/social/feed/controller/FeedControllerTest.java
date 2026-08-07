@@ -514,5 +514,25 @@ class FeedControllerTest {
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isForbidden());
     }
+
+    @Test
+    @DisplayName("피드가 존재하지 않으면 404를 반환한다")
+    void 피드가_존재하지_않으면_404를_반환한다() throws Exception {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+
+      FeedUpdateRequest request = new FeedUpdateRequest("수정된 내용");
+      willThrow(FeedNotFoundException.withId(feedId))
+          .given(feedService)
+          .update(eq(feedId), any(FeedUpdateRequest.class), eq(currentUserId));
+
+      // when & then
+      mockMvc.perform(patch("/api/feeds/{feedId}", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isNotFound());
+    }
   }
 }
