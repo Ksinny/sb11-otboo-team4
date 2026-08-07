@@ -841,5 +841,18 @@ class FeedServiceTest {
       assertThatThrownBy(() -> feedService.delete(feedId, currentUserId))
           .isInstanceOf(FeedNotFoundException.class);
     }
+
+    @Test
+    @DisplayName("피드가 존재하지 않으면 FeedNotFoundException을 던진다")
+    void 피드가_존재하지_않으면_FeedNotFoundException을_던진다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      given(feedRepository.findById(feedId)).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.delete(feedId, currentUserId))
+          .isInstanceOf(FeedNotFoundException.class);
+    }
   }
 }
