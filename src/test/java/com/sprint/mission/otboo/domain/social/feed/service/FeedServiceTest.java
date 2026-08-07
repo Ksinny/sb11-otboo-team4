@@ -702,7 +702,7 @@ class FeedServiceTest {
 
   @Nested
   @DisplayName("피드 수정")
-  class FeedUpdate {
+  class UpdateFeed {
 
     @Test
     @DisplayName("내용을 수정하고 FeedDto를 반환한다")
@@ -727,6 +727,34 @@ class FeedServiceTest {
       // then
       assertThat(feed.getContent()).isEqualTo("수정된 내용");
       assertThat(result).isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("반환하는 FeedDto에 작성자 정보를 채운다")
+    void 반환하는_FeedDto에_작성자_정보를_채운다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID authorId = UUID.randomUUID();
+      Feed feed = Feed.create(authorId, UUID.randomUUID(), "원래 내용",
+          DUMMY_SNAPSHOT, List.of());
+      given(feedRepository.findById(feedId)).willReturn(Optional.of(feed));
+
+      UserSummary author = new UserSummary(authorId, "경신", null);
+      given(userSummaryQueryRepository.findByUserId(authorId)).willReturn(author);
+
+      FeedUpdateRequest request = new FeedUpdateRequest("수정된 내용");
+
+      FeedDto expected = new FeedDto(
+          feedId, Instant.now(), Instant.now(), author, null, List.of(),
+          "수정된 내용", 0L, 0, false);
+      given(feedMapper.toDto(eq(feed), eq(author), anyBoolean())).willReturn(expected);
+
+      // when
+      FeedDto result = feedService.update(feedId, request, authorId);
+
+      // then
+      assertThat(result).isEqualTo(expected);
+      assertThat(result.author()).isEqualTo(author);
     }
   }
 }
