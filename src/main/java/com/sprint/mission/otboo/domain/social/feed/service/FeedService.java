@@ -144,7 +144,13 @@ public class FeedService {
 
   @Transactional
   public FeedDto update(UUID feedId, FeedUpdateRequest request, UUID currentUserId) {
-    return null;
+    Feed feed = feedRepository.findById(feedId)
+        .orElseThrow(() -> FeedNotFoundException.withId(feedId));
+
+    feed.updateContent(request.content());
+    log.info("피드 수정 완료: feedId={}", feedId);
+
+    return feedMapper.toDto(feed, null, false);
   }
 
   private boolean isUniqueViolation(DataIntegrityViolationException e) {
