@@ -1,5 +1,6 @@
 package com.sprint.mission.otboo.domain.social.directmessage.controller;
 
+import com.sprint.mission.otboo.domain.social.directmessage.controller.api.DirectMessageApi;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageDto;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageParams;
 import com.sprint.mission.otboo.domain.social.directmessage.service.DirectMessageService;
@@ -17,11 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/direct-messages")
 @RequiredArgsConstructor
-public class DirectMessageController {
+public class DirectMessageController implements DirectMessageApi {
 
   private final DirectMessageService directMessageService;
 
   @GetMapping
+  @Override
   public ResponseEntity<CursorPageResponse<DirectMessageDto>> getDms(
       @Valid @ModelAttribute DirectMessageParams params,
       @CurrentUser UserPrincipal principal) {
