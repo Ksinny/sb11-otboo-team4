@@ -854,5 +854,21 @@ class FeedServiceTest {
       assertThatThrownBy(() -> feedService.delete(feedId, currentUserId))
           .isInstanceOf(FeedNotFoundException.class);
     }
+
+    @Test
+    @DisplayName("작성자가 아니면 FeedForbiddenException을 던진다")
+    void 작성자가_아니면_FeedForbiddenException을_던진다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID authorId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      Feed feed = Feed.create(authorId, UUID.randomUUID(), "내용",
+          DUMMY_SNAPSHOT, List.of());
+      given(feedRepository.findById(feedId)).willReturn(Optional.of(feed));
+
+      // when & then
+      assertThatThrownBy(() -> feedService.delete(feedId, currentUserId))
+          .isInstanceOf(FeedForbiddenException.class);
+    }
   }
 }
