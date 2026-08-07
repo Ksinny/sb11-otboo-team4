@@ -100,6 +100,7 @@ public class FeedController implements FeedApi {
       @PathVariable UUID feedId,
       @RequestBody FeedUpdateRequest request,
       @CurrentUser UserPrincipal principal) {
-    return null;
+    FeedDto response = feedService.update(feedId, request, principal.userId());
+    return ResponseEntity.ok(response);
   }
 }
