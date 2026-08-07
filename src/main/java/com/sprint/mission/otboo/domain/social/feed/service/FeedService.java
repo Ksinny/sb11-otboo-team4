@@ -151,7 +151,8 @@ public class FeedService {
     log.info("피드 수정 완료: feedId={}", feedId);
 
     UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
-    return feedMapper.toDto(feed, author, false);
+    boolean likedByMe = feedLikeRepository.existsByFeedIdAndUserId(feedId, currentUserId);
+    return feedMapper.toDto(feed, author, likedByMe);
   }
 
   private boolean isUniqueViolation(DataIntegrityViolationException e) {
