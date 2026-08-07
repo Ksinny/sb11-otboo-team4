@@ -24,6 +24,8 @@ public class DirectMessageController {
   public ResponseEntity<CursorPageResponse<DirectMessageDto>> getDms(
       @ModelAttribute DirectMessageParams params,
       @CurrentUser UserPrincipal principal) {
-    return null;
+    CursorPageResponse<DirectMessageDto> response = directMessageService.getDirectMessages(
+        principal.userId(), params);
+    return ResponseEntity.ok(response);
   }
 }
