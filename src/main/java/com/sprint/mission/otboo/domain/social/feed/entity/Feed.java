@@ -129,4 +129,8 @@ public class Feed {
   public boolean isDeleted() {
     return softDeletable.isDeleted();
   }
+
+  public void delete() {
+    softDeletable.delete();
+  }
 }

@@ -161,6 +161,11 @@ public class FeedService {
 
   @Transactional
   public void delete(UUID feedId, UUID currentUserId) {
+    Feed feed = feedRepository.findById(feedId)
+        .orElseThrow(() -> FeedNotFoundException.withId(feedId));
+
+    feed.delete();
+    log.info("피드 삭제 완료: feedId={}", feedId);
   }
 
   private boolean isUniqueViolation(DataIntegrityViolationException e) {
