@@ -106,6 +106,7 @@ public class FeedController implements FeedApi {
   }
 
   @DeleteMapping("/{feedId}")
+  @Override
   public ResponseEntity<Void> deleteFeed(
       @PathVariable UUID feedId,
       @CurrentUser UserPrincipal principal) {

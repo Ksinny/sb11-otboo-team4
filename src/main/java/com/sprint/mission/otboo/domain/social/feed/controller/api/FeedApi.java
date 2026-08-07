@@ -78,4 +78,13 @@ public interface FeedApi {
   })
   ResponseEntity<FeedDto> updateFeed(
       UUID feedId, FeedUpdateRequest request, UserPrincipal principal);
+
+  @Operation(summary = "피드 삭제", description = "피드 삭제 API")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", description = "피드 삭제 성공"),
+      @ApiResponse(responseCode = "400", description = "피드 삭제 실패"),
+      @ApiResponse(responseCode = "403", description = "작성자 불일치"),
+      @ApiResponse(responseCode = "404", description = "피드 없음")
+  })
+  ResponseEntity<Void> deleteFeed(UUID feedId, UserPrincipal principal);
 }
