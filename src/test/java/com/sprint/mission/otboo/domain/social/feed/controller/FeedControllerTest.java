@@ -554,5 +554,35 @@ class FeedControllerTest {
 
       verify(feedService).delete(feedId, currentUserId);
     }
+
+    @Test
+    @DisplayName("작성자가 아니면 403을 반환한다")
+    void 작성자가_아니면_403을_반환한다() throws Exception {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+      willThrow(FeedForbiddenException.authorMismatch(currentUserId, UUID.randomUUID()))
+          .given(feedService).delete(feedId, currentUserId);
+
+      // when & then
+      mockMvc.perform(delete("/api/feeds/{feedId}", feedId))
+          .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("피드가 존재하지 않으면 404를 반환한다")
+    void 피드가_존재하지_않으면_404를_반환한다() throws Exception {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+      willThrow(FeedNotFoundException.withId(feedId))
+          .given(feedService).delete(feedId, currentUserId);
+
+      // when & then
+      mockMvc.perform(delete("/api/feeds/{feedId}", feedId))
+          .andExpect(status().isNotFound());
+    }
   }
 }
