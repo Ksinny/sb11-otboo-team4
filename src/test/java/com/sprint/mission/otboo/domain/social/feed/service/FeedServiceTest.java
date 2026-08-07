@@ -825,5 +825,21 @@ class FeedServiceTest {
       // then
       assertThat(feed.isDeleted()).isTrue();
     }
+
+    @Test
+    @DisplayName("이미 삭제된 피드면 FeedNotFoundException을 던진다")
+    void 이미_삭제된_피드면_FeedNotFoundException을_던진다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      Feed feed = Feed.create(currentUserId, UUID.randomUUID(), "내용",
+          DUMMY_SNAPSHOT, List.of());
+      feed.delete();
+      given(feedRepository.findById(feedId)).willReturn(Optional.of(feed));
+
+      // when & then
+      assertThatThrownBy(() -> feedService.delete(feedId, currentUserId))
+          .isInstanceOf(FeedNotFoundException.class);
+    }
   }
 }
