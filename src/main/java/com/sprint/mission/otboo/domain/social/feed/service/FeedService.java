@@ -147,6 +147,10 @@ public class FeedService {
     Feed feed = feedRepository.findById(feedId)
         .orElseThrow(() -> FeedNotFoundException.withId(feedId));
 
+    if (!feed.getAuthorId().equals(currentUserId)) {
+      throw FeedForbiddenException.authorMismatch(currentUserId, feed.getAuthorId());
+    }
+
     feed.updateContent(request.content());
     log.info("피드 수정 완료: feedId={}", feedId);
 
