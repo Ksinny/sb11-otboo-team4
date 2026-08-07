@@ -5,6 +5,7 @@ import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSum
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedUpdateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
@@ -141,6 +142,10 @@ public class FeedService {
     }
   }
 
+  @Transactional
+  public FeedDto update(UUID feedId, FeedUpdateRequest request, UUID currentUserId) {
+    return null;
+  }
 
   private boolean isUniqueViolation(DataIntegrityViolationException e) {
     return e.getCause() instanceof ConstraintViolationException cve
