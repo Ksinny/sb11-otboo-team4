@@ -145,6 +145,7 @@ public class FeedService {
   @Transactional
   public FeedDto update(UUID feedId, FeedUpdateRequest request, UUID currentUserId) {
     Feed feed = feedRepository.findById(feedId)
+        .filter(f -> !f.isDeleted())
         .orElseThrow(() -> FeedNotFoundException.withId(feedId));
 
     if (!feed.getAuthorId().equals(currentUserId)) {
