@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -23,6 +24,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedUpdateRequest;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.service.CommentService;
@@ -441,6 +443,39 @@ class FeedControllerTest {
       mockMvc.perform(get("/api/feeds/{feedId}/comments", UUID.randomUUID())
               .param("limit", "0"))
           .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 수정 - PATCH /api/feeds/{feedId}")
+  class UpdateFeed {
+
+    @Test
+    @DisplayName("정상 요청이면 200과 FeedDto를 반환한다")
+    void 정상_요청이면_200과_FeedDto를_반환한다() throws Exception {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      SecurityContextHolder.getContext().setAuthentication(authenticationOf(currentUserId));
+
+      FeedUpdateRequest request = new FeedUpdateRequest("수정된 내용");
+
+      FeedDto response = new FeedDto(
+          feedId, Instant.now(), Instant.now(),
+          new UserSummary(currentUserId, "경신", null), null, List.of(),
+          "수정된 내용", 0L, 0, false);
+      when(feedService.update(eq(feedId), any(FeedUpdateRequest.class), eq(currentUserId)))
+          .thenReturn(response);
+
+      // when & then
+      mockMvc.perform(patch("/api/feeds/{feedId}", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.content").value("수정된 내용"))
+          .andExpect(jsonPath("$.author.name").value("경신"));
+
+      verify(feedService).update(eq(feedId), any(FeedUpdateRequest.class), eq(currentUserId));
     }
   }
 }
