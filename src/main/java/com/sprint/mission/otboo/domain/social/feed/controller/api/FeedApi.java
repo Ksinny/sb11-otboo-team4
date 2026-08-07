@@ -64,7 +64,8 @@ public interface FeedApi {
   @Operation(summary = "피드 댓글 조회", description = "피드 댓글 조회 API")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "피드 댓글 조회 성공"),
-      @ApiResponse(responseCode = "400", description = "피드 댓글 조회 실패")
+      @ApiResponse(responseCode = "400", description = "피드 댓글 조회 실패"),
+      @ApiResponse(responseCode = "404", description = "피드 없음")
   })
   ResponseEntity<CursorPageResponse<CommentDto>> getFeedComments(
       UUID feedId, FeedCommentParams params);
