@@ -387,7 +387,7 @@ class FeedCustomRepositoryTest {
       // then
       assertThat(result.data())
           .extracting(Feed::getContent)
-          .containsExactly("살아있는 피드");
+          .containsExactly(active.getContent());
       assertThat(result.totalCount()).isEqualTo(1L);
     }
   }
