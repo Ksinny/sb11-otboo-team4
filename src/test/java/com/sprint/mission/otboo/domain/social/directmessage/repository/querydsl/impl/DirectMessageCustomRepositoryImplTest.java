@@ -85,5 +85,32 @@ class DirectMessageCustomRepositoryImplTest {
       assertThat(result.totalCount()).isEqualTo(2L);
       assertThat(result.hasNext()).isFalse();
     }
+
+    @Test
+    @DisplayName("커서가 없으면 limit + 1개까지 조회한다")
+    void 커서가_없으면_limit_플러스_1개까지_조회한다() {
+      // given
+      User me = persistUser("나");
+      User other = persistUser("상대");
+
+      for (int i = 0; i < 3; i++) {
+        saveMessage(me.getId(), other.getId(), "메시지" + i);
+      }
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      DirectMessageParams params = new DirectMessageParams(other.getId(), null, null, 2);
+
+      // when
+      CursorPageResponse<DirectMessage> result =
+          directMessageRepository.findDirectMessages(me.getId(), params);
+
+      // then
+      assertThat(result.data()).hasSize(2);
+      assertThat(result.hasNext()).isTrue();
+      assertThat(result.nextCursor()).isNotNull();
+      assertThat(result.nextIdAfter()).isNotNull();
+      assertThat(result.totalCount()).isEqualTo(3);
+    }
   }
 }
