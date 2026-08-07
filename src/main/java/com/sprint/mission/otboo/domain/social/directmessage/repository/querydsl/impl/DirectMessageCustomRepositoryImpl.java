@@ -22,9 +22,20 @@ public class DirectMessageCustomRepositoryImpl implements DirectMessageCustomRep
   @Override
   public CursorPageResponse<DirectMessage> findDirectMessages(UUID currentUserId,
       DirectMessageParams params) {
-    List<DirectMessage> page = fetchDirectMessages(currentUserId, params);
+    List<DirectMessage> raw = fetchDirectMessages(currentUserId, params);
 
-    return new CursorPageResponse<>(page, null, null, false,
+    boolean hasNext = raw.size() > params.limit();
+    List<DirectMessage> page = hasNext ? raw.subList(0, params.limit()) : raw;
+
+    String nextCursor = null;
+    UUID nextIdAfter = null;
+    if (hasNext && !page.isEmpty()) {
+      DirectMessage last = page.get(page.size() - 1);
+      nextCursor = last.getCreatedAt().toString();
+      nextIdAfter = last.getId();
+    }
+
+    return new CursorPageResponse<>(page, nextCursor, nextIdAfter, hasNext,
         countDirectMessages(currentUserId, params.userId()), "createdAt", SortDirection.DESCENDING
     );
   }
@@ -35,6 +46,7 @@ public class DirectMessageCustomRepositoryImpl implements DirectMessageCustomRep
         .selectFrom(directMessage)
         .where(betweenUsers(currentUserId, params.userId()))
         .orderBy(directMessage.createdAt.desc(), directMessage.id.desc())
+        .limit(params.limit() + 1L)
         .fetch();
   }
 
