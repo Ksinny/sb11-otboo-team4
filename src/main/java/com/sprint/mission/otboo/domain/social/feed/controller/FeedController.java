@@ -109,6 +109,7 @@ public class FeedController implements FeedApi {
   public ResponseEntity<Void> deleteFeed(
       @PathVariable UUID feedId,
       @CurrentUser UserPrincipal principal) {
-    return null;
+    feedService.delete(feedId, principal.userId());
+    return ResponseEntity.noContent().build();
   }
 }
