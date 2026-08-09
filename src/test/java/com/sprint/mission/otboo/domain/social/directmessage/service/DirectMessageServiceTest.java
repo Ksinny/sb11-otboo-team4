@@ -10,6 +10,7 @@ import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageDto;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageParams;
+import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageSendRequest;
 import com.sprint.mission.otboo.domain.social.directmessage.entity.DirectMessage;
 import com.sprint.mission.otboo.domain.social.directmessage.mapper.DirectMessageMapper;
 import com.sprint.mission.otboo.domain.social.directmessage.repository.DirectMessageRepository;
@@ -97,6 +98,40 @@ class DirectMessageServiceTest {
       assertThat(result.data()).isEmpty();
       assertThat(result.totalCount()).isZero();
       verify(userSummaryQueryRepository, never()).findByUserIds(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("DM 전송")
+  class Send {
+
+    @Test
+    @DisplayName("메시지를 저장하고 DirectMessageDto를 반환한다")
+    void 메시지를_저장하고_DirectMessageDto를_반환한다() {
+      // given
+      UUID senderId = UUID.randomUUID();
+      UUID receiverId = UUID.randomUUID();
+      DirectMessageSendRequest request =
+          new DirectMessageSendRequest(senderId, receiverId, "안녕하세요?");
+
+      DirectMessage saved = DirectMessage.create(senderId, receiverId, "안녕하세요?");
+      given(directMessageRepository.save(any(DirectMessage.class))).willReturn(saved);
+
+      UserSummary sender = new UserSummary(senderId, "보낸사람", null);
+      UserSummary receiver = new UserSummary(receiverId, "받는사람", null);
+      given(userSummaryQueryRepository.findByUserId(senderId)).willReturn(sender);
+      given(userSummaryQueryRepository.findByUserId(receiverId)).willReturn(receiver);
+
+      DirectMessageDto expected = new DirectMessageDto(
+          saved.getId(), null, sender, receiver, "안녕하세요?");
+      given(directMessageMapper.toDto(saved, sender, receiver)).willReturn(expected);
+
+      // when
+      DirectMessageDto result = directMessageService.send(request, senderId);
+
+      // then
+      assertThat(result).isEqualTo(expected);
+      verify(directMessageRepository).save(any(DirectMessage.class));
     }
   }
 }

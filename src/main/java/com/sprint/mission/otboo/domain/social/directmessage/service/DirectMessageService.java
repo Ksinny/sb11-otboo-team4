@@ -4,6 +4,7 @@ import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageDto;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageParams;
+import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageSendRequest;
 import com.sprint.mission.otboo.domain.social.directmessage.entity.DirectMessage;
 import com.sprint.mission.otboo.domain.social.directmessage.mapper.DirectMessageMapper;
 import com.sprint.mission.otboo.domain.social.directmessage.repository.DirectMessageRepository;
@@ -32,6 +33,11 @@ public class DirectMessageService {
   public CursorPageResponse<DirectMessageDto> getDirectMessages(UUID currentUserId,
       DirectMessageParams params) {
     return toDtoPage(directMessageRepository.findDirectMessages(currentUserId, params));
+  }
+
+  @Transactional
+  public DirectMessageDto send(DirectMessageSendRequest request, UUID currentUserId) {
+    return null;
   }
 
   private CursorPageResponse<DirectMessageDto> toDtoPage(CursorPageResponse<DirectMessage> page) {
