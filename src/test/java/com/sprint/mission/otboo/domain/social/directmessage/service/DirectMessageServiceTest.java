@@ -1,6 +1,7 @@
 package com.sprint.mission.otboo.domain.social.directmessage.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -12,6 +13,7 @@ import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageDto
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageParams;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageSendRequest;
 import com.sprint.mission.otboo.domain.social.directmessage.entity.DirectMessage;
+import com.sprint.mission.otboo.domain.social.directmessage.exception.DirectMessageForbiddenException;
 import com.sprint.mission.otboo.domain.social.directmessage.mapper.DirectMessageMapper;
 import com.sprint.mission.otboo.domain.social.directmessage.repository.DirectMessageRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
@@ -132,6 +134,21 @@ class DirectMessageServiceTest {
       // then
       assertThat(result).isEqualTo(expected);
       verify(directMessageRepository).save(any(DirectMessage.class));
+    }
+
+    @Test
+    @DisplayName("senderId가 인증 사용자와 다르면 DirectMessageForbiddenException을 던진다")
+    void senderId가_인증_사용자와_다르면_DirectMessageForbiddenException을_던진다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID otherSenderId = UUID.randomUUID();
+      UUID receiverId = UUID.randomUUID();
+      DirectMessageSendRequest request =
+          new DirectMessageSendRequest(otherSenderId, receiverId, "안녕하세요?");
+
+      // when & then
+      assertThatThrownBy(() -> directMessageService.send(request, currentUserId))
+          .isInstanceOf(DirectMessageForbiddenException.class);
     }
   }
 }
