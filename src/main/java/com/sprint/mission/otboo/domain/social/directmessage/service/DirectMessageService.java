@@ -7,6 +7,7 @@ import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessagePar
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageSendRequest;
 import com.sprint.mission.otboo.domain.social.directmessage.entity.DirectMessage;
 import com.sprint.mission.otboo.domain.social.directmessage.exception.DirectMessageForbiddenException;
+import com.sprint.mission.otboo.domain.social.directmessage.exception.SelfDirectMessageNotAllowedException;
 import com.sprint.mission.otboo.domain.social.directmessage.mapper.DirectMessageMapper;
 import com.sprint.mission.otboo.domain.social.directmessage.repository.DirectMessageRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
@@ -40,6 +41,9 @@ public class DirectMessageService {
   public DirectMessageDto send(DirectMessageSendRequest request, UUID currentUserId) {
     if (!request.senderId().equals(currentUserId)) {
       throw DirectMessageForbiddenException.senderMismatch(currentUserId, request.senderId());
+    }
+    if (request.senderId().equals(request.receiverId())) {
+      throw SelfDirectMessageNotAllowedException.withNone();
     }
 
     DirectMessage message = directMessageRepository.save(
