@@ -14,6 +14,7 @@ import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessagePar
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageSendRequest;
 import com.sprint.mission.otboo.domain.social.directmessage.entity.DirectMessage;
 import com.sprint.mission.otboo.domain.social.directmessage.exception.DirectMessageForbiddenException;
+import com.sprint.mission.otboo.domain.social.directmessage.exception.SelfDirectMessageNotAllowedException;
 import com.sprint.mission.otboo.domain.social.directmessage.mapper.DirectMessageMapper;
 import com.sprint.mission.otboo.domain.social.directmessage.repository.DirectMessageRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
@@ -149,6 +150,19 @@ class DirectMessageServiceTest {
       // when & then
       assertThatThrownBy(() -> directMessageService.send(request, currentUserId))
           .isInstanceOf(DirectMessageForbiddenException.class);
+    }
+
+    @Test
+    @DisplayName("자기 자신에게 보내면 SelfDirectMessageNotAllowedException을 던진다")
+    void 자기_자신에게_보내면_SelfDirectMessageNotAllowedException을_던진다() {
+      // given
+      UUID userId = UUID.randomUUID();
+      DirectMessageSendRequest request =
+          new DirectMessageSendRequest(userId, userId, "안녕하세요?");
+
+      // when & then
+      assertThatThrownBy(() -> directMessageService.send(request, userId))
+          .isInstanceOf(SelfDirectMessageNotAllowedException.class);
     }
   }
 }
