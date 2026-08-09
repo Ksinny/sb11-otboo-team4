@@ -11,8 +11,11 @@ import com.sprint.mission.otboo.domain.social.directmessage.exception.SelfDirect
 import com.sprint.mission.otboo.domain.social.directmessage.mapper.DirectMessageMapper;
 import com.sprint.mission.otboo.domain.social.directmessage.repository.DirectMessageRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
+import com.sprint.mission.otboo.global.event.NotificationLevel;
+import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -54,6 +57,11 @@ public class DirectMessageService {
 
     UserSummary sender = userSummaryQueryRepository.findByUserId(message.getSenderId());
     UserSummary receiver = userSummaryQueryRepository.findByUserId(message.getReceiverId());
+
+    eventPublisher.publishEvent(new NotificationRequestedEvent(
+        Set.of(message.getReceiverId()), "[DM] " + sender.name(),
+        message.getContent(), NotificationLevel.INFO));
+
     return directMessageMapper.toDto(message, sender, receiver);
   }
 
