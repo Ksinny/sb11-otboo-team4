@@ -19,15 +19,18 @@ import com.sprint.mission.otboo.domain.social.directmessage.mapper.DirectMessage
 import com.sprint.mission.otboo.domain.social.directmessage.repository.DirectMessageRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.dto.SortDirection;
+import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DirectMessageService")
@@ -44,6 +47,9 @@ class DirectMessageServiceTest {
 
   @Mock
   UserSummaryQueryRepository userSummaryQueryRepository;
+
+  @Mock
+  ApplicationEventPublisher eventPublisher;
 
   @Nested
   @DisplayName("DM 목록 조회")
@@ -163,6 +169,35 @@ class DirectMessageServiceTest {
       // when & then
       assertThatThrownBy(() -> directMessageService.send(request, userId))
           .isInstanceOf(SelfDirectMessageNotAllowedException.class);
+    }
+
+    @Test
+    @DisplayName("전송에 성공하면 수신자에게 알림 이벤트를 발행한다")
+    void 전송에_성공하면_수신자에게_알림_이벤트를_발행한다() {
+      // given
+      UUID senderId = UUID.randomUUID();
+      UUID receiverId = UUID.randomUUID();
+      DirectMessageSendRequest request =
+          new DirectMessageSendRequest(senderId, receiverId, "안녕하세요?");
+
+      DirectMessage saved = DirectMessage.create(senderId, receiverId, "안녕하세요?");
+      given(directMessageRepository.save(any(DirectMessage.class))).willReturn(saved);
+      given(userSummaryQueryRepository.findByUserId(senderId))
+          .willReturn(new UserSummary(senderId, "보낸사람", null));
+      given(userSummaryQueryRepository.findByUserId(receiverId))
+          .willReturn(new UserSummary(receiverId, "받는사람", null));
+
+      // when
+      directMessageService.send(request, senderId);
+
+      // then
+      ArgumentCaptor<NotificationRequestedEvent> captor = ArgumentCaptor.forClass(
+          NotificationRequestedEvent.class);
+      verify(eventPublisher).publishEvent(captor.capture());
+      NotificationRequestedEvent event = captor.getValue();
+      assertThat(event.receiverIds()).containsExactly(receiverId);
+      assertThat(event.title()).isEqualTo("[DM] 보낸사람");
+      assertThat(event.content()).isEqualTo("안녕하세요?");
     }
   }
 }

@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class DirectMessageService {
   private final DirectMessageRepository directMessageRepository;
   private final DirectMessageMapper directMessageMapper;
   private final UserSummaryQueryRepository userSummaryQueryRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   public CursorPageResponse<DirectMessageDto> getDirectMessages(UUID currentUserId,
       DirectMessageParams params) {
