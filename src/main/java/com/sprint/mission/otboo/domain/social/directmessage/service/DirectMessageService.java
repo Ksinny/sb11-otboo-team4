@@ -44,12 +44,7 @@ public class DirectMessageService {
 
   @Transactional
   public DirectMessageDto send(DirectMessageSendRequest request, UUID currentUserId) {
-    if (!request.senderId().equals(currentUserId)) {
-      throw DirectMessageForbiddenException.senderMismatch(currentUserId, request.senderId());
-    }
-    if (request.senderId().equals(request.receiverId())) {
-      throw SelfDirectMessageNotAllowedException.withNone();
-    }
+    validateSendRequest(request, currentUserId);
 
     DirectMessage message = directMessageRepository.save(
         DirectMessage.create(request.senderId(), request.receiverId(), request.content()));
@@ -57,10 +52,7 @@ public class DirectMessageService {
 
     UserSummary sender = userSummaryQueryRepository.findByUserId(message.getSenderId());
     UserSummary receiver = userSummaryQueryRepository.findByUserId(message.getReceiverId());
-
-    eventPublisher.publishEvent(new NotificationRequestedEvent(
-        Set.of(message.getReceiverId()), "[DM] " + sender.name(),
-        message.getContent(), NotificationLevel.INFO));
+    publishDirectMessageNotification(message.getReceiverId(), sender.name(), message.getContent());
 
     return directMessageMapper.toDto(message, sender, receiver);
   }
@@ -84,5 +76,30 @@ public class DirectMessageService {
 
     return new CursorPageResponse<>(data, page.nextCursor(), page.nextIdAfter(),
         page.hasNext(), page.totalCount(), page.sortBy(), page.sortDirection());
+  }
+
+  private void validateSendRequest(DirectMessageSendRequest request, UUID currentUserId) {
+    validateSenderMatchesCurrentUser(request.senderId(), currentUserId);
+    validateNotSelfMessage(request.senderId(), request.receiverId());
+  }
+
+  private void validateSenderMatchesCurrentUser(UUID senderId, UUID currentUserId) {
+    if (!senderId.equals(currentUserId)) {
+      throw DirectMessageForbiddenException.senderMismatch(currentUserId, senderId);
+    }
+  }
+
+  private void validateNotSelfMessage(UUID senderId, UUID receiverId) {
+    if (senderId.equals(receiverId)) {
+      throw SelfDirectMessageNotAllowedException.withNone();
+    }
+  }
+
+  private void publishDirectMessageNotification(UUID receiverId, String senderName,
+      String content) {
+    String title = "[DM] " + senderName;
+    eventPublisher.publishEvent(
+        new NotificationRequestedEvent(Set.of(receiverId), title, content,
+            NotificationLevel.INFO));
   }
 }
