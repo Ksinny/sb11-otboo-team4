@@ -7,6 +7,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.navercorp.fixturemonkey.FixtureMonkey;
+import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitraryIntrospector;
+import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageDto;
@@ -35,6 +38,11 @@ import org.springframework.context.ApplicationEventPublisher;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DirectMessageService")
 class DirectMessageServiceTest {
+
+  static final FixtureMonkey fm = FixtureMonkey.builder()
+      .objectIntrospector(ConstructorPropertiesArbitraryIntrospector.INSTANCE)
+      .plugin(new JakartaValidationPlugin())
+      .build();
 
   @InjectMocks
   DirectMessageService directMessageService;
@@ -120,8 +128,11 @@ class DirectMessageServiceTest {
       // given
       UUID senderId = UUID.randomUUID();
       UUID receiverId = UUID.randomUUID();
-      DirectMessageSendRequest request =
-          new DirectMessageSendRequest(senderId, receiverId, "안녕하세요?");
+      DirectMessageSendRequest request = fm.giveMeBuilder(DirectMessageSendRequest.class)
+          .set("senderId", senderId)
+          .set("receiverId", receiverId)
+          .set("content", "안녕하세요?")
+          .sample();
 
       DirectMessage saved = DirectMessage.create(senderId, receiverId, "안녕하세요?");
       given(directMessageRepository.save(any(DirectMessage.class))).willReturn(saved);
@@ -150,8 +161,11 @@ class DirectMessageServiceTest {
       UUID currentUserId = UUID.randomUUID();
       UUID otherSenderId = UUID.randomUUID();
       UUID receiverId = UUID.randomUUID();
-      DirectMessageSendRequest request =
-          new DirectMessageSendRequest(otherSenderId, receiverId, "안녕하세요?");
+      DirectMessageSendRequest request = fm.giveMeBuilder(DirectMessageSendRequest.class)
+          .set("senderId", otherSenderId)
+          .set("receiverId", receiverId)
+          .set("content", "안녕하세요?")
+          .sample();
 
       // when & then
       assertThatThrownBy(() -> directMessageService.send(request, currentUserId))
@@ -163,8 +177,11 @@ class DirectMessageServiceTest {
     void 자기_자신에게_보내면_SelfDirectMessageNotAllowedException을_던진다() {
       // given
       UUID userId = UUID.randomUUID();
-      DirectMessageSendRequest request =
-          new DirectMessageSendRequest(userId, userId, "안녕하세요?");
+      DirectMessageSendRequest request = fm.giveMeBuilder(DirectMessageSendRequest.class)
+          .set("senderId", userId)
+          .set("receiverId", userId)
+          .set("content", "안녕하세요?")
+          .sample();
 
       // when & then
       assertThatThrownBy(() -> directMessageService.send(request, userId))
@@ -177,8 +194,11 @@ class DirectMessageServiceTest {
       // given
       UUID senderId = UUID.randomUUID();
       UUID receiverId = UUID.randomUUID();
-      DirectMessageSendRequest request =
-          new DirectMessageSendRequest(senderId, receiverId, "안녕하세요?");
+      DirectMessageSendRequest request = fm.giveMeBuilder(DirectMessageSendRequest.class)
+          .set("senderId", senderId)
+          .set("receiverId", receiverId)
+          .set("content", "안녕하세요?")
+          .sample();
 
       DirectMessage saved = DirectMessage.create(senderId, receiverId, "안녕하세요?");
       given(directMessageRepository.save(any(DirectMessage.class))).willReturn(saved);
@@ -191,8 +211,8 @@ class DirectMessageServiceTest {
       directMessageService.send(request, senderId);
 
       // then
-      ArgumentCaptor<NotificationRequestedEvent> captor = ArgumentCaptor.forClass(
-          NotificationRequestedEvent.class);
+      ArgumentCaptor<NotificationRequestedEvent> captor =
+          ArgumentCaptor.forClass(NotificationRequestedEvent.class);
       verify(eventPublisher).publishEvent(captor.capture());
       NotificationRequestedEvent event = captor.getValue();
       assertThat(event.receiverIds()).containsExactly(receiverId);
