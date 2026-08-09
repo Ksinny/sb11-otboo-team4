@@ -37,7 +37,13 @@ public class DirectMessageService {
 
   @Transactional
   public DirectMessageDto send(DirectMessageSendRequest request, UUID currentUserId) {
-    return null;
+    DirectMessage message = directMessageRepository.save(
+        DirectMessage.create(request.senderId(), request.receiverId(), request.content()));
+    log.info("DM 전송 완료: dmId={}", message.getId());
+
+    UserSummary sender = userSummaryQueryRepository.findByUserId(message.getSenderId());
+    UserSummary receiver = userSummaryQueryRepository.findByUserId(message.getReceiverId());
+    return directMessageMapper.toDto(message, sender, receiver);
   }
 
   private CursorPageResponse<DirectMessageDto> toDtoPage(CursorPageResponse<DirectMessage> page) {
