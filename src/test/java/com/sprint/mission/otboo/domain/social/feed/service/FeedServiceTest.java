@@ -981,5 +981,23 @@ class FeedServiceTest {
       assertThatThrownBy(() -> feedService.delete(feedId, currentUserId))
           .isInstanceOf(FeedForbiddenException.class);
     }
+
+    @Test
+    @DisplayName("softDeletable이 null인 피드도 정상적으로 삭제한다")
+    void softDeletable이_null인_피드도_정상적으로_삭제한다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID currentUserId = UUID.randomUUID();
+      Feed feed = Feed.create(currentUserId, UUID.randomUUID(), "내용",
+          DUMMY_SNAPSHOT, List.of());
+      setSoftDeletableNull(feed);
+      given(feedRepository.findById(feedId)).willReturn(Optional.of(feed));
+
+      // when
+      feedService.delete(feedId, currentUserId);
+
+      // then
+      assertThat(feed.isDeleted()).isTrue();
+    }
   }
 }
