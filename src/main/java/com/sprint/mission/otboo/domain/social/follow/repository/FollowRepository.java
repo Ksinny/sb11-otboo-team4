@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface FollowRepository extends JpaRepository<Follow, UUID>, FollowCustomRepository {
 
@@ -17,7 +19,7 @@ public interface FollowRepository extends JpaRepository<Follow, UUID>, FollowCus
 
   long countByFollowerId(UUID followerId);
 
-  default List<UUID> findFollowerIds(UUID followeeId) {
-    return List.of();
-  }
+  @Query("select f.followerId from Follow f where f.followeeId = :followeeId")
+  List<UUID> findFollowerIds(@Param("followeeId") UUID followeeId);
+
 }
