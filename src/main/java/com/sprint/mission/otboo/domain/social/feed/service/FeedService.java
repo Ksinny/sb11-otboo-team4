@@ -67,6 +67,12 @@ public class FeedService {
     log.info("피드 등록 완료: feedId={}", feed.getId());
 
     UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
+
+    List<UUID> followerIds = followRepository.findFollowerIds(feed.getAuthorId());
+    eventPublisher.publishEvent(new NotificationRequestedEvent(
+        Set.copyOf(followerIds), author.name() + "님이 새로운 피드를 작성했어요.",
+        feed.getContent(), NotificationLevel.INFO));
+    
     return feedMapper.toDto(feed, author, false);
   }
 
