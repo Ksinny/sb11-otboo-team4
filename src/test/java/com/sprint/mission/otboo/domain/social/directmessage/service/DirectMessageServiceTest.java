@@ -151,7 +151,11 @@ class DirectMessageServiceTest {
 
       // then
       assertThat(result).isEqualTo(expected);
-      verify(directMessageRepository).save(any(DirectMessage.class));
+      ArgumentCaptor<DirectMessage> captor = ArgumentCaptor.forClass(DirectMessage.class);
+      verify(directMessageRepository).save(captor.capture());
+      assertThat(captor.getValue().getSenderId()).isEqualTo(senderId);
+      assertThat(captor.getValue().getReceiverId()).isEqualTo(receiverId);
+      assertThat(captor.getValue().getContent()).isEqualTo("안녕하세요?");
     }
 
     @Test
