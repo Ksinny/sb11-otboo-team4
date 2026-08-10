@@ -2,6 +2,7 @@ package com.sprint.mission.otboo.domain.social.follow.repository;
 
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.repository.querydsl.FollowCustomRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +16,8 @@ public interface FollowRepository extends JpaRepository<Follow, UUID>, FollowCus
   long countByFolloweeId(UUID followeeId);
 
   long countByFollowerId(UUID followerId);
+
+  default List<UUID> findFollowerIds(UUID followeeId) {
+    return List.of();
+  }
 }
