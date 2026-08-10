@@ -16,12 +16,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @Slf4j
 @Controller
@@ -58,12 +58,13 @@ public class DirectMessageStompController {
   @MessageExceptionHandler(MethodArgumentNotValidException.class)
   @SendToUser("/queue/errors")
   public ErrorResponse handleValidationException(MethodArgumentNotValidException e) {
-    Map<String, Object> details = e.getBindingResult().getFieldErrors().stream()
-        .collect(Collectors.toMap(
-            FieldError::getField,
-            fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "invalid",
-            (existing, replacement) -> existing
-        ));
+    Map<String, Object> details = e.getBindingResult() == null ? Map.of()
+        : e.getBindingResult().getFieldErrors().stream()
+            .collect(Collectors.toMap(
+                FieldError::getField,
+                fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "invalid",
+                (existing, replacement) -> existing
+            ));
     log.warn("[{}] {}", e.getClass().getSimpleName(), details);
     return new ErrorResponse(e.getClass().getSimpleName(), "요청 값이 유효하지 않습니다.", details);
   }
