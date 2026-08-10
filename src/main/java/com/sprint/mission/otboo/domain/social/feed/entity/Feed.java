@@ -131,6 +131,9 @@ public class Feed {
   }
 
   public void delete() {
+    if (softDeletable == null) {
+      softDeletable = new SoftDeletable();
+    }
     softDeletable.delete();
   }
 }
