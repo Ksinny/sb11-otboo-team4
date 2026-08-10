@@ -85,7 +85,7 @@ public class DirectMessageService {
 
   private void validateSenderMatchesCurrentUser(UUID senderId, UUID currentUserId) {
     if (!senderId.equals(currentUserId)) {
-      throw DirectMessageForbiddenException.senderMismatch(currentUserId, senderId);
+      throw DirectMessageForbiddenException.senderMismatch();
     }
   }
 
