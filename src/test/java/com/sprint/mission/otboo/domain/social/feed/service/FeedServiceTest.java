@@ -386,7 +386,7 @@ class FeedServiceTest {
       verify(eventPublisher).publishEvent(captor.capture());
       NotificationRequestedEvent event = captor.getValue();
       assertThat(event.receiverIds()).containsExactlyInAnyOrder(follower1, follower2);
-      assertThat(event.title()).contains("테스터님이 새로운 피드를 작성했어요.");
+      assertThat(event.title()).isEqualTo("테스터님이 새로운 피드를 작성했어요.");
       assertThat(event.content()).isEqualTo("오늘의 착장");
     }
 
