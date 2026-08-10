@@ -15,6 +15,7 @@ import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundExcepti
 import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedLikeRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
+import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
 import com.sprint.mission.otboo.global.event.NotificationLevel;
 import com.sprint.mission.otboo.global.event.NotificationRequestedEvent;
@@ -48,6 +49,7 @@ public class FeedService {
   private final OotdSnapshotProvider ootdSnapshotProvider;
   private final FeedLikeRepository feedLikeRepository;
   private final ApplicationEventPublisher eventPublisher;
+  private final FollowRepository followRepository;
 
   @Transactional
   public FeedDto create(FeedCreateRequest request, UUID currentUserId) {
