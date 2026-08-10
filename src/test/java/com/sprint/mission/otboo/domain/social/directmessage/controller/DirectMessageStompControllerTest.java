@@ -89,6 +89,7 @@ class DirectMessageStompControllerTest {
       directMessageStompController.send(request, authenticationOf(senderId));
 
       // then
+      verify(directMessageService).send(request, senderId);
       verify(messagingTemplate).convertAndSend(
           "/sub/direct-messages_11111111-1111-1111-1111-111111111111"
               + "_99999999-9999-9999-9999-999999999999",
