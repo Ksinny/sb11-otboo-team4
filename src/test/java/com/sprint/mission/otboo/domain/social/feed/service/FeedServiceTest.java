@@ -368,7 +368,7 @@ class FeedServiceTest {
           .set("authorId", authorId)
           .set("content", "오늘의 착장")
           .sample();
-      
+
       given(followRepository.findFollowerIds(authorId))
           .willReturn(List.of(follower1, follower2));
 
@@ -383,6 +383,25 @@ class FeedServiceTest {
       assertThat(event.receiverIds()).containsExactlyInAnyOrder(follower1, follower2);
       assertThat(event.title()).contains("님이 새로운 피드를 작성했어요.");
       assertThat(event.content()).isEqualTo("오늘의 착장");
+    }
+
+    @Test
+    @DisplayName("팔로워가 없으면 알림 이벤트를 발행하지 않는다")
+    void 팔로워가_없으면_알림_이벤트를_발행하지_않는다() {
+      // given
+      UUID authorId = UUID.randomUUID();
+      FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
+          .set("authorId", authorId)
+          .set("content", "오늘의 착장")
+          .sample();
+      
+      given(followRepository.findFollowerIds(authorId)).willReturn(List.of());
+
+      // when
+      feedService.create(request, authorId);
+
+      // then
+      verify(eventPublisher, never()).publishEvent(any());
     }
   }
 
