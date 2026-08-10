@@ -1,5 +1,6 @@
 package com.sprint.mission.otboo.domain.social.directmessage.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -11,7 +12,9 @@ import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPl
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageDto;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageSendRequest;
+import com.sprint.mission.otboo.domain.social.directmessage.exception.DirectMessageForbiddenException;
 import com.sprint.mission.otboo.domain.social.directmessage.service.DirectMessageService;
+import com.sprint.mission.otboo.global.dto.ErrorResponse;
 import com.sprint.mission.otboo.security.details.UserPrincipal;
 import java.time.Instant;
 import java.util.List;
@@ -84,6 +87,26 @@ class DirectMessageStompControllerTest {
           "/sub/direct-messages_11111111-1111-1111-1111-111111111111"
               + "_99999999-9999-9999-9999-999999999999",
           saved);
+    }
+  }
+
+  @Nested
+  @DisplayName("예외 처리")
+  class ExceptionHandling {
+
+    @Test
+    @DisplayName("OtbooException이 발생하면 예외 정보를 담은 ErrorResponse를 반환한다")
+    void OtbooException이_발생하면_예외_정보를_담은_ErrorResponse를_반환한다() {
+      // given
+      DirectMessageForbiddenException exception =
+          DirectMessageForbiddenException.senderMismatch();
+
+      // when
+      ErrorResponse result = directMessageStompController.handleOtbooException(exception);
+
+      // then
+      assertThat(result.exceptionName()).isEqualTo("DirectMessageForbiddenException");
+      assertThat(result.message()).isEqualTo(exception.getMessage());
     }
   }
 }
