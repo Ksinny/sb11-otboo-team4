@@ -5,6 +5,7 @@ import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageSen
 import com.sprint.mission.otboo.domain.social.directmessage.service.DirectMessageService;
 import com.sprint.mission.otboo.domain.social.directmessage.util.StompDestinationUtil;
 import com.sprint.mission.otboo.security.details.UserPrincipal;
+import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,7 @@ public class DirectMessageStompController {
   private final SimpMessagingTemplate messagingTemplate;
 
   @MessageMapping("/direct-messages_send")
-  public void send(DirectMessageSendRequest request, Principal principal) {
+  public void send(@Valid DirectMessageSendRequest request, Principal principal) {
     UUID currentUserId = extractUserId(principal);
 
     DirectMessageDto saved = directMessageService.send(request, currentUserId);
