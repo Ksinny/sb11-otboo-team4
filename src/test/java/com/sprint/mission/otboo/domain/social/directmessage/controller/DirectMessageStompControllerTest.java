@@ -16,6 +16,7 @@ import com.sprint.mission.otboo.domain.social.directmessage.exception.DirectMess
 import com.sprint.mission.otboo.domain.social.directmessage.service.DirectMessageService;
 import com.sprint.mission.otboo.global.dto.ErrorResponse;
 import com.sprint.mission.otboo.security.details.UserPrincipal;
+import java.security.Principal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -26,10 +27,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.MethodParameter;
+import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.FieldError;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DirectMessageStompController")
@@ -107,6 +113,33 @@ class DirectMessageStompControllerTest {
       // then
       assertThat(result.exceptionName()).isEqualTo("DirectMessageForbiddenException");
       assertThat(result.message()).isEqualTo(exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("검증 실패 시 필드별 메시지를 담은 ErrorResponse를 반환한다")
+    void 검증_실패_시_필드별_메시지를_담은_ErrorResponse를_반환한다() throws Exception {
+      // given
+      DirectMessageSendRequest request =
+          new DirectMessageSendRequest(UUID.randomUUID(), UUID.randomUUID(), "");
+      BeanPropertyBindingResult bindingResult =
+          new BeanPropertyBindingResult(request, "directMessageSendRequest");
+      bindingResult.addError(new FieldError(
+          "directMessageSendRequest", "content", "공백일 수 없습니다"));
+
+      MethodParameter parameter = new MethodParameter(
+          DirectMessageStompController.class.getDeclaredMethod(
+              "send", DirectMessageSendRequest.class, Principal.class), 0);
+      MethodArgumentNotValidException exception =
+          new MethodArgumentNotValidException(
+              MessageBuilder.withPayload("").build(), parameter, bindingResult);
+
+      // when
+      ErrorResponse result = directMessageStompController.handleValidationException(exception);
+
+      // then
+      assertThat(result.exceptionName()).isEqualTo("MethodArgumentNotValidException");
+      assertThat(result.message()).isEqualTo("요청 값이 유효하지 않습니다.");
+      assertThat(result.details()).containsEntry("content", "공백일 수 없습니다");
     }
   }
 }
