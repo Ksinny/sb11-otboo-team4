@@ -33,6 +33,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-batch'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
@@ -69,6 +70,7 @@ dependencies {
     testImplementation 'com.navercorp.fixturemonkey:fixture-monkey-starter:1.2.0'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client-test'
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -79,12 +81,18 @@ dependencyManagement {
     }
 }
 
+def excludedSecurityAutoConfigurations = [
+    'org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration',
+    'org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration'
+].join(',')
+
 tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'external'
     }
     finalizedBy jacocoTestReport
     systemProperty "spring.profiles.active", "test"
+    systemProperty "spring.autoconfigure.exclude", excludedSecurityAutoConfigurations
 }
 
 tasks.register('externalTest', Test) {
@@ -96,6 +104,7 @@ tasks.register('externalTest', Test) {
         includeTags 'external'
     }
     systemProperty "spring.profiles.active", "test"
+    systemProperty "spring.autoconfigure.exclude", excludedSecurityAutoConfigurations
 }
 
 def jacocoExcludes = [
