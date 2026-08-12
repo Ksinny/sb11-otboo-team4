@@ -2,9 +2,15 @@ package com.sprint.mission.otboo.domain.social.feed.repository.querydsl.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.sprint.mission.otboo.domain.authuser.user.entity.User;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCommentParams;
+import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Comment;
+import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.repository.CommentRepository;
+import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
+import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
+import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
 import com.sprint.mission.otboo.global.config.JpaConfig;
 import com.sprint.mission.otboo.global.config.QuerydslConfig;
 import com.sprint.mission.otboo.global.dto.CursorPageResponse;
@@ -28,14 +34,30 @@ import org.springframework.test.context.ActiveProfiles;
 @DisplayName("CommentCustomRepository")
 class CommentCustomRepositoryImplTest {
 
+  static final WeatherSnapshot DUMMY_SNAPSHOT = new WeatherSnapshot(
+      SkyStatus.CLEAR, PrecipitationType.NONE,
+      0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
   @Autowired
   private CommentRepository commentRepository;
-
   @Autowired
   private TestEntityManager testEntityManager;
+  @Autowired
+  private FeedRepository feedRepository;
+
+  private User persistUser(String name) {
+    return testEntityManager.persist(
+        User.create(name, UUID.randomUUID() + "@otboo.io", "password"));
+  }
+
+  private Feed persistFeed() {
+    User author = persistUser("작성자");
+    return feedRepository.save(
+        Feed.create(author.getId(), UUID.randomUUID(), "테스트 피드", DUMMY_SNAPSHOT, List.of()));
+  }
 
   private Comment saveComment(UUID feedId, String content) {
-    return commentRepository.save(Comment.create(feedId, UUID.randomUUID(), content));
+    User author = persistUser("댓글작성자");
+    return commentRepository.save(Comment.create(feedId, author.getId(), content));
   }
 
   private void setCreatedAt(UUID commentId, Instant createdAt) {
@@ -54,13 +76,13 @@ class CommentCustomRepositoryImplTest {
     @DisplayName("해당 피드의 댓글을 createdAt 내림차순으로 반환한다")
     void 해당_피드의_댓글을_createdAt_내림차순으로_반환한다() {
       // given
-      UUID feedId = UUID.randomUUID();
+      UUID feedId = persistFeed().getId();
       Comment older = saveComment(feedId, "오래된 댓글");
       Comment newer = saveComment(feedId, "최신 댓글");
       testEntityManager.flush();
       setCreatedAt(older.getId(), Instant.parse("2026-08-05T07:00:00Z"));
       setCreatedAt(newer.getId(), Instant.parse("2026-08-05T08:00:00Z"));
-      saveComment(UUID.randomUUID(), "다른 피드 댓글");
+      saveComment(persistFeed().getId(), "다른 피드 댓글");
       testEntityManager.flush();
       testEntityManager.clear();
 

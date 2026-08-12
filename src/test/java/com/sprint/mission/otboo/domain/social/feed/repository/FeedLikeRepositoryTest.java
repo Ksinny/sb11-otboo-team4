@@ -63,26 +63,30 @@ class FeedLikeRepositoryTest {
     @DisplayName("해당 사용자의 좋아요가 있으면 true를 반환한다")
     void 해당_사용자의_좋아요가_있으면_true를_반환한다() {
       // given
-      UUID feedId = UUID.randomUUID();
-      UUID userId = UUID.randomUUID();
-      feedLikeRepository.save(FeedLike.create(feedId, userId));
+      User author = persistUser("작성자");
+      User liker = persistUser("좋아요누른사람");
+      Feed feed = persistFeed(author.getId());
+      feedLikeRepository.save(FeedLike.create(feed.getId(), liker.getId()));
 
       // when
-      boolean exists = feedLikeRepository.existsByFeedIdAndUserId(feedId, userId);
+      boolean exists = feedLikeRepository.existsByFeedIdAndUserId(feed.getId(), liker.getId());
 
       // then
       assertThat(exists).isTrue();
     }
 
     @Test
-    @DisplayName("해당 사용자의 좋아요가 없으면 false를 반환한다")
-    void 해당_사용자의_좋아요가_없으면_false를_반환한다() {
-      // given — 같은 피드에 다른 사용자만 좋아요
-      UUID feedId = UUID.randomUUID();
-      feedLikeRepository.save(FeedLike.create(feedId, UUID.randomUUID()));
+    @DisplayName("다른 사용자의 좋아요만 있으면 false를 반환한다")
+    void 다른_사용자의_좋아요만_있으면_false를_반환한다() {
+      // given
+      User author = persistUser("작성자");
+      User other = persistUser("다른유저");
+      User me = persistUser("나");
+      Feed feed = persistFeed(author.getId());
+      feedLikeRepository.save(FeedLike.create(feed.getId(), other.getId()));
 
       // when
-      boolean exists = feedLikeRepository.existsByFeedIdAndUserId(feedId, UUID.randomUUID());
+      boolean exists = feedLikeRepository.existsByFeedIdAndUserId(feed.getId(), me.getId());
 
       // then
       assertThat(exists).isFalse();
@@ -97,16 +101,17 @@ class FeedLikeRepositoryTest {
     @DisplayName("좋아요가 있으면 삭제하고 삭제된 행 수 1을 반환한다")
     void 좋아요가_있으면_삭제하고_삭제된_행_수_1을_반환한다() {
       // given
-      UUID feedId = UUID.randomUUID();
-      UUID userId = UUID.randomUUID();
-      feedLikeRepository.save(FeedLike.create(feedId, userId));
+      User author = persistUser("작성자");
+      User liker = persistUser("좋아요누른사람");
+      Feed feed = persistFeed(author.getId());
+      feedLikeRepository.save(FeedLike.create(feed.getId(), liker.getId()));
 
       // when
-      long deleted = feedLikeRepository.deleteByFeedIdAndUserId(feedId, userId);
+      long deleted = feedLikeRepository.deleteByFeedIdAndUserId(feed.getId(), liker.getId());
 
       // then
       assertThat(deleted).isEqualTo(1L);
-      assertThat(feedLikeRepository.existsByFeedIdAndUserId(feedId, userId)).isFalse();
+      assertThat(feedLikeRepository.existsByFeedIdAndUserId(feed.getId(), liker.getId())).isFalse();
     }
 
     @Test

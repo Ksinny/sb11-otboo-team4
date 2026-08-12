@@ -2,6 +2,7 @@ package com.sprint.mission.otboo.domain.social.feed.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.sprint.mission.otboo.domain.authuser.user.entity.User;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
@@ -39,9 +40,15 @@ class FeedRepositoryTest {
   @Autowired
   private TestEntityManager testEntityManager;
 
+  private User persistUser(String name) {
+    return testEntityManager.persist(
+        User.create(name, UUID.randomUUID() + "@otboo.io", "password"));
+  }
+
   private Feed createAndSaveFeed(String content) {
+    User author = persistUser("작성자");
     return feedRepository.save(
-        Feed.create(UUID.randomUUID(), UUID.randomUUID(), content, DUMMY_SNAPSHOT, List.of()));
+        Feed.create(author.getId(), UUID.randomUUID(), content, DUMMY_SNAPSHOT, List.of()));
   }
 
   private void setLikeCount(UUID feedId, long count) {
@@ -200,15 +207,15 @@ class FeedRepositoryTest {
     @DisplayName("피드의 작성자 ID를 반환한다")
     void 피드의_작성자_ID를_반환한다() {
       // given
-      UUID authorId = UUID.randomUUID();
+      User author = persistUser("작성자");
       Feed feed = feedRepository.save(
-          Feed.create(authorId, UUID.randomUUID(), "내용", DUMMY_SNAPSHOT, List.of()));
+          Feed.create(author.getId(), UUID.randomUUID(), "내용", DUMMY_SNAPSHOT, List.of()));
 
       // when
       Optional<UUID> result = feedRepository.findAuthorId(feed.getId());
 
       // then
-      assertThat(result).contains(authorId);
+      assertThat(result).contains(author.getId());
     }
 
     @Test
@@ -225,8 +232,7 @@ class FeedRepositoryTest {
     @DisplayName("소프트 삭제된 피드는 빈 Optional을 반환한다")
     void 소프트_삭제된_피드는_빈_Optional을_반환한다() {
       // given
-      Feed feed = feedRepository.save(
-          Feed.create(UUID.randomUUID(), UUID.randomUUID(), "내용", DUMMY_SNAPSHOT, List.of()));
+      Feed feed = createAndSaveFeed("내용");
       setDeletedAt(feed.getId(), Instant.now());
 
       // when
