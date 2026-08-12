@@ -467,7 +467,9 @@ class FeedCustomRepositoryTest {
       Feed feed = feedRepository.save(
           Feed.create(author.getId(), UUID.randomUUID(), "오늘의 착장",
               DUMMY_SNAPSHOT, List.of()));
-
+      testEntityManager.flush();
+      testEntityManager.clear();
+      
       // when
       Feed found = feedRepository.findById(feed.getId()).orElseThrow();
 
