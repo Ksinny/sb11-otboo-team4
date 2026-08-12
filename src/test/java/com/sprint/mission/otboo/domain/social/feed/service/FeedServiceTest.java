@@ -612,6 +612,9 @@ class FeedServiceTest {
       given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(UUID.randomUUID()));
       given(userSummaryQueryRepository.findByUserId(userId))
           .willReturn(new UserSummary(userId, "좋아요누른사람", "img.png"));
+      given(feedLikeRepository.saveAndFlush(any(FeedLike.class))).willAnswer(
+          inv -> inv.getArgument(0));
+
       // when
       feedService.like(feedId, userId);
 
@@ -705,6 +708,8 @@ class FeedServiceTest {
       given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(authorId));
       given(userSummaryQueryRepository.findByUserId(userId))
           .willReturn(new UserSummary(userId, "좋아요누른사람", "img.png"));
+      given(feedLikeRepository.saveAndFlush(any(FeedLike.class))).willAnswer(
+          inv -> inv.getArgument(0));
 
       // when
       feedService.like(feedId, userId);
