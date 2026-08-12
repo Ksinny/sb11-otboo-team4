@@ -612,12 +612,15 @@ class FeedServiceTest {
       given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(UUID.randomUUID()));
       given(userSummaryQueryRepository.findByUserId(userId))
           .willReturn(new UserSummary(userId, "좋아요누른사람", "img.png"));
+      given(feedLikeRepository.saveAndFlush(any(FeedLike.class))).willAnswer(
+          inv -> inv.getArgument(0));
+
       // when
       feedService.like(feedId, userId);
 
       // then
       ArgumentCaptor<FeedLike> captor = ArgumentCaptor.forClass(FeedLike.class);
-      verify(feedLikeRepository).save(captor.capture());
+      verify(feedLikeRepository).saveAndFlush(captor.capture());
       assertThat(captor.getValue().getFeedId()).isEqualTo(feedId);
       assertThat(captor.getValue().getUserId()).isEqualTo(userId);
       verify(feedRepository).incrementLikeCount(feedId);
@@ -636,7 +639,7 @@ class FeedServiceTest {
       feedService.like(feedId, userId);
 
       // then
-      verify(feedLikeRepository, never()).save(any());
+      verify(feedLikeRepository, never()).saveAndFlush(any());
       verify(feedRepository, never()).incrementLikeCount(any());
     }
 
@@ -651,7 +654,7 @@ class FeedServiceTest {
 
       ConstraintViolationException cause =
           new ConstraintViolationException("UQ 위반", null, "UQ_feed_likes_feed_id_user_id");
-      given(feedLikeRepository.save(any()))
+      given(feedLikeRepository.saveAndFlush(any()))
           .willThrow(new DataIntegrityViolationException("UQ 위반", cause));
 
       // when & then
@@ -671,7 +674,7 @@ class FeedServiceTest {
       // 원인 제약명이 UQ_feed_likes_feed_id_user_id 가 아닌 다른 제약
       ConstraintViolationException cause =
           new ConstraintViolationException("FK 위반", null, "FK_feeds_TO_feed_likes_1");
-      given(feedLikeRepository.save(any()))
+      given(feedLikeRepository.saveAndFlush(any()))
           .willThrow(new DataIntegrityViolationException("FK 위반", cause));
 
       // when & then
@@ -705,6 +708,8 @@ class FeedServiceTest {
       given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(authorId));
       given(userSummaryQueryRepository.findByUserId(userId))
           .willReturn(new UserSummary(userId, "좋아요누른사람", "img.png"));
+      given(feedLikeRepository.saveAndFlush(any(FeedLike.class))).willAnswer(
+          inv -> inv.getArgument(0));
 
       // when
       feedService.like(feedId, userId);

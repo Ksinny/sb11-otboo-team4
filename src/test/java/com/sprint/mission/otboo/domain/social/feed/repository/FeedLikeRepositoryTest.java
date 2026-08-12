@@ -8,6 +8,7 @@ import com.sprint.mission.otboo.global.config.JpaConfig;
 import com.sprint.mission.otboo.global.config.QuerydslConfig;
 import java.util.List;
 import java.util.UUID;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -101,8 +102,8 @@ class FeedLikeRepositoryTest {
   class UniqueConstraint {
 
     @Test
-    @DisplayName("같은 피드에 같은 사용자가 중복 좋아요하면 DataIntegrityViolationException이 발생한다")
-    void 같은_피드에_같은_사용자가_중복_좋아요하면_DataIntegrityViolationException이_발생한다() {
+    @DisplayName("같은 피드에 같은 사용자가 중복 좋아요하면 uq_feed_likes_feed_id_user_id 위반이 발생한다")
+    void 같은_피드에_같은_사용자가_중복_좋아요하면_uq_feed_likes_feed_id_user_id_위반이_발생한다() {
       // given
       UUID feedId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
@@ -111,7 +112,13 @@ class FeedLikeRepositoryTest {
       // when & then
       assertThatThrownBy(
           () -> feedLikeRepository.saveAndFlush(FeedLike.create(feedId, userId)))
-          .isInstanceOf(DataIntegrityViolationException.class);
+          .isInstanceOf(DataIntegrityViolationException.class)
+          .satisfies(e -> {
+            Throwable cause = e.getCause();
+            assertThat(cause).isInstanceOf(ConstraintViolationException.class);
+            assertThat(((ConstraintViolationException) cause).getConstraintName())
+                .isEqualToIgnoringCase("uq_feed_likes_feed_id_user_id");
+          });
     }
   }
 

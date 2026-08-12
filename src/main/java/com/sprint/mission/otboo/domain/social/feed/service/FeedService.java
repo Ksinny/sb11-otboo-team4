@@ -167,7 +167,8 @@ public class FeedService {
   // 저장 성공 시 true, 동시성 충돌로 이미 존재하면 false
   private boolean saveFeedLike(UUID feedId, UUID currentUserId) {
     try {
-      feedLikeRepository.save(FeedLike.create(feedId, currentUserId));
+      FeedLike saved = feedLikeRepository.saveAndFlush(FeedLike.create(feedId, currentUserId));
+      log.info("피드 좋아요 저장 완료: feedLikeId={}", saved.getId());
       return true;
     } catch (DataIntegrityViolationException e) {
       if (isUniqueViolation(e)) {

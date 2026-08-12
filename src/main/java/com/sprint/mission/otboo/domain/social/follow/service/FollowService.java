@@ -65,7 +65,7 @@ public class FollowService {
       return findExistingFollow(followerId, followeeId);
     }
     try {
-      Follow saved = followRepository.save(Follow.create(followerId, followeeId));
+      Follow saved = followRepository.saveAndFlush(Follow.create(followerId, followeeId));
       log.info("팔로우 생성 완료: followId={}", saved.getId());
       publishFollowNotification(followeeId, followerName);
       return saved;
