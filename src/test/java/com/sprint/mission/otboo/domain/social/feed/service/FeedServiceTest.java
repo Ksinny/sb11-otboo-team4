@@ -28,6 +28,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.entity.FeedLike;
+import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.WeatherNotFoundException;
@@ -594,6 +595,31 @@ class FeedServiceTest {
 
       // then
       assertThat(result.data()).containsExactly(likedDto, notLikedDto);
+    }
+
+    @Test
+    @DisplayName("작성자를 조회할 수 없으면 AuthorNotFoundException을 던진다")
+    void 작성자를_조회할_수_없으면_AuthorNotFoundException을_던진다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID authorId = UUID.randomUUID();
+      Feed feed = Feed.create(authorId, UUID.randomUUID(), "내용", DUMMY_SNAPSHOT, List.of());
+      setFeedId(feed, UUID.randomUUID());
+
+      CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
+          List.of(feed), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
+      FeedListParams params = new FeedListParams(
+          null, null, 2, FeedSortBy.CREATED_AT, SortDirection.DESCENDING, null, null);
+
+      given(feedRepository.findFeeds(params)).willReturn(repoPage);
+
+      // author 조회 결과 null
+      given(userSummaryQueryRepository.findByUserIds(List.of(authorId)))
+          .willReturn(List.of());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.getFeeds(params, currentUserId))
+          .isInstanceOf(AuthorNotFoundException.class);
     }
   }
 
