@@ -73,8 +73,9 @@ public class FollowService {
       return saved;
     } catch (DataIntegrityViolationException e) {
       if (isUniqueViolation(e)) {
-        log.warn("팔로우 생성 중 동시성 충돌 발생 (재조회 진행)");
-        return findExistingFollow(followerId, followeeId);
+        Follow existing = findExistingFollow(followerId, followeeId);
+        log.warn("팔로우 생성 중 동시성 충돌 발생: followId={}", existing.getId());
+        return existing;
       }
       throw e; // UQ 외 제약 위반은 전파
     }
