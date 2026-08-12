@@ -10,6 +10,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.entity.FeedLike;
+import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
@@ -55,7 +56,7 @@ public class FeedService {
   public FeedDto create(FeedCreateRequest request, UUID currentUserId) {
     validateAuthorMatchesCurrentUser(request.authorId(), currentUserId);
 
-    Feed feed = feedRepository.save(createFeedWithSnapshots(request));
+    Feed feed = feedRepository.save(createFeedWithSnapshots(request, currentUserId));
     log.info("피드 등록 완료: feedId={}", feed.getId());
 
     UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
@@ -63,6 +64,7 @@ public class FeedService {
 
     return feedMapper.toDto(feed, author, false);
   }
+
 
   public CursorPageResponse<FeedDto> getFeeds(FeedListParams params, UUID currentUserId) {
     return toDtoPage(feedRepository.findFeeds(params), currentUserId);
@@ -126,11 +128,11 @@ public class FeedService {
     }
   }
 
-  private Feed createFeedWithSnapshots(FeedCreateRequest request) {
+  private Feed createFeedWithSnapshots(FeedCreateRequest request, UUID currentUserId) {
     WeatherSnapshot weatherSnapshot = weatherSnapshotProvider.readSnapshot(request.weatherId());
     List<OotdSnapshot> ootdSnapshots =
-        ootdSnapshotProvider.readOotds(request.clothesIds(), request.authorId());
-    return Feed.create(request.authorId(), request.weatherId(), request.content(),
+        ootdSnapshotProvider.readOotds(request.clothesIds(), currentUserId);
+    return Feed.create(currentUserId, request.weatherId(), request.content(),
         weatherSnapshot, ootdSnapshots);
   }
 
@@ -147,9 +149,14 @@ public class FeedService {
     Set<UUID> likedFeedIds = findLikedFeedIds(feeds, currentUserId);
 
     List<FeedDto> data = feeds.stream()
-        .map(feed -> feedMapper.toDto(feed,
-            authorMap.get(feed.getAuthorId()),
-            likedFeedIds.contains(feed.getId())))
+        .map(feed -> {
+          UserSummary author = authorMap.get(feed.getAuthorId());
+          if (author == null) {
+            log.warn("피드 작성자 정보를 조회할 수 없습니다: feedId={}", feed.getId());
+            throw AuthorNotFoundException.withNone();
+          }
+          return feedMapper.toDto(feed, author, likedFeedIds.contains(feed.getId()));
+        })
         .toList();
 
     return new CursorPageResponse<>(data, page.nextCursor(), page.nextIdAfter(),

@@ -28,6 +28,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.entity.FeedLike;
+import com.sprint.mission.otboo.domain.social.feed.exception.AuthorNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedForbiddenException;
 import com.sprint.mission.otboo.domain.social.feed.exception.FeedNotFoundException;
 import com.sprint.mission.otboo.domain.social.feed.exception.WeatherNotFoundException;
@@ -312,7 +313,7 @@ class FeedServiceTest {
       UserSummary author = new UserSummary(currentUserId, "테스터", null);
 
       when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
-      when(ootdSnapshotProvider.readOotds(request.clothesIds(), request.authorId()))
+      when(ootdSnapshotProvider.readOotds(request.clothesIds(), currentUserId))
           .thenReturn(ootds);
       when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -326,7 +327,7 @@ class FeedServiceTest {
       // then
       ArgumentCaptor<Feed> captor = ArgumentCaptor.forClass(Feed.class);
       verify(feedRepository).save(captor.capture());
-      verify(ootdSnapshotProvider).readOotds(request.clothesIds(), request.authorId());
+      verify(ootdSnapshotProvider).readOotds(request.clothesIds(), currentUserId);
       Feed saved = captor.getValue();
       assertThat(saved.getOotds()).hasSize(2);
       assertThat(saved.getOotds().get(0).name()).isEqualTo("패딩");
@@ -353,7 +354,7 @@ class FeedServiceTest {
           UUID.randomUUID(), null, null, author, null, List.of(ootdDto), "내용", 0L, 0, false);
 
       when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
-      when(ootdSnapshotProvider.readOotds(request.clothesIds(), request.authorId()))
+      when(ootdSnapshotProvider.readOotds(request.clothesIds(), currentUserId))
           .thenReturn(List.of(ootdSnapshot));
       when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
       when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -594,6 +595,31 @@ class FeedServiceTest {
 
       // then
       assertThat(result.data()).containsExactly(likedDto, notLikedDto);
+    }
+
+    @Test
+    @DisplayName("작성자를 조회할 수 없으면 AuthorNotFoundException을 던진다")
+    void 작성자를_조회할_수_없으면_AuthorNotFoundException을_던진다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID authorId = UUID.randomUUID();
+      Feed feed = Feed.create(authorId, UUID.randomUUID(), "내용", DUMMY_SNAPSHOT, List.of());
+      setFeedId(feed, UUID.randomUUID());
+
+      CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
+          List.of(feed), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
+      FeedListParams params = new FeedListParams(
+          null, null, 2, FeedSortBy.CREATED_AT, SortDirection.DESCENDING, null, null);
+
+      given(feedRepository.findFeeds(params)).willReturn(repoPage);
+
+      // author 조회 결과 null
+      given(userSummaryQueryRepository.findByUserIds(List.of(authorId)))
+          .willReturn(List.of());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.getFeeds(params, currentUserId))
+          .isInstanceOf(AuthorNotFoundException.class);
     }
   }
 
