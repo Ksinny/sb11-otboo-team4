@@ -102,7 +102,7 @@ class CommentCustomRepositoryImplTest {
     @DisplayName("limit보다 많으면 hasNext가 true이고 다음 커서로 이어서 조회한다")
     void limit보다_많으면_hasNext가_true이고_다음_커서로_이어서_조회한다() {
       // given
-      UUID feedId = UUID.randomUUID();
+      UUID feedId = persistFeed().getId();
       Comment c1 = saveComment(feedId, "댓글1");
       Comment c2 = saveComment(feedId, "댓글2");
       Comment c3 = saveComment(feedId, "댓글3");
@@ -139,7 +139,7 @@ class CommentCustomRepositoryImplTest {
     @DisplayName("createdAt이 동일하면 id 내림차순으로 정렬하고 커서로 나머지를 조회한다")
     void createdAt이_동일하면_id_내림차순으로_정렬하고_커서로_나머지를_조회한다() {
       // given
-      UUID feedId = UUID.randomUUID();
+      UUID feedId = persistFeed().getId();
       Instant sameTime = Instant.parse("2026-08-05T08:00:00Z");
       Comment a = saveComment(feedId, "A");
       Comment b = saveComment(feedId, "B");
