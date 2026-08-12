@@ -245,7 +245,7 @@ class FollowServiceTest {
           .set("userId", followeeId).sample();
       given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
       given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
-      
+
       given(followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId))
           .willReturn(true);
       given(followRepository.findByFollowerIdAndFolloweeId(followerId, followeeId))
