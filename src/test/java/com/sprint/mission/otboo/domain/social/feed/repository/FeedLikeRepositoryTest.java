@@ -3,7 +3,12 @@ package com.sprint.mission.otboo.domain.social.feed.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.sprint.mission.otboo.domain.authuser.user.entity.User;
+import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
+import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.entity.FeedLike;
+import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
+import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
 import com.sprint.mission.otboo.global.config.JpaConfig;
 import com.sprint.mission.otboo.global.config.QuerydslConfig;
 import java.util.List;
@@ -15,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
@@ -26,8 +32,28 @@ import org.springframework.test.context.ActiveProfiles;
 @DisplayName("FeedLikeRepository")
 class FeedLikeRepositoryTest {
 
+  static final WeatherSnapshot DUMMY_SNAPSHOT = new WeatherSnapshot(
+      SkyStatus.CLEAR, PrecipitationType.NONE,
+      0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
+
   @Autowired
   private FeedLikeRepository feedLikeRepository;
+
+  @Autowired
+  private FeedRepository feedRepository;
+
+  @Autowired
+  private TestEntityManager testEntityManager;
+
+  private User persistUser(String name) {
+    return testEntityManager.persist(
+        User.create(name, UUID.randomUUID() + "@otboo.io", "password"));
+  }
+
+  private Feed persistFeed(UUID authorId) {
+    return feedRepository.save(
+        Feed.create(authorId, UUID.randomUUID(), "테스트 피드", DUMMY_SNAPSHOT, List.of()));
+  }
 
   @Nested
   @DisplayName("existsByFeedIdAndUserId")
@@ -105,13 +131,16 @@ class FeedLikeRepositoryTest {
     @DisplayName("같은 피드에 같은 사용자가 중복 좋아요하면 uq_feed_likes_feed_id_user_id 위반이 발생한다")
     void 같은_피드에_같은_사용자가_중복_좋아요하면_uq_feed_likes_feed_id_user_id_위반이_발생한다() {
       // given
-      UUID feedId = UUID.randomUUID();
-      UUID userId = UUID.randomUUID();
-      feedLikeRepository.saveAndFlush(FeedLike.create(feedId, userId));
+      User author = persistUser("작성자");
+      User liker = persistUser("좋아요누른사람");
+      Feed feed = persistFeed(author.getId());
+      testEntityManager.flush();
+
+      feedLikeRepository.saveAndFlush(FeedLike.create(feed.getId(), liker.getId()));
 
       // when & then
       assertThatThrownBy(
-          () -> feedLikeRepository.saveAndFlush(FeedLike.create(feedId, userId)))
+          () -> feedLikeRepository.saveAndFlush(FeedLike.create(feed.getId(), liker.getId())))
           .isInstanceOf(DataIntegrityViolationException.class)
           .satisfies(e -> {
             Throwable cause = e.getCause();
@@ -130,22 +159,24 @@ class FeedLikeRepositoryTest {
     @DisplayName("주어진 피드들 중 해당 사용자가 좋아요한 피드 ID만 반환한다")
     void 주어진_피드들_중_해당_사용자가_좋아요한_피드_ID만_반환한다() {
       // given
-      UUID userId = UUID.randomUUID();
-      UUID likedFeedId = UUID.randomUUID();
-      UUID notLikedFeedId = UUID.randomUUID();
-      UUID otherUserFeedId = UUID.randomUUID();
+      User author = persistUser("작성자");
+      User me = persistUser("나");
+      User other = persistUser("다른유저");
 
-      feedLikeRepository.save(FeedLike.create(likedFeedId, userId));
-      feedLikeRepository.save(FeedLike.create(otherUserFeedId, UUID.randomUUID())); // 다른 유저
-      feedLikeRepository.saveAndFlush(
-          FeedLike.create(notLikedFeedId, UUID.randomUUID())); // 또 다른 유저
+      Feed likedFeed = persistFeed(author.getId());
+      Feed notLikedFeed = persistFeed(author.getId());
+      Feed otherUserFeed = persistFeed(author.getId());
+
+      feedLikeRepository.save(FeedLike.create(likedFeed.getId(), me.getId()));
+      feedLikeRepository.save(FeedLike.create(otherUserFeed.getId(), other.getId()));
+      feedLikeRepository.saveAndFlush(FeedLike.create(notLikedFeed.getId(), other.getId()));
 
       // when
       List<UUID> result = feedLikeRepository.findLikedFeedIds(
-          userId, List.of(likedFeedId, notLikedFeedId, otherUserFeedId));
+          me.getId(), List.of(likedFeed.getId(), notLikedFeed.getId(), otherUserFeed.getId()));
 
       // then
-      assertThat(result).containsExactly(likedFeedId);
+      assertThat(result).containsExactly(likedFeed.getId());
     }
   }
 }
