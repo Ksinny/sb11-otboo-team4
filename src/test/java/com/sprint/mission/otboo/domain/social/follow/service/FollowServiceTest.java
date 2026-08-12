@@ -23,6 +23,7 @@ import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
+import com.sprint.mission.otboo.domain.social.follow.exception.FollowUserNotFoundException;
 import com.sprint.mission.otboo.domain.social.follow.exception.SelfFollowNotAllowedException;
 import com.sprint.mission.otboo.domain.social.follow.mapper.FollowMapper;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
@@ -540,6 +541,30 @@ class FollowServiceTest {
       assertThat(result.totalCount()).isEqualTo(0L);
       verify(userSummaryQueryRepository, never()).findByUserIds(any());
     }
+
+    @Test
+    @DisplayName("사용자 정보를 조회할 수 없으면 FollowUserNotFoundException을 던진다")
+    void 사용자_정보를_조회할_수_없으면_FollowUserNotFoundException을_던진다() {
+      // given
+      UUID followerId = UUID.randomUUID();
+      UUID followeeId = UUID.randomUUID();
+      Follow follow = Follow.create(followerId, followeeId);
+      CursorPageResponse<Follow> repoPage = new CursorPageResponse<>(
+          List.of(follow), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
+
+      FollowingListParams params = fm.giveMeBuilder(FollowingListParams.class)
+          .set("followerId", followerId)
+          .set("limit", 10)
+          .set("cursor", null)
+          .set("idAfter", null)
+          .sample();
+      given(followRepository.findFollowings(params)).willReturn(repoPage);
+      given(userSummaryQueryRepository.findByUserIds(any())).willReturn(List.of());
+
+      // when & then
+      assertThatThrownBy(() -> followService.getFollowings(params))
+          .isInstanceOf(FollowUserNotFoundException.class);
+    }
   }
 
   @Nested
@@ -613,6 +638,30 @@ class FollowServiceTest {
       assertThat(result.data()).isEmpty();
       assertThat(result.totalCount()).isEqualTo(0L);
       verify(userSummaryQueryRepository, never()).findByUserIds(any());
+    }
+
+    @Test
+    @DisplayName("사용자 정보를 조회할 수 없으면 FollowUserNotFoundException을 던진다")
+    void 사용자_정보를_조회할_수_없으면_FollowUserNotFoundException을_던진다() {
+      // given
+      UUID followerId = UUID.randomUUID();
+      UUID followeeId = UUID.randomUUID();
+      Follow follow = Follow.create(followerId, followeeId);
+      CursorPageResponse<Follow> repoPage = new CursorPageResponse<>(
+          List.of(follow), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
+
+      FollowerListParams params = fm.giveMeBuilder(FollowerListParams.class)
+          .set("followeeId", followeeId)
+          .set("limit", 10)
+          .set("cursor", null)
+          .set("idAfter", null)
+          .sample();
+      given(followRepository.findFollowers(params)).willReturn(repoPage);
+      given(userSummaryQueryRepository.findByUserIds(any())).willReturn(List.of());
+
+      // when & then
+      assertThatThrownBy(() -> followService.getFollowers(params))
+          .isInstanceOf(FollowUserNotFoundException.class);
     }
   }
 }
