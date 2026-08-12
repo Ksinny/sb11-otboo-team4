@@ -98,7 +98,7 @@ class FollowServiceTest {
           .set("userId", followeeId).sample();
       FollowDto expected = new FollowDto(persistedFollow.getId(), followeeSummary, followerSummary);
 
-      given(followRepository.save(any(Follow.class))).willReturn(persistedFollow);
+      given(followRepository.saveAndFlush(any(Follow.class))).willReturn(persistedFollow);
       given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
       given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
       given(followMapper.toDto(eq(persistedFollow), eq(followerSummary), eq(followeeSummary)))
@@ -111,7 +111,7 @@ class FollowServiceTest {
       assertThat(result).isEqualTo(expected);
 
       ArgumentCaptor<Follow> followCaptor = ArgumentCaptor.forClass(Follow.class);
-      verify(followRepository).save(followCaptor.capture());
+      verify(followRepository).saveAndFlush(followCaptor.capture());
       Follow savedFollow = followCaptor.getValue();
       assertThat(savedFollow.getFollowerId()).isEqualTo(followerId);
       assertThat(savedFollow.getFolloweeId()).isEqualTo(followeeId);
@@ -206,10 +206,10 @@ class FollowServiceTest {
           .set("userId", followeeId).sample();
       FollowDto expected = new FollowDto(existing.getId(), followeeSummary, followerSummary);
 
-      // exists는 false로 통과, save에서 UQ 위반
+      // exists는 false로 통과, saveAndFlush에서 UQ 위반
       given(followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId))
           .willReturn(false);
-      given(followRepository.save(any(Follow.class)))
+      given(followRepository.saveAndFlush(any(Follow.class)))
           .willThrow(uniqueViolation("uq_follows_follower_id_followee_id"));
       given(followRepository.findByFollowerIdAndFolloweeId(followerId, followeeId))
           .willReturn(Optional.of(existing));
@@ -246,7 +246,7 @@ class FollowServiceTest {
 
       given(followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId))
           .willReturn(false);
-      given(followRepository.save(any(Follow.class)))
+      given(followRepository.saveAndFlush(any(Follow.class)))
           .willThrow(uniqueViolation("fk_users_to_follows_1"));
 
       // when & then
@@ -273,7 +273,7 @@ class FollowServiceTest {
           .set("userId", followeeId).sample();
       FollowDto expected = new FollowDto(UUID.randomUUID(), followeeSummary, followerSummary);
 
-      given(followRepository.save(any(Follow.class)))
+      given(followRepository.saveAndFlush(any(Follow.class)))
           .willAnswer(inv -> inv.getArgument(0));
       given(userSummaryQueryRepository.findByUserId(followerId)).willReturn(followerSummary);
       given(userSummaryQueryRepository.findByUserId(followeeId)).willReturn(followeeSummary);
