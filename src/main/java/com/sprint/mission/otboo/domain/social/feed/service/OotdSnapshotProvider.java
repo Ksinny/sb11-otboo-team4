@@ -4,6 +4,7 @@ import com.sprint.mission.otboo.domain.clothesrecommend.clothes.dto.ClothesDto;
 import com.sprint.mission.otboo.domain.clothesrecommend.clothes.service.ClothesService;
 import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.exception.ClothesOwnershipException;
+import com.sprint.mission.otboo.domain.social.feed.exception.OotdNotFoundException;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,12 @@ public class OotdSnapshotProvider {
     }
     List<ClothesDto> clothesList = clothesService.getClothesByIds(clothesIds);
 
+    if (clothesList.size() != clothesIds.size()) {
+      log.warn("착장 일부를 조회할 수 없어 피드 등록 실패: 요청={}, 조회={}",
+          clothesIds.size(), clothesList.size());
+      throw OotdNotFoundException.withNone();
+    }
+
     boolean hasOthersClothes = clothesList.stream()
         .anyMatch(clothes -> !clothes.ownerId().equals(authorId));
     if (hasOthersClothes) {
@@ -32,7 +39,6 @@ public class OotdSnapshotProvider {
       throw ClothesOwnershipException.withNone();
     }
 
-    log.debug("착장 조회 완료: 요청={}, 조회={}", clothesIds.size(), clothesList.size());
     return clothesList.stream()
         .map(this::toOotdSnapshot)
         .toList();
