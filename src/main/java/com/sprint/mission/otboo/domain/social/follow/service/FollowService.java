@@ -9,6 +9,7 @@ import com.sprint.mission.otboo.domain.social.follow.dto.FollowSummaryDto;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowerListParams;
 import com.sprint.mission.otboo.domain.social.follow.dto.FollowingListParams;
 import com.sprint.mission.otboo.domain.social.follow.entity.Follow;
+import com.sprint.mission.otboo.domain.social.follow.exception.FollowConflictException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowForbiddenException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowNotFoundException;
 import com.sprint.mission.otboo.domain.social.follow.exception.FollowUserNotFoundException;
@@ -170,7 +171,7 @@ public class FollowService {
 
   private Follow findExistingFollow(UUID followerId, UUID followeeId) {
     return followRepository.findByFollowerIdAndFolloweeId(followerId, followeeId)
-        .orElseThrow();
+        .orElseThrow(FollowConflictException::withNone);
   }
 
   private boolean isUniqueViolation(DataIntegrityViolationException e) {
