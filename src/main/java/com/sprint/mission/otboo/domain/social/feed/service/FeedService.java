@@ -124,7 +124,7 @@ public class FeedService {
 
   private void validateAuthor(Feed feed, UUID currentUserId) {
     if (!feed.getAuthorId().equals(currentUserId)) {
-      throw FeedForbiddenException.authorMismatch(currentUserId, feed.getAuthorId());
+      throw FeedForbiddenException.authorMismatch();
     }
   }
 
@@ -206,7 +206,7 @@ public class FeedService {
 
   private void validateAuthorMatchesCurrentUser(UUID authorId, UUID currentUserId) {
     if (!authorId.equals(currentUserId)) {
-      throw FeedForbiddenException.authorMismatch(currentUserId, authorId);
+      throw FeedForbiddenException.authorMismatch();
     }
   }
 
