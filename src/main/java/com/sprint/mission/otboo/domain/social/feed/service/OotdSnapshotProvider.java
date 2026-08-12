@@ -20,7 +20,7 @@ public class OotdSnapshotProvider {
 
   private final ClothesService clothesService;
 
-  public List<OotdSnapshot> readOotds(List<UUID> clothesIds, UUID authorId) {
+  public List<OotdSnapshot> readOotds(List<UUID> clothesIds, UUID currentUserId) {
     if (clothesIds == null || clothesIds.isEmpty()) {
       return List.of();
     }
@@ -33,7 +33,7 @@ public class OotdSnapshotProvider {
     }
 
     boolean hasOthersClothes = clothesList.stream()
-        .anyMatch(clothes -> !clothes.ownerId().equals(authorId));
+        .anyMatch(clothes -> !clothes.ownerId().equals(currentUserId));
     if (hasOthersClothes) {
       log.warn("착장 소유권 불일치로 피드 등록 실패");
       throw ClothesOwnershipException.withNone();

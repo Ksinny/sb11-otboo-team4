@@ -55,7 +55,7 @@ public class FeedService {
   public FeedDto create(FeedCreateRequest request, UUID currentUserId) {
     validateAuthorMatchesCurrentUser(request.authorId(), currentUserId);
 
-    Feed feed = feedRepository.save(createFeedWithSnapshots(request));
+    Feed feed = feedRepository.save(createFeedWithSnapshots(request, currentUserId));
     log.info("피드 등록 완료: feedId={}", feed.getId());
 
     UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
@@ -63,6 +63,7 @@ public class FeedService {
 
     return feedMapper.toDto(feed, author, false);
   }
+
 
   public CursorPageResponse<FeedDto> getFeeds(FeedListParams params, UUID currentUserId) {
     return toDtoPage(feedRepository.findFeeds(params), currentUserId);
@@ -126,11 +127,11 @@ public class FeedService {
     }
   }
 
-  private Feed createFeedWithSnapshots(FeedCreateRequest request) {
+  private Feed createFeedWithSnapshots(FeedCreateRequest request, UUID currentUserId) {
     WeatherSnapshot weatherSnapshot = weatherSnapshotProvider.readSnapshot(request.weatherId());
     List<OotdSnapshot> ootdSnapshots =
-        ootdSnapshotProvider.readOotds(request.clothesIds(), request.authorId());
-    return Feed.create(request.authorId(), request.weatherId(), request.content(),
+        ootdSnapshotProvider.readOotds(request.clothesIds(), currentUserId);
+    return Feed.create(currentUserId, request.weatherId(), request.content(),
         weatherSnapshot, ootdSnapshots);
   }
 
