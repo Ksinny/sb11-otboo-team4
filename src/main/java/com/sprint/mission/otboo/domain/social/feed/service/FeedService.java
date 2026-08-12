@@ -79,7 +79,7 @@ public class FeedService {
     if (!saveFeedLike(feedId, currentUserId)) {
       return;
     }
-    feedRepository.incrementLikeCount(feedId);
+    increaseLikeCount(feedId);
     log.info("피드 좋아요 완료: feedId={}", feedId);
 
     publishFeedLikedNotification(feedId, currentUserId);
@@ -89,7 +89,7 @@ public class FeedService {
   public void unlike(UUID feedId, UUID currentUserId) {
     validateFeedExists(feedId);
     if (feedLikeRepository.deleteByFeedIdAndUserId(feedId, currentUserId) > 0) {
-      feedRepository.decrementLikeCount(feedId);
+      decreaseLikeCount(feedId);
       log.info("피드 좋아요 취소 완료: feedId={}", feedId);
     }
   }
@@ -189,6 +189,18 @@ public class FeedService {
   private void validateFeedExists(UUID feedId) {
     if (!feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)) {
       throw FeedNotFoundException.withId(feedId);
+    }
+  }
+
+  private void increaseLikeCount(UUID feedId) {
+    if (feedRepository.incrementLikeCount(feedId) != 1) {
+      throw FeedNotFoundException.withId(feedId);
+    }
+  }
+
+  private void decreaseLikeCount(UUID feedId) {
+    if (feedRepository.decrementLikeCount(feedId) != 1) {
+      log.warn("좋아요 취소 후 카운터 감소 실패: feedId={}", feedId);
     }
   }
 
