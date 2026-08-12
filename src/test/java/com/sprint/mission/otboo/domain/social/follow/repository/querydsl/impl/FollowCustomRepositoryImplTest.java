@@ -28,7 +28,7 @@ import org.springframework.test.context.ActiveProfiles;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({JpaConfig.class, QuerydslConfig.class})
 @DisplayName("FollowCustomRepository")
-class FollowCustomRepositoryTest {
+class FollowCustomRepositoryImplTest {
 
   @Autowired
   private FollowRepository followRepository;
