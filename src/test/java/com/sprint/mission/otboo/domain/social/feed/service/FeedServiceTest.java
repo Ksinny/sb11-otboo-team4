@@ -782,6 +782,7 @@ class FeedServiceTest {
       UUID userId = UUID.randomUUID();
       given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
       given(feedLikeRepository.deleteByFeedIdAndUserId(feedId, userId)).willReturn(1L);
+      given(feedRepository.decrementLikeCount(feedId)).willReturn(1);
 
       // when
       feedService.unlike(feedId, userId);
@@ -818,6 +819,20 @@ class FeedServiceTest {
       // when & then
       assertThatThrownBy(() -> feedService.unlike(feedId, userId))
           .isInstanceOf(FeedNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("카운트 감소가 반영되지 않아도 예외를 던지지 않는다")
+    void 카운트_감소가_반영되지_않아도_예외를_던지지_않는다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
+      given(feedLikeRepository.deleteByFeedIdAndUserId(feedId, userId)).willReturn(1L);
+      given(feedRepository.decrementLikeCount(feedId)).willReturn(0);
+
+      // when & then
+      assertThatCode(() -> feedService.unlike(feedId, userId)).doesNotThrowAnyException();
     }
   }
 
