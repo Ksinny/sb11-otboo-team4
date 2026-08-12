@@ -140,9 +140,7 @@ class FeedServiceTest {
           .satisfies(ex -> {
             FeedForbiddenException fe = (FeedForbiddenException) ex;
             assertThat(fe.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
-            assertThat(fe.getDetails())
-                .containsEntry("currentUserId", currentUserId)
-                .containsKey("requestedAuthorId");
+            assertThat(fe.getDetails()).isEmpty();
           });
     }
 
