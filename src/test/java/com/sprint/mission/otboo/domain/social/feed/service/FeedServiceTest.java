@@ -640,6 +640,7 @@ class FeedServiceTest {
           .willReturn(new UserSummary(userId, "좋아요누른사람", "img.png"));
       given(feedLikeRepository.saveAndFlush(any(FeedLike.class))).willAnswer(
           inv -> inv.getArgument(0));
+      given(feedRepository.incrementLikeCount(feedId)).willReturn(1);
 
       // when
       feedService.like(feedId, userId);
@@ -736,6 +737,7 @@ class FeedServiceTest {
           .willReturn(new UserSummary(userId, "좋아요누른사람", "img.png"));
       given(feedLikeRepository.saveAndFlush(any(FeedLike.class))).willAnswer(
           inv -> inv.getArgument(0));
+      given(feedRepository.incrementLikeCount(feedId)).willReturn(1);
 
       // when
       feedService.like(feedId, userId);
@@ -747,6 +749,24 @@ class FeedServiceTest {
       NotificationRequestedEvent event = captor.getValue();
       assertThat(event.receiverIds()).containsExactly(authorId);
       assertThat(event.content()).contains("좋아요누른사람");
+    }
+
+    @Test
+    @DisplayName("카운트 증가가 반영되지 않으면 FeedNotFoundException을 던진다")
+    void 카운트_증가가_반영되지_않으면_FeedNotFoundException을_던진다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
+      given(feedLikeRepository.existsByFeedIdAndUserId(feedId, userId)).willReturn(false);
+      given(feedLikeRepository.saveAndFlush(any(FeedLike.class)))
+          .willAnswer(inv -> inv.getArgument(0));
+      given(feedRepository.incrementLikeCount(feedId)).willReturn(0);
+
+      // when & then
+      assertThatThrownBy(() -> feedService.like(feedId, userId))
+          .isInstanceOf(FeedNotFoundException.class);
+      verify(eventPublisher, never()).publishEvent(any());
     }
   }
 
