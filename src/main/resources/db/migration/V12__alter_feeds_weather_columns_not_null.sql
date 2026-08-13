@@ -3,7 +3,7 @@
 
 ALTER TABLE feeds
     ALTER COLUMN weather_id SET NOT NULL,
-ALTER COLUMN sky_status SET NOT NULL,
+    ALTER COLUMN sky_status SET NOT NULL,
     ALTER COLUMN precipitation_type SET NOT NULL,
     ALTER COLUMN precipitation_amount SET NOT NULL,
     ALTER COLUMN precipitation_probability SET NOT NULL,
