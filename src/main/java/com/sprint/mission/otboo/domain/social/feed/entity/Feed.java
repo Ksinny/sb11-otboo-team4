@@ -17,6 +17,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -102,16 +103,17 @@ public class Feed {
     this.authorId = authorId;
     this.weatherId = weatherId;
     this.content = content;
-    if (weatherSnapshot != null) {
-      this.skyStatus = weatherSnapshot.skyStatus();
-      this.precipitationType = weatherSnapshot.precipitationType();
-      this.precipitationAmount = weatherSnapshot.precipitationAmount();
-      this.precipitationProbability = weatherSnapshot.precipitationProbability();
-      this.temperatureCurrent = weatherSnapshot.temperatureCurrent();
-      this.temperatureCompared = weatherSnapshot.temperatureCompared();
-      this.temperatureMin = weatherSnapshot.temperatureMin();
-      this.temperatureMax = weatherSnapshot.temperatureMax();
-    }
+
+    Objects.requireNonNull(weatherSnapshot, "weatherSnapshot은 필수입니다");
+    this.skyStatus = weatherSnapshot.skyStatus();
+    this.precipitationType = weatherSnapshot.precipitationType();
+    this.precipitationAmount = weatherSnapshot.precipitationAmount();
+    this.precipitationProbability = weatherSnapshot.precipitationProbability();
+    this.temperatureCurrent = weatherSnapshot.temperatureCurrent();
+    this.temperatureCompared = weatherSnapshot.temperatureCompared();
+    this.temperatureMin = weatherSnapshot.temperatureMin();
+    this.temperatureMax = weatherSnapshot.temperatureMax();
+    
     this.ootds = ootdSnapshots == null ? List.of() : List.copyOf(ootdSnapshots);
     this.likeCount = 0;
     this.commentCount = 0;
