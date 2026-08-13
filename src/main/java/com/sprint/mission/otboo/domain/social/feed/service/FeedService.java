@@ -105,6 +105,9 @@ public class FeedService {
 
     UserSummary author = userSummaryQueryRepository.findByUserId(feed.getAuthorId());
     boolean likedByMe = feedLikeRepository.existsByFeedIdAndUserId(feedId, currentUserId);
+
+    eventPublisher.publishEvent(FeedIndexRequestedEvent.upsert(feedId));
+
     return feedMapper.toDto(feed, author, likedByMe);
   }
 
@@ -114,6 +117,8 @@ public class FeedService {
 
     feed.delete();
     log.info("피드 삭제 완료: feedId={}", feedId);
+
+    eventPublisher.publishEvent(FeedIndexRequestedEvent.delete(feedId));
   }
 
   private Feed findActiveFeedOwnedBy(UUID feedId, UUID currentUserId) {
