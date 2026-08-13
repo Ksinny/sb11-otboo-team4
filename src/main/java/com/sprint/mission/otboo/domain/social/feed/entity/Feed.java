@@ -57,7 +57,7 @@ public class Feed {
   // 참조가 아니라 기록용 값이다 — FK 없음, weathers 원본은 retention 배치로 물리 삭제된다.
   // 화면 표시는 이 필드가 아니라 아래 skyStatus/precipitationType 등 Feed 자체 스냅샷 컬럼을 쓴다.
   // weatherRepository.findById(weatherId)로 원본을 다시 조회하려 하면 안 됨(삭제돼 없을 수 있음).
-  @Column(name = "weather_id")
+  @Column(name = "weather_id", nullable = false)
   private UUID weatherId;
 
   // 날씨 스냅샷 — 등록 시점 값 복사
