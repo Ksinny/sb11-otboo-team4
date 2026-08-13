@@ -60,29 +60,29 @@ public class Feed {
 
   // 날씨 스냅샷 — 등록 시점 값 복사
   @Enumerated(EnumType.STRING)
-  @Column(name = "sky_status")
+  @Column(name = "sky_status", nullable = false)
   private SkyStatus skyStatus;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "precipitation_type")
+  @Column(name = "precipitation_type", nullable = false)
   private PrecipitationType precipitationType;
 
-  @Column(name = "precipitation_amount")
+  @Column(name = "precipitation_amount", nullable = false)
   private Double precipitationAmount;
 
-  @Column(name = "precipitation_probability")
+  @Column(name = "precipitation_probability", nullable = false)
   private Double precipitationProbability;
 
-  @Column(name = "temperature_current")
+  @Column(name = "temperature_current", nullable = false)
   private Double temperatureCurrent;
 
-  @Column(name = "temperature_compared")
+  @Column(name = "temperature_compared", nullable = false)
   private Double temperatureCompared;
 
-  @Column(name = "temperature_min")
+  @Column(name = "temperature_min", nullable = false)
   private Double temperatureMin;
 
-  @Column(name = "temperature_max")
+  @Column(name = "temperature_max", nullable = false)
   private Double temperatureMax;
 
   @JdbcTypeCode(SqlTypes.JSON)
@@ -113,7 +113,7 @@ public class Feed {
     this.temperatureCompared = weatherSnapshot.temperatureCompared();
     this.temperatureMin = weatherSnapshot.temperatureMin();
     this.temperatureMax = weatherSnapshot.temperatureMax();
-    
+
     this.ootds = ootdSnapshots == null ? List.of() : List.copyOf(ootdSnapshots);
     this.likeCount = 0;
     this.commentCount = 0;
