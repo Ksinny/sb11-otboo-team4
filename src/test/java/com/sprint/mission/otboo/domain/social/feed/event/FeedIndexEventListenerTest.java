@@ -1,5 +1,6 @@
 package com.sprint.mission.otboo.domain.social.feed.event;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -41,6 +43,16 @@ class FeedIndexEventListenerTest {
   @Mock
   FeedSearchRepository feedSearchRepository;
 
+  private static void setFeedId(Feed feed, UUID id) {
+    try {
+      var field = Feed.class.getDeclaredField("id");
+      field.setAccessible(true);
+      field.set(feed, id);
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @Nested
   @DisplayName("인덱싱 이벤트 처리")
   class Handle {
@@ -52,13 +64,17 @@ class FeedIndexEventListenerTest {
       UUID feedId = UUID.randomUUID();
       Feed feed = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "오늘의 착장",
           DUMMY_SNAPSHOT, List.of());
+      setFeedId(feed, feedId);
       given(feedRepository.findById(feedId)).willReturn(Optional.of(feed));
 
       // when
       listener.handle(FeedIndexRequestedEvent.upsert(feedId));
 
       // then
-      verify(feedSearchRepository).save(any(FeedDocument.class));
+      ArgumentCaptor<FeedDocument> captor = ArgumentCaptor.forClass(FeedDocument.class);
+      verify(feedSearchRepository).save(captor.capture());
+      assertThat(captor.getValue().getId()).isEqualTo(feedId.toString());
+      assertThat(captor.getValue().getContent()).isEqualTo("오늘의 착장");
     }
 
     @Test
