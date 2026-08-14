@@ -81,6 +81,6 @@ public class Clothes {
   }
 
   public boolean isDeleted() {
-    return softDeletable != null && softDeletable.isDeleted();
+    return softDeletable.isDeleted();
   }
 }
