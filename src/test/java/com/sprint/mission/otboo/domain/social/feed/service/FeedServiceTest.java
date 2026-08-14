@@ -9,7 +9,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -424,7 +423,7 @@ class FeedServiceTest {
       feedService.create(request, currentUserId);
 
       // then
-      verify(eventPublisher, never()).publishEvent(any());
+      verify(eventPublisher, never()).publishEvent(any(NotificationRequestedEvent.class));
     }
 
     @Test
@@ -452,6 +451,7 @@ class FeedServiceTest {
     void 피드를_등록하면_검색_인덱싱_이벤트를_발행한다() {
       // given
       UUID currentUserId = UUID.randomUUID();
+      UUID savedFeedId = UUID.randomUUID();
       FeedCreateRequest request = fm.giveMeBuilder(FeedCreateRequest.class)
           .set("authorId", currentUserId)
           .sample();
@@ -459,7 +459,11 @@ class FeedServiceTest {
       UserSummary author = new UserSummary(currentUserId, "테스터", null);
       when(weatherSnapshotProvider.readSnapshot(any())).thenReturn(DUMMY_SNAPSHOT);
       when(userSummaryQueryRepository.findByUserId(currentUserId)).thenReturn(author);
-      when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> inv.getArgument(0));
+      when(feedRepository.save(any(Feed.class))).thenAnswer(inv -> {
+        Feed saved = inv.getArgument(0);
+        setFeedId(saved, savedFeedId);
+        return saved;
+      });
 
       // when
       feedService.create(request, currentUserId);
@@ -469,8 +473,7 @@ class FeedServiceTest {
       verify(eventPublisher, atLeastOnce()).publishEvent(captor.capture());
       assertThat(captor.getAllValues())
           .filteredOn(FeedIndexRequestedEvent.class::isInstance)
-          .extracting(e -> ((FeedIndexRequestedEvent) e).action())
-          .containsExactly(IndexAction.UPSERT);
+          .containsExactly(FeedIndexRequestedEvent.upsert(savedFeedId));
     }
   }
 
