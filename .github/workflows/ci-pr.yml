@@ -89,7 +89,13 @@ jobs:
             -e "xpack.security.enabled=false" \
             -e "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
             otboo-es
-          timeout 180 sh -c 'until curl -s localhost:9200 >/dev/null; do sleep 3; done'
+          timeout 180 sh -c '
+            until curl --silent --show-error --fail \
+                "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s" \
+                | jq -e ".timed_out == false" >/dev/null; do
+              sleep 3
+            done
+          '
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
