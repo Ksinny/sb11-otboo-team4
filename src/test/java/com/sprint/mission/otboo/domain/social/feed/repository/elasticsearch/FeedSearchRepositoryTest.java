@@ -114,4 +114,29 @@ class FeedSearchRepositoryTest {
       assertThat(result.totalCount()).isEqualTo(2L);
     }
   }
+
+  @Nested
+  @DisplayName("필터 조회")
+  class SearchByFilter {
+
+    @Test
+    @DisplayName("skyStatusEqual이 주어지면 해당 하늘 상태의 피드만 반환한다")
+    void skyStatusEqual이_주어지면_해당_하늘_상태의_피드만_반환한다() {
+      // given
+      UUID clear = indexFeed("맑은 날", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      indexFeed("흐린 날", SkyStatus.CLOUDY,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+
+      FeedListParams params = new FeedListParams(null, null, 10,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, SkyStatus.CLEAR, null, null);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params);
+
+      // then
+      assertThat(result.feedIds()).containsExactly(clear);
+    }
+  }
 }
