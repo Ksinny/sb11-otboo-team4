@@ -488,7 +488,7 @@ class FeedServiceTest {
       FeedListParams params = new FeedListParams(
           null, null, 2,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
 
       UUID authorId1 = UUID.randomUUID();
       UUID authorId2 = UUID.randomUUID();
@@ -530,7 +530,7 @@ class FeedServiceTest {
       FeedListParams params = new FeedListParams(
           null, null, 5,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
 
       UUID authorId1 = UUID.randomUUID();
       UUID authorId2 = UUID.randomUUID();
@@ -572,7 +572,7 @@ class FeedServiceTest {
       FeedListParams params = new FeedListParams(
           null, null, 2,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
 
       UUID authorId1 = UUID.randomUUID();
       UUID authorId2 = UUID.randomUUID();
@@ -612,7 +612,7 @@ class FeedServiceTest {
       // given
       UUID currentUserId = UUID.randomUUID();
       FeedListParams params = new FeedListParams(
-          null, null, 2, FeedSortBy.CREATED_AT, SortDirection.DESCENDING, null, null);
+          null, null, 2, FeedSortBy.CREATED_AT, SortDirection.DESCENDING, null, null, null, null);
 
       UUID authorId = UUID.randomUUID();
       UserSummary summary = new UserSummary(authorId, "유저", "img.png");
@@ -661,7 +661,7 @@ class FeedServiceTest {
       CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
           List.of(feed), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
       FeedListParams params = new FeedListParams(
-          null, null, 2, FeedSortBy.CREATED_AT, SortDirection.DESCENDING, null, null);
+          null, null, 2, FeedSortBy.CREATED_AT, SortDirection.DESCENDING, null, null, null, null);
 
       given(feedRepository.findFeeds(params)).willReturn(repoPage);
 

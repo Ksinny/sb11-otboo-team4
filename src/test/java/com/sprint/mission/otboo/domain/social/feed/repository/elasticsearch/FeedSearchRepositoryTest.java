@@ -72,7 +72,8 @@ class FeedSearchRepositoryTest {
 
   private FeedListParams params(String keywordLike) {
     return new FeedListParams(null, null, 10,
-        FeedSortBy.CREATED_AT, SortDirection.DESCENDING, keywordLike, null);
+        FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+        keywordLike, null, null, null);
   }
 
   @Nested

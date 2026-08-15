@@ -94,7 +94,7 @@ class FeedCustomRepositoryTest {
       FeedListParams params = new FeedListParams(
           null, null, 2,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -124,7 +124,7 @@ class FeedCustomRepositoryTest {
       FeedListParams params = new FeedListParams(
           Instant.parse("2026-07-28T00:00:03Z").toString(), third.getId(), 10,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -149,7 +149,7 @@ class FeedCustomRepositoryTest {
       FeedListParams params = new FeedListParams(
           null, null, 10,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, targetAuthor);
+          null, null, null, targetAuthor);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -173,7 +173,7 @@ class FeedCustomRepositoryTest {
       FeedListParams params = new FeedListParams(
           null, null, 10,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          "OOTD", null);
+          "OOTD", null, null, null);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -201,7 +201,7 @@ class FeedCustomRepositoryTest {
       FeedListParams params = new FeedListParams(
           null, null, 10,
           FeedSortBy.LIKE_COUNT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -230,7 +230,7 @@ class FeedCustomRepositoryTest {
       FeedListParams params = new FeedListParams(
           null, null, 10,
           FeedSortBy.CREATED_AT, SortDirection.ASCENDING,
-          null, null);
+          null, null, null, null);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -259,7 +259,7 @@ class FeedCustomRepositoryTest {
       FeedListParams params = new FeedListParams(
           "50", b.getId(), 10,
           FeedSortBy.LIKE_COUNT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -288,7 +288,7 @@ class FeedCustomRepositoryTest {
       FeedListParams params = new FeedListParams(
           Instant.parse("2026-07-28T00:00:01Z").toString(), first.getId(), 10,
           FeedSortBy.CREATED_AT, SortDirection.ASCENDING,
-          null, null);
+          null, null, null, null);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -315,7 +315,7 @@ class FeedCustomRepositoryTest {
       FeedListParams params = new FeedListParams(
           null, null, 10,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -344,7 +344,7 @@ class FeedCustomRepositoryTest {
       FeedListParams firstPage = new FeedListParams(
           null, null, 1,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
 
       // when: 첫 페이지 조회
       CursorPageResponse<Feed> first = feedRepository.findFeeds(firstPage);
@@ -361,7 +361,7 @@ class FeedCustomRepositoryTest {
       FeedListParams secondPage = new FeedListParams(
           first.nextCursor(), first.nextIdAfter(), 1,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
       CursorPageResponse<Feed> second = feedRepository.findFeeds(secondPage);
 
       // then
@@ -385,7 +385,7 @@ class FeedCustomRepositoryTest {
       FeedListParams params = new FeedListParams(
           null, null, 10,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null);
+          null, null, null, null);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -469,7 +469,7 @@ class FeedCustomRepositoryTest {
               DUMMY_SNAPSHOT, List.of()));
       testEntityManager.flush();
       testEntityManager.clear();
-      
+
       // when
       Feed found = feedRepository.findById(feed.getId()).orElseThrow();
 
