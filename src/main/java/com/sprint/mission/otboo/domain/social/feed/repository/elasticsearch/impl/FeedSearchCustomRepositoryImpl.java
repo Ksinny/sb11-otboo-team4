@@ -18,6 +18,11 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepository {
 
+  private static final String FIELD_CONTENT = "content";
+  private static final String FIELD_SKY_STATUS = "skyStatus";
+  private static final String FIELD_PRECIPITATION_TYPE = "precipitationType";
+  private static final String FIELD_AUTHOR_ID = "authorId";
+
   private final ElasticsearchOperations operations;
 
   @Override
@@ -36,25 +41,42 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
   }
 
   private Query buildQuery(FeedListParams params) {
+    return Query.of(q -> q.bool(b -> b
+        .must(buildKeywordQuery(params.keywordLike()))
+        .filter(buildFilters(params))));
+  }
+
+  private Query buildKeywordQuery(String keywordLike) {
+    if (!StringUtils.hasText(keywordLike)) {
+      return Query.of(q -> q.matchAll(m -> m));
+    }
+    return Query.of(q -> q.match(m -> m.field(FIELD_CONTENT).query(keywordLike)));
+  }
+
+  private List<Query> buildFilters(FeedListParams params) {
     List<Query> filters = new ArrayList<>();
-    if (params.skyStatusEqual() != null) {
-      filters.add(Query.of(q ->
-          q.term(t -> t.field("skyStatus").value(params.skyStatusEqual().name()))));
-    }
-    if (params.precipitationTypeEqual() != null) {
-      filters.add(Query.of(q ->
-          q.term(t -> t.field("precipitationType").value(params.precipitationTypeEqual().name()))));
-    }
-    if (params.authorIdEqual() != null) {
-      filters.add(Query.of(q ->
-          q.term(t -> t.field("authorId").value(params.authorIdEqual().toString()))));
-    }
+    addTermFilter(filters, FIELD_SKY_STATUS, params.skyStatusEqual());
+    addTermFilter(filters, FIELD_PRECIPITATION_TYPE, params.precipitationTypeEqual());
+    addTermFilter(filters, FIELD_AUTHOR_ID, params.authorIdEqual());
+    return filters;
+  }
 
-    Query keywordQuery = StringUtils.hasText(params.keywordLike())
-        ? Query.of(q -> q.match(m -> m.field("content").query(params.keywordLike())))
-        : Query.of(q -> q.matchAll(m -> m));
+  // enum은 name()으로 인덱싱되므로 상수명으로 비교한다.
+  private void addTermFilter(List<Query> filters, String field, Enum<?> value) {
+    if (value != null) {
+      filters.add(termFilter(field, value.name()));
+    }
+  }
 
-    return Query.of(q -> q.bool(b -> b.must(keywordQuery).filter(filters)));
+  // UUID는 문자열로 인덱싱되므로 toString()으로 비교한다.
+  private void addTermFilter(List<Query> filters, String field, UUID value) {
+    if (value != null) {
+      filters.add(termFilter(field, value.toString()));
+    }
+  }
+
+  private Query termFilter(String field, String value) {
+    return Query.of(q -> q.term(t -> t.field(field).value(value)));
   }
 
   private FeedSearchResult toSearchResult(SearchHits<FeedDocument> hits) {
