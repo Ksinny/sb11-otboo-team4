@@ -125,6 +125,11 @@ class FeedServiceTest {
     }
   }
 
+  private static FeedListParams params(int limit) {
+    return new FeedListParams(null, null, limit,
+        FeedSortBy.CREATED_AT, SortDirection.DESCENDING, null, null, null, null);
+  }
+
   @Nested
   @DisplayName("피드 등록")
   class CreateFeed {
@@ -485,10 +490,7 @@ class FeedServiceTest {
     @DisplayName("Repository가 준 페이지를 FeedDto로 변환해 반환한다")
     void Repository가_준_페이지를_FeedDto로_변환해_반환한다() {
       // given
-      FeedListParams params = new FeedListParams(
-          null, null, 2,
-          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null, null, null);
+      FeedListParams params = params(2);
 
       UUID authorId1 = UUID.randomUUID();
       UUID authorId2 = UUID.randomUUID();
@@ -527,10 +529,7 @@ class FeedServiceTest {
     @DisplayName("Repository가 마지막 페이지를 주면 hasNext false와 null 커서를 그대로 전달한다")
     void Repository가_마지막_페이지를_주면_hasNext_false와_null_커서를_그대로_전달한다() {
       // given
-      FeedListParams params = new FeedListParams(
-          null, null, 5,
-          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null, null, null);
+      FeedListParams params = params(5);
 
       UUID authorId1 = UUID.randomUUID();
       UUID authorId2 = UUID.randomUUID();
@@ -569,11 +568,7 @@ class FeedServiceTest {
     @DisplayName("여러 author를 findByUserIds 1회로 배치 조회하여 채운다")
     void 여러_author를_findByUserIds_1회로_배치_조회하여_채운다() {
       // given
-      FeedListParams params = new FeedListParams(
-          null, null, 2,
-          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null, null, null);
-
+      FeedListParams params = params(2);
       UUID authorId1 = UUID.randomUUID();
       UUID authorId2 = UUID.randomUUID();
 
@@ -610,10 +605,8 @@ class FeedServiceTest {
     @DisplayName("내가 좋아요한 피드는 likedByMe=true로 반환한다")
     void 내가_좋아요한_피드는_likedByMe_true로_반환한다() {
       // given
+      FeedListParams params = params(2);
       UUID currentUserId = UUID.randomUUID();
-      FeedListParams params = new FeedListParams(
-          null, null, 2, FeedSortBy.CREATED_AT, SortDirection.DESCENDING, null, null, null, null);
-
       UUID authorId = UUID.randomUUID();
       UserSummary summary = new UserSummary(authorId, "유저", "img.png");
 
@@ -660,9 +653,7 @@ class FeedServiceTest {
 
       CursorPageResponse<Feed> repoPage = new CursorPageResponse<>(
           List.of(feed), null, null, false, 1L, "createdAt", SortDirection.DESCENDING);
-      FeedListParams params = new FeedListParams(
-          null, null, 2, FeedSortBy.CREATED_AT, SortDirection.DESCENDING, null, null, null, null);
-
+      FeedListParams params = params(2);
       given(feedRepository.findFeeds(params)).willReturn(repoPage);
 
       // author 조회 결과 null

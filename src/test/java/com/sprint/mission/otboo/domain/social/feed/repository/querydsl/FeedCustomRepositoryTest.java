@@ -77,6 +77,15 @@ class FeedCustomRepositoryTest {
         .executeUpdate();
   }
 
+  private FeedListParams params(FeedSortBy sortBy, SortDirection direction, int limit) {
+    return new FeedListParams(null, null, limit, sortBy, direction, null, null, null, null);
+  }
+
+  private FeedListParams cursorParams(String cursor, UUID idAfter,
+      FeedSortBy sortBy, SortDirection direction, int limit) {
+    return new FeedListParams(cursor, idAfter, limit, sortBy, direction, null, null, null, null);
+  }
+
   @Nested
   @DisplayName("findFeeds")
   class FindFeeds {
@@ -91,10 +100,7 @@ class FeedCustomRepositoryTest {
       testEntityManager.flush();
       testEntityManager.clear();
 
-      FeedListParams params = new FeedListParams(
-          null, null, 2,
-          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null, null, null);
+      FeedListParams params = params(FeedSortBy.CREATED_AT, SortDirection.DESCENDING, 2);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -121,10 +127,9 @@ class FeedCustomRepositoryTest {
       testEntityManager.clear();
 
       // DESC: 세번째(t3) → 두번째(t2) → 첫번째(t1), 커서 = third(t3)
-      FeedListParams params = new FeedListParams(
-          Instant.parse("2026-07-28T00:00:03Z").toString(), third.getId(), 10,
-          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null, null, null);
+      FeedListParams params = cursorParams(
+          Instant.parse("2026-07-28T00:00:03Z").toString(), third.getId(),
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING, 10);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -198,10 +203,7 @@ class FeedCustomRepositoryTest {
       setLikeCount(mid.getId(), 50L);
       testEntityManager.clear();
 
-      FeedListParams params = new FeedListParams(
-          null, null, 10,
-          FeedSortBy.LIKE_COUNT, SortDirection.DESCENDING,
-          null, null, null, null);
+      FeedListParams params = params(FeedSortBy.LIKE_COUNT, SortDirection.DESCENDING, 10);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -227,10 +229,7 @@ class FeedCustomRepositoryTest {
       testEntityManager.flush();
       testEntityManager.clear();
 
-      FeedListParams params = new FeedListParams(
-          null, null, 10,
-          FeedSortBy.CREATED_AT, SortDirection.ASCENDING,
-          null, null, null, null);
+      FeedListParams params = params(FeedSortBy.CREATED_AT, SortDirection.ASCENDING, 10);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -256,10 +255,8 @@ class FeedCustomRepositoryTest {
       testEntityManager.clear();
 
       // likeCount DESC 순서: A(100) → B(50) → C(10)
-      FeedListParams params = new FeedListParams(
-          "50", b.getId(), 10,
-          FeedSortBy.LIKE_COUNT, SortDirection.DESCENDING,
-          null, null, null, null);
+      FeedListParams params = cursorParams("50", b.getId(),
+          FeedSortBy.LIKE_COUNT, SortDirection.DESCENDING, 10);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -285,10 +282,9 @@ class FeedCustomRepositoryTest {
       testEntityManager.flush();
       testEntityManager.clear();
 
-      FeedListParams params = new FeedListParams(
-          Instant.parse("2026-07-28T00:00:01Z").toString(), first.getId(), 10,
-          FeedSortBy.CREATED_AT, SortDirection.ASCENDING,
-          null, null, null, null);
+      FeedListParams params = cursorParams(
+          Instant.parse("2026-07-28T00:00:01Z").toString(), first.getId(),
+          FeedSortBy.CREATED_AT, SortDirection.ASCENDING, 10);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -312,10 +308,7 @@ class FeedCustomRepositoryTest {
       setCreatedAt(b.getId(), sameTime);
       testEntityManager.clear();
 
-      FeedListParams params = new FeedListParams(
-          null, null, 10,
-          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null, null, null);
+      FeedListParams params = params(FeedSortBy.CREATED_AT, SortDirection.DESCENDING, 10);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
@@ -341,10 +334,7 @@ class FeedCustomRepositoryTest {
       setCreatedAt(b.getId(), sameTime);
       testEntityManager.clear();
 
-      FeedListParams firstPage = new FeedListParams(
-          null, null, 1,
-          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null, null, null);
+      FeedListParams firstPage = params(FeedSortBy.CREATED_AT, SortDirection.DESCENDING, 1);
 
       // when: 첫 페이지 조회
       CursorPageResponse<Feed> first = feedRepository.findFeeds(firstPage);
@@ -358,10 +348,8 @@ class FeedCustomRepositoryTest {
       UUID firstId = first.data().get(0).getId();
 
       // when: 두 번째 페이지 조회
-      FeedListParams secondPage = new FeedListParams(
-          first.nextCursor(), first.nextIdAfter(), 1,
-          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null, null, null);
+      FeedListParams secondPage = cursorParams(first.nextCursor(), first.nextIdAfter(),
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING, 1);
       CursorPageResponse<Feed> second = feedRepository.findFeeds(secondPage);
 
       // then
@@ -382,10 +370,7 @@ class FeedCustomRepositoryTest {
       testEntityManager.flush();
       testEntityManager.clear();
 
-      FeedListParams params = new FeedListParams(
-          null, null, 10,
-          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
-          null, null, null, null);
+      FeedListParams params = params(FeedSortBy.CREATED_AT, SortDirection.DESCENDING, 10);
 
       // when
       CursorPageResponse<Feed> result = feedRepository.findFeeds(params);
