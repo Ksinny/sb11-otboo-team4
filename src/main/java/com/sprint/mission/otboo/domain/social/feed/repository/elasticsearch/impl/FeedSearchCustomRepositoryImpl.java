@@ -5,6 +5,7 @@ import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSearchResult;
 import com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.FeedSearchCustomRepository;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -35,10 +36,17 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
   }
 
   private Query buildQuery(FeedListParams params) {
-    if (!StringUtils.hasText(params.keywordLike())) {
-      return Query.of(q -> q.matchAll(m -> m));
+    List<Query> filters = new ArrayList<>();
+    if (params.skyStatusEqual() != null) {
+      filters.add(Query.of(q ->
+          q.term(t -> t.field("skyStatus").value(params.skyStatusEqual().name()))));
     }
-    return Query.of(q -> q.match(m -> m.field("content").query(params.keywordLike())));
+
+    Query keywordQuery = StringUtils.hasText(params.keywordLike())
+        ? Query.of(q -> q.match(m -> m.field("content").query(params.keywordLike())))
+        : Query.of(q -> q.matchAll(m -> m));
+
+    return Query.of(q -> q.bool(b -> b.must(keywordQuery).filter(filters)));
   }
 
   private FeedSearchResult toSearchResult(SearchHits<FeedDocument> hits) {
