@@ -45,6 +45,10 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
       filters.add(Query.of(q ->
           q.term(t -> t.field("precipitationType").value(params.precipitationTypeEqual().name()))));
     }
+    if (params.authorIdEqual() != null) {
+      filters.add(Query.of(q ->
+          q.term(t -> t.field("authorId").value(params.authorIdEqual().toString()))));
+    }
 
     Query keywordQuery = StringUtils.hasText(params.keywordLike())
         ? Query.of(q -> q.match(m -> m.field("content").query(params.keywordLike())))
