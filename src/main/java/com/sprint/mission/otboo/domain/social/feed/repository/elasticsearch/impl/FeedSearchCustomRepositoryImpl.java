@@ -21,23 +21,31 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
 
   @Override
   public FeedSearchResult search(FeedListParams params) {
-    Query query = StringUtils.hasText(params.keywordLike())
-        ? Query.of(q -> q.match(m -> m.field("content").query(params.keywordLike())))
-        : Query.of(q -> q.matchAll(m -> m));
+    SearchHits<FeedDocument> hits =
+        operations.search(buildNativeQuery(params), FeedDocument.class);
+    return toSearchResult(hits);
+  }
 
-    NativeQuery nativeQuery = NativeQuery.builder()
-        .withQuery(query)
+  private NativeQuery buildNativeQuery(FeedListParams params) {
+    return NativeQuery.builder()
+        .withQuery(buildQuery(params))
         .withMaxResults(params.limit() + 1)
         .withTrackTotalHits(true)
         .build();
+  }
 
-    SearchHits<FeedDocument> hits = operations.search(nativeQuery, FeedDocument.class);
+  private Query buildQuery(FeedListParams params) {
+    if (!StringUtils.hasText(params.keywordLike())) {
+      return Query.of(q -> q.matchAll(m -> m));
+    }
+    return Query.of(q -> q.match(m -> m.field("content").query(params.keywordLike())));
+  }
 
+  private FeedSearchResult toSearchResult(SearchHits<FeedDocument> hits) {
     List<UUID> feedIds = hits.getSearchHits().stream()
         .map(SearchHit::getId)
         .map(UUID::fromString)
         .toList();
-
     return new FeedSearchResult(feedIds, hits.getTotalHits(), null, null, false);
   }
 }
