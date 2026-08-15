@@ -54,13 +54,13 @@ class FeedSearchRepositoryTest {
     operations.indexOps(FeedDocument.class).refresh();
   }
 
-  //인덱싱 후 즉시 검색되도록 refresh한다. ES는 기본 1초 주기로 인덱스를 갱신한다.
-  private UUID indexFeed(String content, SkyStatus sky, PrecipitationType precipitation,
-      Instant createdAt, long likeCount) {
+  // 인덱싱 후 즉시 검색되도록 refresh한다. ES는 기본 1초 주기로 인덱스를 갱신한다.
+  private UUID indexFeed(UUID authorId, String content, SkyStatus sky,
+      PrecipitationType precipitation, Instant createdAt, long likeCount) {
     UUID feedId = UUID.randomUUID();
     WeatherSnapshot snapshot = new WeatherSnapshot(
         sky, precipitation, 0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
-    Feed feed = Feed.create(UUID.randomUUID(), UUID.randomUUID(), content, snapshot, List.of());
+    Feed feed = Feed.create(authorId, UUID.randomUUID(), content, snapshot, List.of());
     setField(feed, "id", feedId);
     setField(feed, "createdAt", createdAt);
     setField(feed, "likeCount", likeCount);
@@ -68,6 +68,11 @@ class FeedSearchRepositoryTest {
     feedSearchRepository.save(FeedDocument.from(feed));
     operations.indexOps(FeedDocument.class).refresh();
     return feedId;
+  }
+
+  private UUID indexFeed(String content, SkyStatus sky, PrecipitationType precipitation,
+      Instant createdAt, long likeCount) {
+    return indexFeed(UUID.randomUUID(), content, sky, precipitation, createdAt, likeCount);
   }
 
   private FeedListParams params(String keywordLike) {
@@ -157,6 +162,27 @@ class FeedSearchRepositoryTest {
 
       // then
       assertThat(result.feedIds()).containsExactly(rainy);
+    }
+
+    @Test
+    @DisplayName("authorIdEqual이 주어지면 해당 작성자의 피드만 반환한다")
+    void authorIdEqual이_주어지면_해당_작성자의_피드만_반환한다() {
+      // given
+      UUID targetAuthor = UUID.randomUUID();
+      UUID matched = indexFeed(targetAuthor, "대상 작성자 글", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      indexFeed("다른 작성자 글", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+
+      FeedListParams params = new FeedListParams(null, null, 10,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null, null, targetAuthor);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params);
+
+      // then
+      assertThat(result.feedIds()).containsExactly(matched);
     }
   }
 }
