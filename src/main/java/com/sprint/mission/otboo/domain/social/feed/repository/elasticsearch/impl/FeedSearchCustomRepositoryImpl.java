@@ -41,6 +41,10 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
       filters.add(Query.of(q ->
           q.term(t -> t.field("skyStatus").value(params.skyStatusEqual().name()))));
     }
+    if (params.precipitationTypeEqual() != null) {
+      filters.add(Query.of(q ->
+          q.term(t -> t.field("precipitationType").value(params.precipitationTypeEqual().name()))));
+    }
 
     Query keywordQuery = StringUtils.hasText(params.keywordLike())
         ? Query.of(q -> q.match(m -> m.field("content").query(params.keywordLike())))
