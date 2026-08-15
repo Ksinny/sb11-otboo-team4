@@ -138,5 +138,25 @@ class FeedSearchRepositoryTest {
       // then
       assertThat(result.feedIds()).containsExactly(clear);
     }
+
+    @Test
+    @DisplayName("precipitationTypeEqual이 주어지면 해당 강수 유형의 피드만 반환한다")
+    void precipitationTypeEqual이_주어지면_해당_강수_유형의_피드만_반환한다() {
+      // given
+      UUID rainy = indexFeed("비 오는 날", SkyStatus.CLOUDY,
+          PrecipitationType.RAIN, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      indexFeed("맑은 날", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+
+      FeedListParams params = new FeedListParams(null, null, 10,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null, PrecipitationType.RAIN, null);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params);
+
+      // then
+      assertThat(result.feedIds()).containsExactly(rainy);
+    }
   }
 }
