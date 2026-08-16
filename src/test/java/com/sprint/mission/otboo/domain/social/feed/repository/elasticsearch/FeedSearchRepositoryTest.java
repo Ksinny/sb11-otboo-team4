@@ -185,4 +185,49 @@ class FeedSearchRepositoryTest {
       assertThat(result.feedIds()).containsExactly(matched);
     }
   }
+
+  @Nested
+  @DisplayName("정렬")
+  class SortFeeds {
+
+    @Test
+    @DisplayName("createdAt 내림차순으로 최신 피드를 먼저 반환한다")
+    void createdAt_내림차순으로_최신_피드를_먼저_반환한다() {
+      // given
+      UUID older = indexFeed("오래된 글", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      UUID newer = indexFeed("최신 글", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-03T00:00:00Z"), 0L);
+      UUID middle = indexFeed("중간 글", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params(null));
+
+      // then
+      assertThat(result.feedIds()).containsExactly(newer, middle, older);
+    }
+
+    @Test
+    @DisplayName("createdAt 오름차순으로 오래된 피드를 먼저 반환한다")
+    void createdAt_오름차순으로_오래된_피드를_먼저_반환한다() {
+      // given
+      UUID older = indexFeed("오래된 글", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      UUID newer = indexFeed("최신 글", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-03T00:00:00Z"), 0L);
+      UUID middle = indexFeed("중간 글", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+
+      FeedListParams params = new FeedListParams(null, null, 10,
+          FeedSortBy.CREATED_AT, SortDirection.ASCENDING,
+          null, null, null, null);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params);
+
+      // then
+      assertThat(result.feedIds()).containsExactly(older, middle, newer);
+    }
+  }
 }
