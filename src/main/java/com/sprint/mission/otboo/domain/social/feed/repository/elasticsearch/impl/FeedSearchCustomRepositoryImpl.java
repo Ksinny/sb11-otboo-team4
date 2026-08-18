@@ -1,10 +1,14 @@
 package com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.impl;
 
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSearchResult;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.FeedSearchCustomRepository;
+import com.sprint.mission.otboo.global.dto.SortDirection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +26,9 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
   private static final String FIELD_SKY_STATUS = "skyStatus";
   private static final String FIELD_PRECIPITATION_TYPE = "precipitationType";
   private static final String FIELD_AUTHOR_ID = "authorId";
+  private static final String FIELD_CREATED_AT = "createdAt";
+  private static final String FIELD_LIKE_COUNT = "likeCount";
+  private static final String FIELD_ID = "id";
 
   private final ElasticsearchOperations operations;
 
@@ -35,6 +42,7 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
   private NativeQuery buildNativeQuery(FeedListParams params) {
     return NativeQuery.builder()
         .withQuery(buildQuery(params))
+        .withSort(buildSort(params))
         .withMaxResults(params.limit() + 1)
         .withTrackTotalHits(true)
         .build();
@@ -59,6 +67,30 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
     addTermFilter(filters, FIELD_PRECIPITATION_TYPE, params.precipitationTypeEqual());
     addTermFilter(filters, FIELD_AUTHOR_ID, params.authorIdEqual());
     return filters;
+  }
+
+  // 정렬 필드 + _id tie-break. QueryDSL의 sortOrderSpecifier + idOrderSpecifier에 대응한다.
+  private List<SortOptions> buildSort(FeedListParams params) {
+    SortOrder order = toSortOrder(params.sortDirection());
+    return List.of(
+        fieldSort(sortField(params.sortBy()), order),
+        fieldSort(FIELD_ID, order)
+    );
+  }
+
+  private SortOrder toSortOrder(SortDirection direction) {
+    return direction == SortDirection.ASCENDING ? SortOrder.Asc : SortOrder.Desc;
+  }
+
+  private String sortField(FeedSortBy sortBy) {
+    return switch (sortBy) {
+      case CREATED_AT -> FIELD_CREATED_AT;
+      case LIKE_COUNT -> FIELD_LIKE_COUNT;
+    };
+  }
+
+  private SortOptions fieldSort(String field, SortOrder order) {
+    return SortOptions.of(s -> s.field(f -> f.field(field).order(order)));
   }
 
   // enum은 name()으로 인덱싱되므로 상수명으로 비교한다.
