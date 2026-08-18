@@ -328,5 +328,38 @@ class FeedSearchCustomRepositoryImplTest {
       assertThat(result.nextCursor()).isNull();
       assertThat(result.nextIdAfter()).isNull();
     }
+
+    @Test
+    @DisplayName("커서로 다음 페이지를 조회하면 이어서 반환한다")
+    void 커서로_다음_페이지를_조회하면_이어서_반환한다() {
+      // given
+      UUID first = indexFeed("첫번째", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      UUID second = indexFeed("두번째", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+      UUID third = indexFeed("세번째", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-03T00:00:00Z"), 0L);
+
+      FeedListParams firstPage = new FeedListParams(null, null, 2,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null, null, null);
+
+      // when: 첫 페이지 조회 — DESC이므로 third, second
+      FeedSearchResult page1 = feedSearchRepository.search(firstPage);
+
+      // then
+      assertThat(page1.feedIds()).containsExactly(third, second);
+
+      // when: 커서로 다음 페이지 조회
+      FeedListParams secondPage = new FeedListParams(
+          page1.nextCursor(), page1.nextIdAfter(), 2,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null, null, null);
+      FeedSearchResult page2 = feedSearchRepository.search(secondPage);
+
+      // then
+      assertThat(page2.feedIds()).containsExactly(first);
+      assertThat(page2.hasNext()).isFalse();
+    }
   }
 }
