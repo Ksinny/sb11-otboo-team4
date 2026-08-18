@@ -135,30 +135,6 @@ class FeedServiceTest {
         FeedSortBy.CREATED_AT, SortDirection.DESCENDING, null, null, null, null);
   }
 
-  @Test
-  @DisplayName("작성자를 조회할 수 없으면 AuthorNotFoundException을 던진다")
-  void 작성자를_조회할_수_없으면_AuthorNotFoundException을_던진다() {
-    // given
-    UUID currentUserId = UUID.randomUUID();
-    UUID authorId = UUID.randomUUID();
-    UUID feedId = UUID.randomUUID();
-    Feed feed = Feed.create(authorId, UUID.randomUUID(), "내용", DUMMY_SNAPSHOT, List.of());
-    setFeedId(feed, feedId);
-
-    FeedListParams params = params(2);
-    given(feedSearchRepository.search(params)).willReturn(
-        new FeedSearchResult(List.of(feedId), 1L, null, null, false));
-    given(feedRepository.findAllById(List.of(feedId))).willReturn(List.of(feed));
-
-    // author 조회 결과 없음
-    given(userSummaryQueryRepository.findByUserIds(List.of(authorId)))
-        .willReturn(List.of());
-
-    // when & then
-    assertThatThrownBy(() -> feedService.getFeeds(params, currentUserId))
-        .isInstanceOf(AuthorNotFoundException.class);
-  }
-
   @Nested
   @DisplayName("피드 등록")
   class CreateFeed {
@@ -554,6 +530,30 @@ class FeedServiceTest {
       assertThat(result.hasNext()).isTrue();
       assertThat(result.nextCursor()).isEqualTo("커서값");
       assertThat(result.nextIdAfter()).isEqualTo(id2);
+    }
+
+    @Test
+    @DisplayName("작성자를 조회할 수 없으면 AuthorNotFoundException을 던진다")
+    void 작성자를_조회할_수_없으면_AuthorNotFoundException을_던진다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID authorId = UUID.randomUUID();
+      UUID feedId = UUID.randomUUID();
+      Feed feed = Feed.create(authorId, UUID.randomUUID(), "내용", DUMMY_SNAPSHOT, List.of());
+      setFeedId(feed, feedId);
+
+      FeedListParams params = params(2);
+      given(feedSearchRepository.search(params)).willReturn(
+          new FeedSearchResult(List.of(feedId), 1L, null, null, false));
+      given(feedRepository.findAllById(List.of(feedId))).willReturn(List.of(feed));
+
+      // author 조회 결과 없음
+      given(userSummaryQueryRepository.findByUserIds(List.of(authorId)))
+          .willReturn(List.of());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.getFeeds(params, currentUserId))
+          .isInstanceOf(AuthorNotFoundException.class);
     }
 
     @Test
@@ -961,7 +961,6 @@ class FeedServiceTest {
       assertThatCode(() -> feedService.unlike(feedId, userId)).doesNotThrowAnyException();
     }
 
-    // Unlike @Nested에
     @Test
     @DisplayName("좋아요를 취소하면 검색 인덱싱 이벤트를 발행한다")
     void 좋아요를_취소하면_검색_인덱싱_이벤트를_발행한다() {
