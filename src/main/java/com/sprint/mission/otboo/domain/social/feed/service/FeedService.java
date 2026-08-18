@@ -110,6 +110,7 @@ public class FeedService {
     increaseLikeCount(feedId);
     log.info("피드 좋아요 완료: feedId={}", feedId);
 
+    eventPublisher.publishEvent(FeedIndexRequestedEvent.upsert(feedId));
     publishFeedLikedNotification(feedId, currentUserId);
   }
 
@@ -119,6 +120,8 @@ public class FeedService {
     if (feedLikeRepository.deleteByFeedIdAndUserId(feedId, currentUserId) > 0) {
       decreaseLikeCount(feedId);
       log.info("피드 좋아요 취소 완료: feedId={}", feedId);
+
+      eventPublisher.publishEvent(FeedIndexRequestedEvent.upsert(feedId));
     }
   }
 
