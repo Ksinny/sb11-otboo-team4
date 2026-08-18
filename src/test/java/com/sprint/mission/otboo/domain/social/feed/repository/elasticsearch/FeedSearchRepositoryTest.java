@@ -229,5 +229,49 @@ class FeedSearchRepositoryTest {
       // then
       assertThat(result.feedIds()).containsExactly(older, middle, newer);
     }
+
+    @Test
+    @DisplayName("likeCount 내림차순으로 좋아요가 많은 피드를 먼저 반환한다")
+    void likeCount_내림차순으로_좋아요가_많은_피드를_먼저_반환한다() {
+      // given — createdAt은 좋아요 순서와 어긋나게 둔다
+      UUID low = indexFeed("좋아요 적음", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 1L);
+      UUID high = indexFeed("좋아요 많음", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 100L);
+      UUID mid = indexFeed("좋아요 중간", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-03T00:00:00Z"), 50L);
+
+      FeedListParams params = new FeedListParams(null, null, 10,
+          FeedSortBy.LIKE_COUNT, SortDirection.DESCENDING,
+          null, null, null, null);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params);
+
+      // then
+      assertThat(result.feedIds()).containsExactly(high, mid, low);
+    }
+
+    @Test
+    @DisplayName("likeCount 오름차순으로 좋아요가 적은 피드를 먼저 반환한다")
+    void likeCount_오름차순으로_좋아요가_적은_피드를_먼저_반환한다() {
+      // given
+      UUID low = indexFeed("좋아요 적음", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 1L);
+      UUID high = indexFeed("좋아요 많음", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 100L);
+      UUID mid = indexFeed("좋아요 중간", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-03T00:00:00Z"), 50L);
+
+      FeedListParams params = new FeedListParams(null, null, 10,
+          FeedSortBy.LIKE_COUNT, SortDirection.ASCENDING,
+          null, null, null, null);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params);
+
+      // then
+      assertThat(result.feedIds()).containsExactly(low, mid, high);
+    }
   }
 }
