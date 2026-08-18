@@ -119,6 +119,20 @@ class FeedSearchCustomRepositoryImplTest {
       assertThat(result.feedIds()).hasSize(2);
       assertThat(result.totalCount()).isEqualTo(2L);
     }
+    
+    @Test
+    @DisplayName("영문 대소문자를 구분하지 않고 검색된다")
+    void 영문_대소문자를_구분하지_않고_검색된다() {
+      // given
+      UUID matched = indexFeed("맑은 날 OOTD", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params("ootd"));
+
+      // then
+      assertThat(result.feedIds()).containsExactly(matched);
+    }
   }
 
   @Nested
@@ -178,6 +192,28 @@ class FeedSearchCustomRepositoryImplTest {
       FeedListParams params = new FeedListParams(null, null, 10,
           FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
           null, null, null, targetAuthor);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params);
+
+      // then
+      assertThat(result.feedIds()).containsExactly(matched);
+    }
+
+    @Test
+    @DisplayName("검색어와 필터를 함께 적용한다")
+    void 검색어와_필터를_함께_적용한다() {
+      // given
+      UUID matched = indexFeed("따뜻한 니트", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      indexFeed("따뜻한 니트", SkyStatus.CLOUDY,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+      indexFeed("시원한 반팔", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-03T00:00:00Z"), 0L);
+
+      FeedListParams params = new FeedListParams(null, null, 10,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          "니트", SkyStatus.CLEAR, null, null);
 
       // when
       FeedSearchResult result = feedSearchRepository.search(params);
