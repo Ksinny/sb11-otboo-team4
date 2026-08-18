@@ -361,5 +361,39 @@ class FeedSearchCustomRepositoryImplTest {
       assertThat(page2.feedIds()).containsExactly(first);
       assertThat(page2.hasNext()).isFalse();
     }
+
+    @Test
+    @DisplayName("createdAt 동률에서 커서로 다음 페이지를 조회하면 나머지가 중복·누락 없이 조회된다")
+    void createdAt_동률에서_커서로_다음_페이지를_조회하면_나머지가_중복_누락_없이_조회된다() {
+      // given
+      Instant sameTime = Instant.parse("2026-08-01T00:00:00Z");
+      UUID a = indexFeed("A", SkyStatus.CLEAR, PrecipitationType.NONE, sameTime, 0L);
+      UUID b = indexFeed("B", SkyStatus.CLEAR, PrecipitationType.NONE, sameTime, 0L);
+
+      FeedListParams firstPage = new FeedListParams(null, null, 1,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null, null, null);
+
+      // when: 첫 페이지 조회
+      FeedSearchResult page1 = feedSearchRepository.search(firstPage);
+
+      // then
+      assertThat(page1.feedIds()).hasSize(1);
+      assertThat(page1.hasNext()).isTrue();
+      UUID firstId = page1.feedIds().get(0);
+
+      // when: 커서로 다음 페이지 조회
+      FeedListParams secondPage = new FeedListParams(
+          page1.nextCursor(), page1.nextIdAfter(), 1,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null, null, null);
+      FeedSearchResult page2 = feedSearchRepository.search(secondPage);
+
+      // then
+      assertThat(page2.feedIds()).hasSize(1);
+      UUID secondId = page2.feedIds().get(0);
+      assertThat(secondId).isNotEqualTo(firstId);
+      assertThat(List.of(firstId, secondId)).containsExactlyInAnyOrder(a, b);
+    }
   }
 }
