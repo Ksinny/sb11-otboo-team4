@@ -868,6 +868,32 @@ class FeedServiceTest {
           .isInstanceOf(FeedNotFoundException.class);
       verify(eventPublisher, never()).publishEvent(any());
     }
+
+    @Test
+    @DisplayName("좋아요에 성공하면 검색 인덱싱 이벤트를 발행한다")
+    void 좋아요에_성공하면_검색_인덱싱_이벤트를_발행한다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
+      given(feedLikeRepository.existsByFeedIdAndUserId(feedId, userId)).willReturn(false);
+      given(feedRepository.findAuthorId(feedId)).willReturn(Optional.of(UUID.randomUUID()));
+      given(userSummaryQueryRepository.findByUserId(userId))
+          .willReturn(new UserSummary(userId, "좋아요누른사람", "img.png"));
+      given(feedLikeRepository.saveAndFlush(any(FeedLike.class)))
+          .willAnswer(inv -> inv.getArgument(0));
+      given(feedRepository.incrementLikeCount(feedId)).willReturn(1);
+
+      // when
+      feedService.like(feedId, userId);
+
+      // then
+      ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+      verify(eventPublisher, atLeastOnce()).publishEvent(captor.capture());
+      assertThat(captor.getAllValues())
+          .filteredOn(FeedIndexRequestedEvent.class::isInstance)
+          .containsExactly(FeedIndexRequestedEvent.upsert(feedId));
+    }
   }
 
   @Nested
@@ -933,6 +959,27 @@ class FeedServiceTest {
 
       // when & then
       assertThatCode(() -> feedService.unlike(feedId, userId)).doesNotThrowAnyException();
+    }
+
+    // Unlike @Nested에
+    @Test
+    @DisplayName("좋아요를 취소하면 검색 인덱싱 이벤트를 발행한다")
+    void 좋아요를_취소하면_검색_인덱싱_이벤트를_발행한다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      given(feedRepository.existsByIdAndSoftDeletable_DeletedAtIsNull(feedId)).willReturn(true);
+      given(feedLikeRepository.deleteByFeedIdAndUserId(feedId, userId)).willReturn(1L);
+      given(feedRepository.decrementLikeCount(feedId)).willReturn(1);
+
+      // when
+      feedService.unlike(feedId, userId);
+
+      // then
+      ArgumentCaptor<FeedIndexRequestedEvent> captor =
+          ArgumentCaptor.forClass(FeedIndexRequestedEvent.class);
+      verify(eventPublisher).publishEvent(captor.capture());
+      assertThat(captor.getValue()).isEqualTo(FeedIndexRequestedEvent.upsert(feedId));
     }
   }
 
