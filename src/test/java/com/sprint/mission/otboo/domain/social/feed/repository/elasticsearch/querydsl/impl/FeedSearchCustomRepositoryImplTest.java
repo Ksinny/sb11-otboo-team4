@@ -1,4 +1,4 @@
-package com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch;
+package com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.querydsl.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -8,6 +8,7 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedSearchResult;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
+import com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.FeedSearchRepository;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
 import com.sprint.mission.otboo.global.dto.SortDirection;
@@ -25,8 +26,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 @DataElasticsearchTest
 @ActiveProfiles("test")
-@DisplayName("FeedSearchRepository")
-class FeedSearchRepositoryTest {
+@DisplayName("FeedSearchCustomRepository")
+class FeedSearchCustomRepositoryImplTest {
 
   static final WeatherSnapshot DUMMY_SNAPSHOT = new WeatherSnapshot(
       SkyStatus.CLEAR, PrecipitationType.NONE,
@@ -272,6 +273,60 @@ class FeedSearchRepositoryTest {
 
       // then
       assertThat(result.feedIds()).containsExactly(low, mid, high);
+    }
+  }
+
+  @Nested
+  @DisplayName("커서 페이지네이션")
+  class SearchByCursor {
+
+    @Test
+    @DisplayName("limit보다 많으면 hasNext가 true이고 limit개만 반환한다")
+    void limit보다_많으면_hasNext가_true이고_limit개만_반환한다() {
+      // given
+      indexFeed("첫번째", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      indexFeed("두번째", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+      indexFeed("세번째", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-03T00:00:00Z"), 0L);
+
+      FeedListParams params = new FeedListParams(null, null, 2,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null, null, null);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params);
+
+      // then
+      assertThat(result.feedIds()).hasSize(2);
+      assertThat(result.hasNext()).isTrue();
+      assertThat(result.nextCursor()).isNotNull();
+      assertThat(result.nextIdAfter()).isNotNull();
+      assertThat(result.totalCount()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("마지막 페이지면 hasNext가 false이고 커서를 비운다")
+    void 마지막_페이지면_hasNext가_false이고_커서를_비운다() {
+      // given
+      indexFeed("첫번째", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      indexFeed("두번째", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+
+      FeedListParams params = new FeedListParams(null, null, 10,
+          FeedSortBy.CREATED_AT, SortDirection.DESCENDING,
+          null, null, null, null);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params);
+
+      // then
+      assertThat(result.feedIds()).hasSize(2);
+      assertThat(result.hasNext()).isFalse();
+      assertThat(result.nextCursor()).isNull();
+      assertThat(result.nextIdAfter()).isNull();
     }
   }
 }
