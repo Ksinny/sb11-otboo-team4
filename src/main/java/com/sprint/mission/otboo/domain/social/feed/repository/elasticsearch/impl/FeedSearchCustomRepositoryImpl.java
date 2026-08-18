@@ -9,11 +9,13 @@ import com.sprint.mission.otboo.domain.social.feed.dto.FeedSearchResult;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.FeedSearchCustomRepository;
 import com.sprint.mission.otboo.global.dto.SortDirection;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
@@ -36,13 +38,13 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
   public FeedSearchResult search(FeedListParams params) {
     SearchHits<FeedDocument> hits =
         operations.search(buildNativeQuery(params), FeedDocument.class);
-    return toSearchResult(hits, params.limit());
+    return toSearchResult(hits, params);
   }
 
-  private FeedSearchResult toSearchResult(SearchHits<FeedDocument> hits, int limit) {
+  private FeedSearchResult toSearchResult(SearchHits<FeedDocument> hits, FeedListParams params) {
     List<SearchHit<FeedDocument>> raw = hits.getSearchHits();
-    boolean hasNext = raw.size() > limit;
-    List<SearchHit<FeedDocument>> page = hasNext ? raw.subList(0, limit) : raw;
+    boolean hasNext = raw.size() > params.limit();
+    List<SearchHit<FeedDocument>> page = hasNext ? raw.subList(0, params.limit()) : raw;
 
     List<UUID> feedIds = page.stream()
         .map(SearchHit::getId)
@@ -53,20 +55,41 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
     UUID nextIdAfter = null;
     if (hasNext && !page.isEmpty()) {
       SearchHit<FeedDocument> last = page.get(page.size() - 1);
-      nextCursor = String.valueOf(last.getSortValues().get(0));
+      nextCursor = extractCursor(last, params.sortBy());
       nextIdAfter = UUID.fromString(String.valueOf(last.getSortValues().get(1)));
     }
 
     return new FeedSearchResult(feedIds, hits.getTotalHits(), nextCursor, nextIdAfter, hasNext);
   }
 
+  private String extractCursor(SearchHit<FeedDocument> hit, FeedSortBy sortBy) {
+    Object sortValue = hit.getSortValues().get(0);
+    return switch (sortBy) {
+      case CREATED_AT -> Instant.ofEpochMilli(Long.parseLong(String.valueOf(sortValue))).toString();
+      case LIKE_COUNT -> String.valueOf(sortValue);
+    };
+  }
+
   private NativeQuery buildNativeQuery(FeedListParams params) {
-    return NativeQuery.builder()
+    NativeQueryBuilder builder = NativeQuery.builder()
         .withQuery(buildQuery(params))
         .withSort(buildSort(params))
         .withMaxResults(params.limit() + 1)
-        .withTrackTotalHits(true)
-        .build();
+        .withTrackTotalHits(true);
+
+    if (params.cursor() != null) {
+      builder.withSearchAfter(buildSearchAfter(params));
+    }
+    return builder.build();
+  }
+
+  // 커서 → ES 정렬 값. createdAt은 epoch millis로 인덱싱되므로 Instant를 변환한다.
+  private List<Object> buildSearchAfter(FeedListParams params) {
+    Object sortValue = switch (params.sortBy()) {
+      case CREATED_AT -> Instant.parse(params.cursor()).toEpochMilli();
+      case LIKE_COUNT -> Long.parseLong(params.cursor());
+    };
+    return List.of(sortValue, params.idAfter().toString());
   }
 
   private Query buildQuery(FeedListParams params) {
