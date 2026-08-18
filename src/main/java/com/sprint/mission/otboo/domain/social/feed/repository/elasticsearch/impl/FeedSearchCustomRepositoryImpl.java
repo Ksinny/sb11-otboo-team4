@@ -36,7 +36,28 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
   public FeedSearchResult search(FeedListParams params) {
     SearchHits<FeedDocument> hits =
         operations.search(buildNativeQuery(params), FeedDocument.class);
-    return toSearchResult(hits);
+    return toSearchResult(hits, params.limit());
+  }
+
+  private FeedSearchResult toSearchResult(SearchHits<FeedDocument> hits, int limit) {
+    List<SearchHit<FeedDocument>> raw = hits.getSearchHits();
+    boolean hasNext = raw.size() > limit;
+    List<SearchHit<FeedDocument>> page = hasNext ? raw.subList(0, limit) : raw;
+
+    List<UUID> feedIds = page.stream()
+        .map(SearchHit::getId)
+        .map(UUID::fromString)
+        .toList();
+
+    String nextCursor = null;
+    UUID nextIdAfter = null;
+    if (hasNext && !page.isEmpty()) {
+      SearchHit<FeedDocument> last = page.get(page.size() - 1);
+      nextCursor = String.valueOf(last.getSortValues().get(0));
+      nextIdAfter = UUID.fromString(String.valueOf(last.getSortValues().get(1)));
+    }
+
+    return new FeedSearchResult(feedIds, hits.getTotalHits(), nextCursor, nextIdAfter, hasNext);
   }
 
   private NativeQuery buildNativeQuery(FeedListParams params) {
