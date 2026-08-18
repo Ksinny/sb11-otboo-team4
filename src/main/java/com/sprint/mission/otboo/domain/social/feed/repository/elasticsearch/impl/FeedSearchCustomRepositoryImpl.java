@@ -154,12 +154,4 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
   private Query termFilter(String field, String value) {
     return Query.of(q -> q.term(t -> t.field(field).value(value)));
   }
-
-  private FeedSearchResult toSearchResult(SearchHits<FeedDocument> hits) {
-    List<UUID> feedIds = hits.getSearchHits().stream()
-        .map(SearchHit::getId)
-        .map(UUID::fromString)
-        .toList();
-    return new FeedSearchResult(feedIds, hits.getTotalHits(), null, null, false);
-  }
 }
