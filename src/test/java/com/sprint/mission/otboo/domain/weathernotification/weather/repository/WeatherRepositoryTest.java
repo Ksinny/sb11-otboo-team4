@@ -15,7 +15,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -120,79 +119,6 @@ class WeatherRepositoryTest {
   }
 
   @Nested
-  @DisplayName("FindRecentTwoRevisions")
-  class FindRecentTwoRevisions {
-
-    @Disabled("V14(유니크 제약 (weather_grid_id, forecast_at)) 이후 같은 forecastAt에 리비전을 "
-        + "2개 이상 만들 수 없음 - #163에서 findRecentTwoRevisions 자체를 대체할 예정")
-    @Test
-    @DisplayName("같은_forecastAt에_3개_리비전이_있어도_최신_2개만_반환한다")
-    void 같은_forecastAt에_3개_리비전이_있어도_최신_2개만_반환한다() {
-      WeatherGrid weatherGrid = weatherGridRepository.save(WeatherGrid.create(60, 127));
-      testEntityManager.flush();
-
-      Instant forecastAt = Instant.parse("2026-07-27T00:00:00Z");
-      weatherRepository.save(
-          weatherOf(weatherGrid, Instant.parse("2026-07-27T02:10:00Z"), forecastAt, 20.0));
-      Weather middle = weatherRepository.save(
-          weatherOf(weatherGrid, Instant.parse("2026-07-27T05:10:00Z"), forecastAt, 22.0));
-      Weather latest = weatherRepository.save(
-          weatherOf(weatherGrid, Instant.parse("2026-07-27T08:10:00Z"), forecastAt, 25.0));
-      testEntityManager.flush();
-      testEntityManager.clear();
-
-      List<Weather> result = weatherRepository.findRecentTwoRevisions(weatherGrid,
-          List.of(forecastAt));
-
-      assertThat(result).hasSize(2);
-      assertThat(result).extracting(Weather::getId)
-          .containsExactlyInAnyOrder(middle.getId(), latest.getId());
-    }
-
-    @Disabled("V14(유니크 제약 (weather_grid_id, forecast_at)) 이후 같은 forecastAt에 리비전을 "
-        + "2개 이상 만들 수 없음 - #163에서 findRecentTwoRevisions 자체를 대체할 예정")
-    @Test
-    @DisplayName("대상_리스트에_없는_forecastAt은_제외된다")
-    void 대상_리스트에_없는_forecastAt은_제외된다() {
-      WeatherGrid weatherGrid = weatherGridRepository.save(WeatherGrid.create(60, 127));
-      testEntityManager.flush();
-
-      Instant d0 = Instant.parse("2026-07-27T00:00:00Z");
-      Instant d1 = Instant.parse("2026-07-28T00:00:00Z");
-      weatherRepository.save(
-          weatherOf(weatherGrid, Instant.parse("2026-07-27T02:10:00Z"), d0, 20.0));
-      weatherRepository.save(
-          weatherOf(weatherGrid, Instant.parse("2026-07-27T05:10:00Z"), d0, 22.0));
-      weatherRepository.save(
-          weatherOf(weatherGrid, Instant.parse("2026-07-27T05:10:00Z"), d1, 18.0));
-      testEntityManager.flush();
-      testEntityManager.clear();
-
-      List<Weather> result = weatherRepository.findRecentTwoRevisions(weatherGrid, List.of(d0));
-
-      assertThat(result).extracting(Weather::getForecastAt).containsOnly(d0);
-    }
-
-    @Test
-    @DisplayName("직전_리비전이_없으면_1건만_반환한다")
-    void 직전_리비전이_없으면_1건만_반환한다() {
-      WeatherGrid weatherGrid = weatherGridRepository.save(WeatherGrid.create(60, 127));
-      testEntityManager.flush();
-
-      Instant forecastAt = Instant.parse("2026-07-27T00:00:00Z");
-      Weather only = weatherRepository.save(
-          weatherOf(weatherGrid, Instant.parse("2026-07-27T02:10:00Z"), forecastAt, 20.0));
-      testEntityManager.flush();
-      testEntityManager.clear();
-
-      List<Weather> result = weatherRepository.findRecentTwoRevisions(weatherGrid,
-          List.of(forecastAt));
-
-      assertThat(result).extracting(Weather::getId).containsExactly(only.getId());
-    }
-  }
-
-  @Nested
   @DisplayName("FindAllByWeatherGridAndForecastAtGreaterThanEqual")
   class FindAllByWeatherGridAndForecastAtGreaterThanEqual {
 
@@ -205,6 +131,8 @@ class WeatherRepositoryTest {
       Instant from = Instant.parse("2026-07-27T00:00:00Z");
       Weather before = weatherRepository.save(weatherOf(weatherGrid,
           Instant.parse("2026-07-26T08:00:00Z"), Instant.parse("2026-07-26T23:00:00Z"), 20.0));
+      Weather atFrom = weatherRepository.save(weatherOf(weatherGrid,
+          Instant.parse("2026-07-27T08:00:00Z"), from, 24.0));
       Weather after = weatherRepository.save(weatherOf(weatherGrid,
           Instant.parse("2026-07-27T08:00:00Z"), Instant.parse("2026-07-27T01:00:00Z"), 25.0));
       testEntityManager.flush();
@@ -214,8 +142,74 @@ class WeatherRepositoryTest {
           weatherGrid, from);
 
       assertThat(result).extracting(Weather::getId)
-          .containsExactly(after.getId())
+          .containsExactlyInAnyOrder(atFrom.getId(), after.getId())
           .doesNotContain(before.getId());
+    }
+  }
+
+  @Nested
+  @DisplayName("FindAllByWeatherGridAndForecastAtGreaterThanEqualAndForecastAtLessThan")
+  class FindAllByWeatherGridAndForecastAtGreaterThanEqualAndForecastAtLessThan {
+
+    @Test
+    @DisplayName("from_이상_to_미만_구간의_슬롯만_반환한다")
+    void from_이상_to_미만_구간의_슬롯만_반환한다() {
+      WeatherGrid weatherGrid = weatherGridRepository.save(WeatherGrid.create(60, 127));
+      testEntityManager.flush();
+
+      Instant from = Instant.parse("2026-07-29T00:00:00Z");
+      Instant to = Instant.parse("2026-07-30T00:00:00Z");
+      Weather before = weatherRepository.save(weatherOf(weatherGrid,
+          Instant.parse("2026-07-27T08:00:00Z"), Instant.parse("2026-07-28T23:00:00Z"), 19.0));
+      Weather atFrom = weatherRepository.save(weatherOf(weatherGrid,
+          Instant.parse("2026-07-27T08:00:00Z"), from, 20.0));
+      Weather within = weatherRepository.save(weatherOf(weatherGrid,
+          Instant.parse("2026-07-27T08:00:00Z"), Instant.parse("2026-07-29T03:00:00Z"), 20.0));
+      Weather after = weatherRepository.save(weatherOf(weatherGrid,
+          Instant.parse("2026-07-27T08:00:00Z"), to, 21.0));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      List<Weather> result = weatherRepository
+          .findAllByWeatherGridAndForecastAtGreaterThanEqualAndForecastAtLessThan(weatherGrid,
+              from, to);
+
+      assertThat(result).extracting(Weather::getId)
+          .containsExactlyInAnyOrder(atFrom.getId(), within.getId())
+          .doesNotContain(before.getId(), after.getId());
+    }
+  }
+
+  @Nested
+  @DisplayName("FindAllByWeatherGridIdInAndForecastAtGreaterThanEqualAndForecastAtLessThan")
+  class FindAllByWeatherGridIdInAndForecastAtGreaterThanEqualAndForecastAtLessThan {
+
+    @Test
+    @DisplayName("여러_격자의_from_이상_to_미만_구간_슬롯을_한_번에_반환한다")
+    void 여러_격자의_from_이상_to_미만_구간_슬롯을_한_번에_반환한다() {
+      WeatherGrid targetGrid = weatherGridRepository.save(WeatherGrid.create(60, 127));
+      WeatherGrid otherTargetGrid = weatherGridRepository.save(WeatherGrid.create(61, 128));
+      WeatherGrid excludedGrid = weatherGridRepository.save(WeatherGrid.create(62, 129));
+      testEntityManager.flush();
+
+      Instant from = Instant.parse("2026-07-29T00:00:00Z");
+      Instant to = Instant.parse("2026-07-30T00:00:00Z");
+      Instant within = Instant.parse("2026-07-29T03:00:00Z");
+      Weather matched1 = weatherRepository.save(
+          weatherOf(targetGrid, Instant.parse("2026-07-27T08:00:00Z"), within, 20.0));
+      Weather matched2 = weatherRepository.save(
+          weatherOf(otherTargetGrid, Instant.parse("2026-07-27T08:00:00Z"), within, 21.0));
+      weatherRepository.save(
+          weatherOf(excludedGrid, Instant.parse("2026-07-27T08:00:00Z"), within, 22.0));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      List<Weather> result = weatherRepository
+          .findAllByWeatherGridIdInAndForecastAtGreaterThanEqualAndForecastAtLessThan(
+              List.of(targetGrid.getId(), otherTargetGrid.getId()), from, to);
+
+      assertThat(result).extracting(Weather::getId)
+          .containsExactlyInAnyOrder(matched1.getId(), matched2.getId());
     }
   }
 
@@ -242,6 +236,63 @@ class WeatherRepositoryTest {
       List<WeatherGrid> result = weatherRepository.findGridsUpdatedAt(thisRun);
 
       assertThat(result).extracting(WeatherGrid::getId).containsExactly(updatedGrid.getId());
+    }
+  }
+
+  @Nested
+  @DisplayName("FindAllByWeatherGridIdInAndForecastAt")
+  class FindAllByWeatherGridIdInAndForecastAt {
+
+    @Test
+    @DisplayName("격자_ID_목록과_forecastAt이_정확히_일치하는_슬롯만_반환한다")
+    void 격자_ID_목록과_forecastAt이_정확히_일치하는_슬롯만_반환한다() {
+      WeatherGrid targetGrid = weatherGridRepository.save(WeatherGrid.create(60, 127));
+      WeatherGrid otherGrid = weatherGridRepository.save(WeatherGrid.create(61, 128));
+      testEntityManager.flush();
+
+      Instant target = Instant.parse("2026-07-27T02:00:00Z");
+      Instant other = Instant.parse("2026-07-27T05:00:00Z");
+      Weather matched = weatherRepository.save(
+          weatherOf(targetGrid, Instant.parse("2026-07-27T00:00:00Z"), target, 20.0));
+      weatherRepository.save(
+          weatherOf(targetGrid, Instant.parse("2026-07-27T00:00:00Z"), other, 21.0));
+      weatherRepository.save(
+          weatherOf(otherGrid, Instant.parse("2026-07-27T00:00:00Z"), target, 22.0));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      List<Weather> result = weatherRepository
+          .findAllByWeatherGridIdInAndForecastAt(List.of(targetGrid.getId()), target);
+
+      assertThat(result).extracting(Weather::getId).containsExactly(matched.getId());
+    }
+  }
+
+  @Nested
+  @DisplayName("UpdateBaseline")
+  class UpdateBaseline {
+
+    @Test
+    @DisplayName("baseline_컬럼만_갱신하고_current_컬럼은_그대로_둔다")
+    void baseline_컬럼만_갱신하고_current_컬럼은_그대로_둔다() {
+      WeatherGrid weatherGrid = weatherGridRepository.save(WeatherGrid.create(60, 127));
+      testEntityManager.flush();
+
+      Weather weather = weatherRepository.save(
+          weatherOf(weatherGrid, Instant.parse("2026-07-27T00:00:00Z"),
+              Instant.parse("2026-07-27T02:00:00Z"), 20.0));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      weatherRepository.updateBaseline(weather.getId(), 25.0, PrecipitationType.RAIN, 40.0, 5.0);
+      testEntityManager.clear();
+
+      Weather reloaded = weatherRepository.findById(weather.getId()).orElseThrow();
+      assertThat(reloaded.getBaselineTemperatureCurrent()).isEqualTo(25.0);
+      assertThat(reloaded.getBaselinePrecipitationType()).isEqualTo(PrecipitationType.RAIN);
+      assertThat(reloaded.getBaselinePrecipitationProbability()).isEqualTo(40.0);
+      assertThat(reloaded.getBaselinePrecipitationAmount()).isEqualTo(5.0);
+      assertThat(reloaded.getTemperatureCurrent()).isEqualTo(20.0);
     }
   }
 
