@@ -23,6 +23,7 @@ import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSum
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedCreateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedDto;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
+import com.sprint.mission.otboo.domain.social.feed.dto.FeedSearchResult;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedUpdateRequest;
 import com.sprint.mission.otboo.domain.social.feed.dto.OotdDto;
@@ -39,6 +40,7 @@ import com.sprint.mission.otboo.domain.social.feed.exception.WeatherNotFoundExce
 import com.sprint.mission.otboo.domain.social.feed.mapper.FeedMapper;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedLikeRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
+import com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.FeedSearchRepository;
 import com.sprint.mission.otboo.domain.social.follow.repository.FollowRepository;
 import com.sprint.mission.otboo.domain.weathernotification.weather.dto.PrecipitationDto;
 import com.sprint.mission.otboo.domain.weathernotification.weather.dto.TemperatureDto;
@@ -104,6 +106,9 @@ class FeedServiceTest {
 
   @Mock
   FollowRepository followRepository;
+
+  @Mock
+  FeedSearchRepository feedSearchRepository;
 
   private static void setFeedId(Feed feed, UUID id) {
     try {
@@ -663,6 +668,50 @@ class FeedServiceTest {
       // when & then
       assertThatThrownBy(() -> feedService.getFeeds(params, currentUserId))
           .isInstanceOf(AuthorNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("ES가 반환한 순서대로 피드를 정렬해 반환한다")
+    void ES가_반환한_순서대로_피드를_정렬해_반환한다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID authorId = UUID.randomUUID();
+      UserSummary summary = new UserSummary(authorId, "유저", "img.png");
+
+      UUID id1 = UUID.randomUUID();
+      UUID id2 = UUID.randomUUID();
+      UUID id3 = UUID.randomUUID();
+      Feed feed1 = Feed.create(authorId, UUID.randomUUID(), "피드1", DUMMY_SNAPSHOT, List.of());
+      Feed feed2 = Feed.create(authorId, UUID.randomUUID(), "피드2", DUMMY_SNAPSHOT, List.of());
+      Feed feed3 = Feed.create(authorId, UUID.randomUUID(), "피드3", DUMMY_SNAPSHOT, List.of());
+      setFeedId(feed1, id1);
+      setFeedId(feed2, id2);
+      setFeedId(feed3, id3);
+
+      FeedListParams params = params(10);
+
+      // ES는 3 → 1 → 2 순으로 반환
+      given(feedSearchRepository.search(params)).willReturn(
+          new FeedSearchResult(List.of(id3, id1, id2), 3L, null, null, false));
+      given(feedRepository.findAllById(List.of(id3, id1, id2)))
+          .willReturn(List.of(feed1, feed2, feed3));
+
+      given(userSummaryQueryRepository.findByUserIds(anyList())).willReturn(List.of(summary));
+      given(feedLikeRepository.findLikedFeedIds(any(), anyList())).willReturn(List.of());
+
+      FeedDto dto1 = new FeedDto(id1, null, null, summary, null, null, "피드1", 0L, 0, false);
+      FeedDto dto2 = new FeedDto(id2, null, null, summary, null, null, "피드2", 0L, 0, false);
+      FeedDto dto3 = new FeedDto(id3, null, null, summary, null, null, "피드3", 0L, 0, false);
+      given(feedMapper.toDto(feed1, summary, false)).willReturn(dto1);
+      given(feedMapper.toDto(feed2, summary, false)).willReturn(dto2);
+      given(feedMapper.toDto(feed3, summary, false)).willReturn(dto3);
+
+      // when
+      CursorPageResponse<FeedDto> result = feedService.getFeeds(params, currentUserId);
+
+      // then
+      assertThat(result.data()).containsExactly(dto3, dto1, dto2);
+      assertThat(result.totalCount()).isEqualTo(3L);
     }
   }
 
