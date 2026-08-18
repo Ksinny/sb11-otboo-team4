@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,12 @@ class FeedSearchCustomRepositoryImplTest {
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @BeforeEach
+  void setUp() {
+    feedSearchRepository.deleteAll();
+    operations.indexOps(FeedDocument.class).refresh();
   }
 
   @AfterEach
