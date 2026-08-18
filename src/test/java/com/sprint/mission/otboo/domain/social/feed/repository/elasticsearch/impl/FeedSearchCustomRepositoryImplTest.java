@@ -1,4 +1,4 @@
-package com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.querydsl.impl;
+package com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,10 +28,6 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 @DisplayName("FeedSearchCustomRepository")
 class FeedSearchCustomRepositoryImplTest {
-
-  static final WeatherSnapshot DUMMY_SNAPSHOT = new WeatherSnapshot(
-      SkyStatus.CLEAR, PrecipitationType.NONE,
-      0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
 
   @Autowired
   private FeedSearchRepository feedSearchRepository;
@@ -119,7 +115,7 @@ class FeedSearchCustomRepositoryImplTest {
       assertThat(result.feedIds()).hasSize(2);
       assertThat(result.totalCount()).isEqualTo(2L);
     }
-    
+
     @Test
     @DisplayName("영문 대소문자를 구분하지 않고 검색된다")
     void 영문_대소문자를_구분하지_않고_검색된다() {
@@ -132,6 +128,39 @@ class FeedSearchCustomRepositoryImplTest {
 
       // then
       assertThat(result.feedIds()).containsExactly(matched);
+    }
+
+    @Test
+    @DisplayName("검색어가 빈 문자열이면 전체를 반환한다")
+    void 검색어가_빈_문자열이면_전체를_반환한다() {
+      // given
+      indexFeed("따뜻한 니트", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      indexFeed("시원한 반팔", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params(""));
+
+      // then
+      assertThat(result.feedIds()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("조건에 맞는 피드가 없으면 빈 목록을 반환한다")
+    void 조건에_맞는_피드가_없으면_빈_목록을_반환한다() {
+      // given
+      indexFeed("따뜻한 니트", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params("존재하지않는검색어"));
+
+      // then
+      assertThat(result.feedIds()).isEmpty();
+      assertThat(result.totalCount()).isZero();
+      assertThat(result.hasNext()).isFalse();
+      assertThat(result.nextCursor()).isNull();
     }
   }
 
@@ -382,9 +411,9 @@ class FeedSearchCustomRepositoryImplTest {
 
       // when: 첫 페이지 조회 — DESC이므로 third, second
       FeedSearchResult page1 = feedSearchRepository.search(firstPage);
-      assertThat(page1.nextCursor()).isEqualTo("2026-08-02T00:00:00Z");
 
       // then
+      assertThat(page1.nextCursor()).isEqualTo("2026-08-02T00:00:00Z");
       assertThat(page1.feedIds()).containsExactly(third, second);
 
       // when: 커서로 다음 페이지 조회
