@@ -1,6 +1,8 @@
 package com.sprint.mission.otboo.domain.social.feed.repository;
 
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -30,4 +32,7 @@ public interface FeedRepository extends JpaRepository<Feed, UUID> {
   @Query("select f.authorId from Feed f where f.id = :feedId and f.softDeletable.deletedAt is null")
   Optional<UUID> findAuthorId(@Param("feedId") UUID feedId);
 
+  default List<Feed> findAllActiveByIds(Collection<UUID> ids) {
+    return List.of();
+  }
 }

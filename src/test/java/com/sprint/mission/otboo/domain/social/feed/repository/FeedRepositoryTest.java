@@ -359,4 +359,29 @@ class FeedRepositoryTest {
       assertThat(found.getOotds()).isEmpty();
     }
   }
+
+  @Nested
+  @DisplayName("findAllActiveByIds")
+  class FindAllActiveByIds {
+
+    @Test
+    @DisplayName("소프트 삭제되지 않은 피드만 반환한다")
+    void 소프트_삭제되지_않은_피드만_반환한다() {
+      // given
+      Feed active = createAndSaveFeed("살아있는 피드");
+      Feed deleted = createAndSaveFeed("삭제된 피드");
+      deleted.delete();
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      List<Feed> result = feedRepository.findAllActiveByIds(
+          List.of(active.getId(), deleted.getId()));
+
+      // then
+      assertThat(result)
+          .extracting(Feed::getContent)
+          .containsExactly("살아있는 피드");
+    }
+  }
 }
