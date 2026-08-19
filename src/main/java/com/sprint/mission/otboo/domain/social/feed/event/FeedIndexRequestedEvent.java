@@ -14,8 +14,11 @@ import java.util.UUID;
  * </ul>
  *
  * <p>{@code @TransactionalEventListener(AFTER_COMMIT)}에서 처리되므로 같은 트랜잭션 안에서
- * 발행하면 커밋 이후에 인덱싱된다. 발행을 빠뜨려도 정합성 배치가 주기적으로 보정하지만,
- * 그때까지는 해당 피드가 검색되지 않는다.
+ * 발행하면 커밋 이후에 인덱싱된다.
+ *
+ * <p>현재 자동 복구 경로는 없다. 발행을 빠뜨리거나 인덱싱이 실패하면 해당 피드는 계속
+ * 검색되지 않는다. 주기적 보정은 #205에서 정합성 배치로 구현할 예정이며, 그전까지는
+ * {@code FEED_INDEX_FAILED} 로그로 실패를 탐지해 수동 재색인해야 한다.
  */
 public record FeedIndexRequestedEvent(UUID feedId, IndexAction action) {
 
