@@ -105,6 +105,7 @@ class FeedIndexEventListenerTest {
       // when & then
       assertThatCode(() -> listener.handle(FeedIndexRequestedEvent.upsert(feedId)))
           .doesNotThrowAnyException();
+      verify(feedRepository).findById(feedId);
       verify(feedSearchRepository, never()).save(any());
       verify(feedSearchRepository, never()).deleteById(any());
     }
@@ -124,6 +125,7 @@ class FeedIndexEventListenerTest {
       // when & then
       assertThatCode(() -> listener.handle(FeedIndexRequestedEvent.upsert(feedId)))
           .doesNotThrowAnyException();
+      verify(feedSearchRepository).save(any(FeedDocument.class));
     }
 
     @Test
@@ -137,6 +139,7 @@ class FeedIndexEventListenerTest {
       // when & then
       assertThatCode(() -> listener.handle(FeedIndexRequestedEvent.delete(feedId)))
           .doesNotThrowAnyException();
+      verify(feedSearchRepository).deleteById(feedId.toString());
       verify(feedSearchRepository, never()).save(any());
     }
 
@@ -174,6 +177,7 @@ class FeedIndexEventListenerTest {
       // when & then
       assertThatCode(() -> listener.handle(FeedIndexRequestedEvent.upsert(feedId)))
           .doesNotThrowAnyException();
+      verify(feedSearchRepository).save(any(FeedDocument.class));
     }
   }
 }
