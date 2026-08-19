@@ -32,7 +32,6 @@ public interface FeedRepository extends JpaRepository<Feed, UUID> {
   @Query("select f.authorId from Feed f where f.id = :feedId and f.softDeletable.deletedAt is null")
   Optional<UUID> findAuthorId(@Param("feedId") UUID feedId);
 
-  default List<Feed> findAllActiveByIds(Collection<UUID> ids) {
-    return List.of();
-  }
+  @Query("select f from Feed f where f.id in :ids and f.softDeletable.deletedAt is null")
+  List<Feed> findAllActiveByIds(@Param("ids") Collection<UUID> ids);
 }
