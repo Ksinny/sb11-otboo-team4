@@ -85,12 +85,12 @@ public class FeedService {
         params.sortBy().name(),
         params.sortDirection()), currentUserId);
   }
-
+  
   private List<Feed> findFeedsInSearchOrder(List<UUID> feedIds) {
     if (feedIds.isEmpty()) {
       return List.of();
     }
-    Map<UUID, Feed> feedMap = feedRepository.findAllById(feedIds).stream()
+    Map<UUID, Feed> feedMap = feedRepository.findAllActiveByIds(feedIds).stream()
         .collect(Collectors.toMap(Feed::getId, Function.identity()));
     return feedIds.stream()
         .map(feedMap::get)

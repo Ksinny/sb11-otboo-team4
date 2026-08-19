@@ -511,7 +511,7 @@ class FeedServiceTest {
 
       given(feedSearchRepository.search(params)).willReturn(
           new FeedSearchResult(List.of(id1, id2), 2L, "커서값", id2, true));
-      given(feedRepository.findAllById(List.of(id1, id2)))
+      given(feedRepository.findAllActiveByIds(List.of(id1, id2)))
           .willReturn(List.of(feed1, feed2));
       given(userSummaryQueryRepository.findByUserIds(anyList()))
           .willReturn(List.of(summary1, summary2));
@@ -545,7 +545,7 @@ class FeedServiceTest {
       FeedListParams params = params(2);
       given(feedSearchRepository.search(params)).willReturn(
           new FeedSearchResult(List.of(feedId), 1L, null, null, false));
-      given(feedRepository.findAllById(List.of(feedId))).willReturn(List.of(feed));
+      given(feedRepository.findAllActiveByIds(List.of(feedId))).willReturn(List.of(feed));
 
       // author 조회 결과 없음
       given(userSummaryQueryRepository.findByUserIds(List.of(authorId)))
@@ -576,7 +576,7 @@ class FeedServiceTest {
 
       given(feedSearchRepository.search(params)).willReturn(
           new FeedSearchResult(List.of(id1, id2), 2L, null, null, false));
-      given(feedRepository.findAllById(List.of(id1, id2)))
+      given(feedRepository.findAllActiveByIds(List.of(id1, id2)))
           .willReturn(List.of(feed1, feed2));
       given(userSummaryQueryRepository.findByUserIds(anyList()))
           .willReturn(List.of(summary1, summary2));
@@ -614,7 +614,7 @@ class FeedServiceTest {
 
       given(feedSearchRepository.search(params)).willReturn(
           new FeedSearchResult(List.of(id1, id2), 2L, null, null, false));
-      given(feedRepository.findAllById(List.of(id1, id2)))
+      given(feedRepository.findAllActiveByIds(List.of(id1, id2)))
           .willReturn(List.of(feed1, feed2));
 
       UserSummary summary1 = new UserSummary(authorId1, "유저1", "img1.png");
@@ -656,7 +656,7 @@ class FeedServiceTest {
 
       given(feedSearchRepository.search(params)).willReturn(
           new FeedSearchResult(List.of(likedFeedId, notLikedFeedId), 2L, null, null, false));
-      given(feedRepository.findAllById(List.of(likedFeedId, notLikedFeedId)))
+      given(feedRepository.findAllActiveByIds(List.of(likedFeedId, notLikedFeedId)))
           .willReturn(List.of(likedFeed, notLikedFeed));
 
       FeedDto likedDto = new FeedDto(likedFeedId, null, null, summary, null, null,
@@ -701,7 +701,7 @@ class FeedServiceTest {
       given(feedSearchRepository.search(params)).willReturn(
           new FeedSearchResult(List.of(id3, id1, id2), 3L, null, null, false));
       // DB는 순서를 보장하지 않으므로 다른 순서로 반환
-      given(feedRepository.findAllById(List.of(id3, id1, id2)))
+      given(feedRepository.findAllActiveByIds(List.of(id3, id1, id2)))
           .willReturn(List.of(feed1, feed2, feed3));
 
       given(userSummaryQueryRepository.findByUserIds(anyList())).willReturn(List.of(summary));
@@ -737,7 +737,7 @@ class FeedServiceTest {
       setFeedId(activeFeed, activeId);
 
       FeedListParams params = params(10);
-      
+
       given(feedSearchRepository.search(params)).willReturn(
           new FeedSearchResult(List.of(activeId, deletedId), 2L, null, null, false));
       given(feedRepository.findAllActiveByIds(List.of(activeId, deletedId)))
