@@ -31,11 +31,17 @@ public final class StompDestinationUtil {
       return false;
     }
     String pair = destination.substring(DESTINATION_PREFIX.length());
-    String[] participants = pair.split(SEPARATOR);
+    String[] participants = pair.split(SEPARATOR, -1);
     if (participants.length != PARTICIPANT_COUNT) {
       return false;
     }
-    String id = userId.toString();
-    return id.equals(participants[0]) || id.equals(participants[1]);
+    try {
+      UUID first = UUID.fromString(participants[0]);
+      UUID second = UUID.fromString(participants[1]);
+      return directMessageDestination(first, second).equals(destination)
+          && (userId.equals(first) || userId.equals(second));
+    } catch (IllegalArgumentException e) {
+      return false;
+    }
   }
 }

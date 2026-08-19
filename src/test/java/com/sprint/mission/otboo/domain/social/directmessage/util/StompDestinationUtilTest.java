@@ -83,5 +83,27 @@ class StompDestinationUtilTest {
           "/sub/notifications", userId)).isFalse();
       assertThat(StompDestinationUtil.isDirectMessageParticipant(null, userId)).isFalse();
     }
+
+    @Test
+    @DisplayName("UUID 형식이 아니면 거절한다")
+    void UUID_형식이_아니면_거절한다() {
+      UUID userId = UUID.randomUUID();
+      assertThat(StompDestinationUtil.isDirectMessageParticipant(
+          "/sub/direct-messages_" + userId + "_not-a-uuid", userId)).isFalse();
+    }
+
+    @Test
+    @DisplayName("사전순이 아닌 destination은 거절한다")
+    void 사전순이_아닌_destination은_거절한다() {
+      // given
+      UUID a = UUID.randomUUID();
+      UUID b = UUID.randomUUID();
+      String smaller = a.toString().compareTo(b.toString()) < 0 ? a.toString() : b.toString();
+      String larger = a.toString().compareTo(b.toString()) < 0 ? b.toString() : a.toString();
+
+      // when & then
+      assertThat(StompDestinationUtil.isDirectMessageParticipant(
+          "/sub/direct-messages_" + larger + "_" + smaller, a)).isFalse();
+    }
   }
 }
