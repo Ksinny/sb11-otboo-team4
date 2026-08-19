@@ -24,6 +24,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   @Override
   public void configureMessageBroker(MessageBrokerRegistry registry) {
     registry.setApplicationDestinationPrefixes("/pub");
+    // SimpleBroker는 구독 정보를 이 JVM 메모리에만 보관한다. 스케일아웃 전에 외부 브로커 전환 필요
     registry.enableSimpleBroker("/sub");
     registry.setUserDestinationPrefix("/user");
   }
