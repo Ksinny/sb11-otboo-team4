@@ -256,8 +256,11 @@ class DirectMessageServiceTest {
           .set("receiverId", receiverId)
           .sample();
 
-      given(userSummaryQueryRepository.findByUserId(senderId))
-          .willReturn(new UserSummary(senderId, "발신자", null));
+      UserSummary sender = fm.giveMeBuilder(UserSummary.class)
+          .set("userId", senderId)
+          .set("name", "발신자")
+          .sample();
+      given(userSummaryQueryRepository.findByUserId(senderId)).willReturn(sender);
       given(userSummaryQueryRepository.findByUserId(receiverId))
           .willThrow(UserNotFoundException.withNone());
 
