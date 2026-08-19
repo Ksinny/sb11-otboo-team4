@@ -67,5 +67,21 @@ class StompDestinationUtilTest {
       assertThat(StompDestinationUtil.isDirectMessageParticipant(destination, stranger))
           .isFalse();
     }
+
+    @Test
+    @DisplayName("형식이 어긋난 destination은 거절한다")
+    void 형식이_어긋난_destination은_거절한다() {
+      // given
+      UUID userId = UUID.randomUUID();
+
+      // when & then
+      assertThat(StompDestinationUtil.isDirectMessageParticipant(
+          "/sub/direct-messages_", userId)).isFalse();
+      assertThat(StompDestinationUtil.isDirectMessageParticipant(
+          "/sub/direct-messages_" + userId, userId)).isFalse();
+      assertThat(StompDestinationUtil.isDirectMessageParticipant(
+          "/sub/notifications", userId)).isFalse();
+      assertThat(StompDestinationUtil.isDirectMessageParticipant(null, userId)).isFalse();
+    }
   }
 }
