@@ -1,6 +1,7 @@
 package com.sprint.mission.otboo.domain.social.directmessage.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -13,6 +14,7 @@ import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageDto;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageSendRequest;
 import com.sprint.mission.otboo.domain.social.directmessage.exception.DirectMessageForbiddenException;
+import com.sprint.mission.otboo.domain.social.directmessage.exception.DirectMessageUnauthorizedException;
 import com.sprint.mission.otboo.domain.social.directmessage.service.DirectMessageService;
 import com.sprint.mission.otboo.global.dto.ErrorResponse;
 import com.sprint.mission.otboo.security.details.UserPrincipal;
@@ -94,6 +96,31 @@ class DirectMessageStompControllerTest {
           "/sub/direct-messages_11111111-1111-1111-1111-111111111111"
               + "_99999999-9999-9999-9999-999999999999",
           saved);
+    }
+
+    @Test
+    @DisplayName("Principal이 null이면 DirectMessageUnauthorizedException을 던진다")
+    void Principal이_null이면_DirectMessageUnauthorizedException을_던진다() {
+      // given
+      DirectMessageSendRequest request = fm.giveMeBuilder(DirectMessageSendRequest.class)
+          .sample();
+
+      // when & then
+      assertThatThrownBy(() -> directMessageStompController.send(request, null))
+          .isInstanceOf(DirectMessageUnauthorizedException.class);
+    }
+
+    @Test
+    @DisplayName("Principal 타입이 예상과 다르면 DirectMessageUnauthorizedException을 던진다")
+    void Principal_타입이_예상과_다르면_DirectMessageUnauthorizedException을_던진다() {
+      // given
+      DirectMessageSendRequest request = fm.giveMeBuilder(DirectMessageSendRequest.class)
+          .sample();
+      Principal unexpected = () -> "unexpected";
+
+      // when & then
+      assertThatThrownBy(() -> directMessageStompController.send(request, unexpected))
+          .isInstanceOf(DirectMessageUnauthorizedException.class);
     }
   }
 
