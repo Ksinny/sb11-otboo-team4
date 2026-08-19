@@ -182,7 +182,7 @@ class DirectMessageStompControllerTest {
       // then
       assertThat(result.exceptionName()).isEqualTo("IllegalStateException");
       assertThat(result.message()).isEqualTo("메시지 처리 중 오류가 발생했습니다.");
-      assertThat(result.details()).isEmpty();
+      assertThat(result.details()).isNull();
     }
   }
 }

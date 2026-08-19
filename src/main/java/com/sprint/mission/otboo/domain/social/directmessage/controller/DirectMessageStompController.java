@@ -76,6 +76,8 @@ public class DirectMessageStompController {
   @MessageExceptionHandler(Exception.class)
   @SendToUser("/queue/errors")
   public ErrorResponse handleException(Exception e) {
-    return null;
+    log.error("[{}] {}", e.getClass().getSimpleName(), e.getMessage(), e);
+    
+    return new ErrorResponse(e.getClass().getSimpleName(), "메시지 처리 중 오류가 발생했습니다.", null);
   }
 }
