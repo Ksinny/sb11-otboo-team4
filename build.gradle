@@ -50,6 +50,7 @@ dependencies {
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
     implementation platform('software.amazon.awssdk:bom:2.51.4')
     implementation 'software.amazon.awssdk:s3'
+    implementation 'org.jsoup:jsoup:1.18.1'
     implementation 'org.apache.tika:tika-core:2.9.2'
     implementation 'org.springframework.retry:spring-retry'
 
@@ -81,6 +82,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-data-elasticsearch-test'
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
 }
 
 dependencyManagement {
