@@ -72,4 +72,10 @@ public class DirectMessageStompController {
     log.warn("[{}] {}", e.getClass().getSimpleName(), details);
     return new ErrorResponse(e.getClass().getSimpleName(), "요청 값이 유효하지 않습니다.", details);
   }
+
+  @MessageExceptionHandler(Exception.class)
+  @SendToUser("/queue/errors")
+  public ErrorResponse handleException(Exception e) {
+    return null;
+  }
 }

@@ -169,5 +169,20 @@ class DirectMessageStompControllerTest {
       assertThat(result.message()).isEqualTo("요청 값이 유효하지 않습니다.");
       assertThat(result.details()).containsEntry("content", "공백일 수 없습니다");
     }
+
+    @Test
+    @DisplayName("처리되지 않은 예외는 내부 상세를 감춘 ErrorResponse로 변환한다")
+    void 처리되지_않은_예외는_내부_상세를_감춘_ErrorResponse로_변환한다() {
+      // given
+      Exception exception = new IllegalStateException("DB 커넥션 풀 고갈");
+
+      // when
+      ErrorResponse result = directMessageStompController.handleException(exception);
+
+      // then
+      assertThat(result.exceptionName()).isEqualTo("IllegalStateException");
+      assertThat(result.message()).isEqualTo("메시지 처리 중 오류가 발생했습니다.");
+      assertThat(result.details()).isEmpty();
+    }
   }
 }
