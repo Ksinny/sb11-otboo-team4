@@ -87,9 +87,13 @@ class StompDestinationUtilTest {
     @Test
     @DisplayName("UUID 형식이 아니면 거절한다")
     void UUID_형식이_아니면_거절한다() {
+      // given
       UUID userId = UUID.randomUUID();
-      assertThat(StompDestinationUtil.isDirectMessageParticipant(
-          "/sub/direct-messages_" + userId + "_not-a-uuid", userId)).isFalse();
+      String destination = "/sub/direct-messages_" + userId + "_not-a-uuid";
+
+      // when & then
+      assertThat(StompDestinationUtil.isDirectMessageParticipant(destination, userId))
+          .isFalse();
     }
 
     @Test
