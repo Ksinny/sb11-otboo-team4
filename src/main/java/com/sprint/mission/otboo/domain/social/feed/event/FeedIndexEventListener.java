@@ -6,6 +6,8 @@ import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.FeedSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -37,9 +39,14 @@ public class FeedIndexEventListener {
               // 삭제됐거나 존재하지 않으면 인덱스에서도 제거한다.
               // 이벤트 처리 순서가 뒤집혀도 삭제된 피드가 되살아나지 않는다.
               () -> feedSearchRepository.deleteById(event.feedId().toString()));
+    } catch (DataAccessResourceFailureException e) {
+      log.error("피드 검색 인덱싱 실패 - ES 연결 불가: feedId={}, action={}",
+          event.feedId(), event.action(), e);
+    } catch (DataAccessException e) {
+      log.error("피드 검색 인덱싱 실패 - 문서 처리 오류: feedId={}, action={}",
+          event.feedId(), event.action(), e);
     } catch (Exception e) {
-      // 인덱싱 실패가 본 기능을 막지 않도록 로그만 남긴다. 복구는 배치 재색인으로 처리.
-      log.error("피드 검색 인덱싱 실패: feedId={}, action={}",
+      log.error("피드 검색 인덱싱 실패 - 예상치 못한 오류: feedId={}, action={}",
           event.feedId(), event.action(), e);
     }
   }
