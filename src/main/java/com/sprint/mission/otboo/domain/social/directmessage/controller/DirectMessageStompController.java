@@ -2,6 +2,7 @@ package com.sprint.mission.otboo.domain.social.directmessage.controller;
 
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageDto;
 import com.sprint.mission.otboo.domain.social.directmessage.dto.DirectMessageSendRequest;
+import com.sprint.mission.otboo.domain.social.directmessage.exception.DirectMessageUnauthorizedException;
 import com.sprint.mission.otboo.domain.social.directmessage.service.DirectMessageService;
 import com.sprint.mission.otboo.domain.social.directmessage.util.StompDestinationUtil;
 import com.sprint.mission.otboo.global.dto.ErrorResponse;
@@ -44,7 +45,10 @@ public class DirectMessageStompController {
   }
 
   private UUID extractUserId(Principal principal) {
-    UserPrincipal userPrincipal = (UserPrincipal) ((Authentication) principal).getPrincipal();
+    if (!(principal instanceof Authentication authentication)
+        || !(authentication.getPrincipal() instanceof UserPrincipal userPrincipal)) {
+      throw DirectMessageUnauthorizedException.withNone();
+    }
     return userPrincipal.userId();
   }
 
