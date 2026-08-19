@@ -27,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FeedIndexEventListener")
@@ -156,6 +157,23 @@ class FeedIndexEventListenerTest {
       // then
       verify(feedSearchRepository).deleteById(feedId.toString());
       verify(feedSearchRepository, never()).save(any(FeedDocument.class));
+    }
+
+    @Test
+    @DisplayName("문서 처리 오류가 나도 예외를 던지지 않는다")
+    void 문서_처리_오류가_나도_예외를_던지지_않는다() {
+      // given
+      UUID feedId = UUID.randomUUID();
+      Feed feed = Feed.create(UUID.randomUUID(), UUID.randomUUID(), "오늘의 착장",
+          DUMMY_SNAPSHOT, List.of());
+      setFeedId(feed, feedId);
+      given(feedRepository.findById(feedId)).willReturn(Optional.of(feed));
+      willThrow(new InvalidDataAccessApiUsageException("문서 매핑 오류"))
+          .given(feedSearchRepository).save(any(FeedDocument.class));
+
+      // when & then
+      assertThatCode(() -> listener.handle(FeedIndexRequestedEvent.upsert(feedId)))
+          .doesNotThrowAnyException();
     }
   }
 }
