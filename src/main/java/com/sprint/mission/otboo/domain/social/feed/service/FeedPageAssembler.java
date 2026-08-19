@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class FeedPageAssembler {
 
   private final FeedRepository feedRepository;
@@ -40,7 +41,6 @@ public class FeedPageAssembler {
   private final FeedLikeRepository feedLikeRepository;
   private final FeedMapper feedMapper;
 
-  @Transactional(readOnly = true)
   public CursorPageResponse<FeedDto> assemble(
       FeedSearchResult searchResult, FeedListParams params, UUID currentUserId) {
     List<Feed> feeds = findFeedsInSearchOrder(searchResult.feedIds());
