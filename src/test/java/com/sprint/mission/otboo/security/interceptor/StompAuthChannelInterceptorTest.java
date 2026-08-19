@@ -199,5 +199,35 @@ class StompAuthChannelInterceptorTest {
       assertThatCode(() -> interceptor.preSend(message, null))
           .doesNotThrowAnyException();
     }
+
+    @Test
+    @DisplayName("알 수 없는 destination은 구독을 거절한다")
+    void 알_수_없는_destination은_구독을_거절한다() {
+      // given
+      UUID userId = UUID.randomUUID();
+      Message<byte[]> message = subscribeMessage("/sub/notifications", userId);
+
+      // when & then
+      assertThatThrownBy(() -> interceptor.preSend(message, null))
+          .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("인증 정보가 없으면 구독을 거절한다")
+    void 인증_정보가_없으면_구독을_거절한다() {
+      // given
+      UUID a = UUID.randomUUID();
+      UUID b = UUID.randomUUID();
+
+      StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+      accessor.setDestination(StompDestinationUtil.directMessageDestination(a, b));
+      accessor.setLeaveMutable(true);
+      Message<byte[]> message = MessageBuilder.createMessage(new byte[0],
+          accessor.getMessageHeaders());
+
+      // when & then
+      assertThatThrownBy(() -> interceptor.preSend(message, null))
+          .isInstanceOf(AccessDeniedException.class);
+    }
   }
 }

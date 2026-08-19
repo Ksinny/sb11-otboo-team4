@@ -65,7 +65,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         List.of(new SimpleGrantedAuthority(userPrincipal.role()))));
   }
 
-  // 인가는 채널 계층에 둔다. STOMP는 SUBSCRIBE 한 번만 통과하면 이후 메시지는 검사 없이 흘러가므로, 구독 시점에 대화 당사자인지 확인해야 한다.
+  // STOMP는 SUBSCRIBE 한 번만 통과하면 이후 메시지가 검사 없이 흘러가므로, 구독 시점에 대화 당사자인지 확인한다.
   private void authorizeSubscription(StompHeaderAccessor accessor) {
     UUID userId = resolveUserId(accessor);
     if (userId == null) {
