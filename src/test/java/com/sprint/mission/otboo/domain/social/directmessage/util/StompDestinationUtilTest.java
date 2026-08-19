@@ -36,4 +36,36 @@ class StompDestinationUtilTest {
           .isEqualTo(EXPECTED_DESTINATION);
     }
   }
+
+  @Nested
+  @DisplayName("isDirectMessageParticipant")
+  class IsDirectMessageParticipant {
+
+    @Test
+    @DisplayName("대화 당사자면 true를 반환한다")
+    void 대화_당사자면_true를_반환한다() {
+      // given
+      UUID me = UUID.randomUUID();
+      UUID other = UUID.randomUUID();
+      String destination = StompDestinationUtil.directMessageDestination(me, other);
+
+      // when & then
+      assertThat(StompDestinationUtil.isDirectMessageParticipant(destination, me)).isTrue();
+      assertThat(StompDestinationUtil.isDirectMessageParticipant(destination, other)).isTrue();
+    }
+
+    @Test
+    @DisplayName("제3자면 false를 반환한다")
+    void 제3자면_false를_반환한다() {
+      // given
+      UUID a = UUID.randomUUID();
+      UUID b = UUID.randomUUID();
+      UUID stranger = UUID.randomUUID();
+      String destination = StompDestinationUtil.directMessageDestination(a, b);
+
+      // when & then
+      assertThat(StompDestinationUtil.isDirectMessageParticipant(destination, stranger))
+          .isFalse();
+    }
+  }
 }

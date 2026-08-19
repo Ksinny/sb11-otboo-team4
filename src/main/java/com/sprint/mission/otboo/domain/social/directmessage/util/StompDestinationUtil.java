@@ -16,4 +16,8 @@ public final class StompDestinationUtil {
         ? DESTINATION_PREFIX + a + "_" + b
         : DESTINATION_PREFIX + b + "_" + a;
   }
+
+  public static boolean isDirectMessageParticipant(String destination, UUID userId) {
+    return false;
+  }
 }
