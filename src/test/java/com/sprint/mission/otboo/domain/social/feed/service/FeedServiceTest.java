@@ -721,6 +721,41 @@ class FeedServiceTest {
       assertThat(result.data()).containsExactly(dto3, dto1, dto2);
       assertThat(result.totalCount()).isEqualTo(3L);
     }
+
+    @Test
+    @DisplayName("소프트 삭제된 피드는 목록에서 제외한다")
+    void 소프트_삭제된_피드는_목록에서_제외한다() {
+      // given
+      UUID currentUserId = UUID.randomUUID();
+      UUID authorId = UUID.randomUUID();
+      UserSummary summary = new UserSummary(authorId, "유저", "img.png");
+
+      UUID activeId = UUID.randomUUID();
+      UUID deletedId = UUID.randomUUID();
+      Feed activeFeed = Feed.create(authorId, UUID.randomUUID(), "살아있는 피드",
+          DUMMY_SNAPSHOT, List.of());
+      setFeedId(activeFeed, activeId);
+
+      FeedListParams params = params(10);
+      
+      given(feedSearchRepository.search(params)).willReturn(
+          new FeedSearchResult(List.of(activeId, deletedId), 2L, null, null, false));
+      given(feedRepository.findAllActiveByIds(List.of(activeId, deletedId)))
+          .willReturn(List.of(activeFeed));
+
+      given(userSummaryQueryRepository.findByUserIds(anyList())).willReturn(List.of(summary));
+      given(feedLikeRepository.findLikedFeedIds(any(), anyList())).willReturn(List.of());
+
+      FeedDto activeDto = new FeedDto(activeId, null, null, summary, null, null,
+          "살아있는 피드", 0L, 0, false);
+      given(feedMapper.toDto(activeFeed, summary, false)).willReturn(activeDto);
+
+      // when
+      CursorPageResponse<FeedDto> result = feedService.getFeeds(params, currentUserId);
+
+      // then
+      assertThat(result.data()).containsExactly(activeDto);
+    }
   }
 
   @Nested
