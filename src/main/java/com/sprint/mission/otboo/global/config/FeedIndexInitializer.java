@@ -41,7 +41,7 @@ public class FeedIndexInitializer implements ApplicationRunner {
       if (!isAlreadyExists(e)) {
         throw e;
       }
-      log.info("피드 검색 인덱스가 이미 존재합니다.");
+      log.warn("피드 검색 인덱스가 이미 존재합니다.");
     }
   }
 
