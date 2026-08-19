@@ -17,6 +17,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class FeedIndexEventListener {
 
+  private static final String INDEX_FAILURE_MARKER = "FEED_INDEX_FAILED";
+
   private final FeedRepository feedRepository;
   private final FeedSearchRepository feedSearchRepository;
 
@@ -40,14 +42,20 @@ public class FeedIndexEventListener {
               // 이벤트 처리 순서가 뒤집혀도 삭제된 피드가 되살아나지 않는다.
               () -> feedSearchRepository.deleteById(event.feedId().toString()));
     } catch (DataAccessResourceFailureException e) {
-      log.error("피드 검색 인덱싱 실패 - ES 연결 불가: feedId={}, action={}",
-          event.feedId(), event.action(), e);
+      // ES 연결 자체가 안 되는 상황 — 이 시점의 모든 인덱싱이 실패 중이다.
+      logIndexFailure(event, "CONNECTION", e);
     } catch (DataAccessException e) {
-      log.error("피드 검색 인덱싱 실패 - 문서 처리 오류: feedId={}, action={}",
-          event.feedId(), event.action(), e);
+      // 문서 매핑 오류 등 — 해당 건만 실패한다.
+      logIndexFailure(event, "DOCUMENT", e);
     } catch (Exception e) {
-      log.error("피드 검색 인덱싱 실패 - 예상치 못한 오류: feedId={}, action={}",
-          event.feedId(), event.action(), e);
+      logIndexFailure(event, "UNKNOWN", e);
     }
+  }
+
+  // 인덱싱 실패가 본 기능을 막지 않도록 로그만 남긴다. 복구는 정합성 배치가 담당한다.
+  // 로그 수집에서 마커로 검색해 실패 건을 추출할 수 있도록 고정 형식으로 기록한다.
+  private void logIndexFailure(FeedIndexRequestedEvent event, String reason, Exception e) {
+    log.error("{} feedId={}, action={}, reason={}",
+        INDEX_FAILURE_MARKER, event.feedId(), event.action(), reason, e);
   }
 }
