@@ -37,7 +37,11 @@ public interface FeedRepository extends JpaRepository<Feed, UUID> {
   @Query("select f from Feed f where f.id in :ids and f.softDeletable.deletedAt is null")
   List<Feed> findAllActiveByIds(@Param("ids") Collection<UUID> ids);
 
-  default List<Feed> findForReindex(Instant lastCreatedAt, UUID lastId, Pageable pageable) {
-    return List.of();
-  }
+  @Query("select f from Feed f "
+      + "where f.softDeletable.deletedAt is null "
+      + "and (f.createdAt > :lastCreatedAt "
+      + "     or (f.createdAt = :lastCreatedAt and f.id > :lastId)) "
+      + "order by f.createdAt asc, f.id asc")
+  List<Feed> findForReindex(@Param("lastCreatedAt") Instant lastCreatedAt,
+      @Param("lastId") UUID lastId, Pageable pageable);
 }
