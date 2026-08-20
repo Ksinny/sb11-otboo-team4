@@ -1,0 +1,51 @@
+package com.sprint.mission.otboo.batch.feedreindex.config;
+
+import com.sprint.mission.otboo.batch.feedreindex.listener.FeedReindexJobListener;
+import com.sprint.mission.otboo.batch.feedreindex.listener.FeedReindexStepListener;
+import com.sprint.mission.otboo.batch.feedreindex.reader.FeedIncrementalReindexReader;
+import com.sprint.mission.otboo.batch.feedreindex.reader.FeedReindexReader;
+import com.sprint.mission.otboo.batch.feedreindex.writer.FeedReindexWriter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.Step;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.PlatformTransactionManager;
+
+@Configuration
+@RequiredArgsConstructor
+@EnableConfigurationProperties(FeedReindexProperties.class)
+public class FeedReindexJobConfig {
+
+  private final JobRepository jobRepository;
+  private final PlatformTransactionManager transactionManager;
+
+  private final FeedReindexJobListener feedReindexJobListener;
+  private final FeedReindexStepListener feedReindexStepListener;
+  private final FeedReindexReader feedReindexReader;
+  private final FeedIncrementalReindexReader feedIncrementalReindexReader;
+  private final FeedReindexWriter feedReindexWriter;
+  private final FeedReindexProperties feedReindexProperties;
+
+  @Bean(name = "feedReindexJob")
+  public Job feedReindexJob() {
+    return null;
+  }
+
+  @Bean
+  public Step feedReindexStep() {
+    return null;
+  }
+
+  @Bean(name = "feedIncrementalReindexJob")
+  public Job feedIncrementalReindexJob() {
+    return null;
+  }
+
+  @Bean
+  public Step feedIncrementalReindexStep() {
+    return null;
+  }
+}
