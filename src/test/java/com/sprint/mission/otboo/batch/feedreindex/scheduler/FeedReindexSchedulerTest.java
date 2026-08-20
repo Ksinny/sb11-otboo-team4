@@ -43,8 +43,8 @@ class FeedReindexSchedulerTest {
   class ReindexIncremental {
 
     @Test
-    @DisplayName("설정된 lookback 만큼 이전 시각으로 증분 재색인을 호출한다")
-    void 설정된_lookback_만큼_이전_시각으로_증분_재색인을_호출한다() {
+    @DisplayName("증분 재색인만 호출하고 다른 로직은 없다")
+    void 증분_재색인만_호출하고_다른_로직은_없다() {
       // when
       scheduler.reindexIncremental();
 
