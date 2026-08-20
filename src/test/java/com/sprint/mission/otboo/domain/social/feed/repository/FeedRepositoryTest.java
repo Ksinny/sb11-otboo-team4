@@ -488,6 +488,32 @@ class FeedRepositoryTest {
       assertThat(result).extracting(Feed::getContent)
           .containsExactly("두 번째");
     }
+
+    @Test
+    @DisplayName("createdAt이 같으면 id 순으로 이어서 반환한다")
+    void createdAt이_같으면_id_순으로_이어서_반환한다() {
+      // given
+      Instant sameTime = Instant.parse("2026-08-20T01:00:00Z");
+      Feed feedA = createAndSaveFeed("피드A");
+      Feed feedB = createAndSaveFeed("피드B");
+      testEntityManager.flush();
+
+      setCreatedAt(feedA.getId(), sameTime);
+      setCreatedAt(feedB.getId(), sameTime);
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      List<Feed> first = feedRepository.findForReindex(
+          Instant.EPOCH, new UUID(0L, 0L), PageRequest.of(0, 1));
+      Feed cursor = first.get(0);
+      List<Feed> second = feedRepository.findForReindex(
+          cursor.getCreatedAt(), cursor.getId(), PageRequest.of(0, 10));
+
+      // then
+      assertThat(second).hasSize(1);
+      assertThat(second.get(0).getId()).isNotEqualTo(cursor.getId());
+    }
   }
 
   @Nested
@@ -564,6 +590,37 @@ class FeedRepositoryTest {
       // then
       assertThat(result).extracting(Feed::getContent)
           .containsExactly("두 번째");
+    }
+
+    @Test
+    @DisplayName("createdAt이 같으면 id 순으로 이어서 반환한다")
+    void createdAt이_같으면_id_순으로_이어서_반환한다() {
+      // given
+      Instant sameTime = Instant.parse("2026-08-20T01:00:00Z");
+      Instant updatedTime = Instant.parse("2026-08-20T05:00:00Z");
+      Feed feedA = createAndSaveFeed("피드A");
+      Feed feedB = createAndSaveFeed("피드B");
+      testEntityManager.flush();
+
+      setCreatedAt(feedA.getId(), sameTime);
+      setCreatedAt(feedB.getId(), sameTime);
+      setUpdatedAt(feedA.getId(), updatedTime);
+      setUpdatedAt(feedB.getId(), updatedTime);
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      Instant since = Instant.parse("2026-08-20T03:00:00Z");
+
+      // when
+      List<Feed> first = feedRepository.findForIncrementalReindex(
+          since, Instant.EPOCH, new UUID(0L, 0L), PageRequest.of(0, 1));
+      Feed cursor = first.get(0);
+      List<Feed> second = feedRepository.findForIncrementalReindex(
+          since, cursor.getCreatedAt(), cursor.getId(), PageRequest.of(0, 10));
+
+      // then
+      assertThat(second).hasSize(1);
+      assertThat(second.get(0).getId()).isNotEqualTo(cursor.getId());
     }
   }
 }
