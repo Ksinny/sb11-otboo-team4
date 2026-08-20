@@ -1,10 +1,12 @@
 package com.sprint.mission.otboo.domain.social.directmessage.util;
 
+import com.sprint.mission.otboo.global.config.StompDestinations;
 import java.util.UUID;
 
 public final class StompDestinationUtil {
 
-  private static final String DESTINATION_PREFIX = "/sub/direct-messages_";
+  private static final String DESTINATION_PREFIX =
+      StompDestinations.BROKER_PREFIX + "/direct-messages_";
 
   private static final String SEPARATOR = "_";
   private static final int PARTICIPANT_COUNT = 2;
