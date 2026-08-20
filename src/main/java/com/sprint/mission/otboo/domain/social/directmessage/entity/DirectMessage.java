@@ -40,6 +40,9 @@ public class DirectMessage {
   @Column(name = "content", nullable = false, columnDefinition = "text")
   private String content;
 
+  @Column(name = "conversation_id", nullable = false, length = 73)
+  private String conversationId;
+
   private DirectMessage(UUID senderId, UUID receiverId, String content) {
     this.senderId = senderId;
     this.receiverId = receiverId;
