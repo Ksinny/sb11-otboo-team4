@@ -5,10 +5,14 @@ import com.sprint.mission.otboo.batch.feedreindex.listener.FeedReindexStepListen
 import com.sprint.mission.otboo.batch.feedreindex.reader.FeedIncrementalReindexReader;
 import com.sprint.mission.otboo.batch.feedreindex.reader.FeedReindexReader;
 import com.sprint.mission.otboo.batch.feedreindex.writer.FeedReindexWriter;
+import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.infrastructure.item.ItemReader;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,21 +35,38 @@ public class FeedReindexJobConfig {
 
   @Bean(name = "feedReindexJob")
   public Job feedReindexJob() {
-    return null;
+    return new JobBuilder("feedReindexJob", jobRepository)
+        .listener(feedReindexJobListener)
+        .start(feedReindexStep())
+        .build();
   }
 
   @Bean
   public Step feedReindexStep() {
-    return null;
+    return buildStep("feedReindexStep", feedReindexReader);
   }
 
   @Bean(name = "feedIncrementalReindexJob")
   public Job feedIncrementalReindexJob() {
-    return null;
+    return new JobBuilder("feedIncrementalReindexJob", jobRepository)
+        .listener(feedReindexJobListener)
+        .start(feedIncrementalReindexStep())
+        .build();
   }
 
   @Bean
   public Step feedIncrementalReindexStep() {
-    return null;
+    return buildStep("feedIncrementalReindexStep", feedIncrementalReindexReader);
+  }
+
+  // 전체와 증분은 Reader제외 동일함
+  private Step buildStep(String stepName, ItemReader<Feed> reader) {
+    return new StepBuilder(stepName, jobRepository)
+        .<Feed, Feed>chunk(feedReindexProperties.chunkSize())
+        .transactionManager(transactionManager)
+        .reader(reader)
+        .writer(feedReindexWriter)
+        .listener(feedReindexStepListener)
+        .build();
   }
 }
