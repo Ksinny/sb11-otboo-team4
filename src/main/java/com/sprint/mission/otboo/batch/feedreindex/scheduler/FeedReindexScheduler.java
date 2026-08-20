@@ -2,6 +2,7 @@ package com.sprint.mission.otboo.batch.feedreindex.scheduler;
 
 import com.sprint.mission.otboo.batch.feedreindex.config.FeedReindexProperties;
 import com.sprint.mission.otboo.batch.feedreindex.service.FeedReindexService;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -22,6 +23,9 @@ public class FeedReindexScheduler {
       lockAtLeastFor = "${batch.feed-reindex.lock-at-least-for:PT1M}")
   @Scheduled(cron = "0 0 5 * * SUN", zone = "Asia/Seoul")
   public void reindexAll() {
+    log.info("피드 전체 재색인 배치 시작");
+    feedReindexService.execute();
+    log.info("피드 전체 재색인 배치 완료");
   }
 
   // 전체 재색인(일요일 05:00)과 겹치지 않도록 정각이 아닌 30분에 실행한다.
@@ -31,5 +35,9 @@ public class FeedReindexScheduler {
       lockAtLeastFor = "${batch.feed-reindex.incremental-lock-at-least-for:PT30S}")
   @Scheduled(cron = "0 30 * * * *", zone = "Asia/Seoul")
   public void reindexIncremental() {
+    Instant since = Instant.now().minus(feedReindexProperties.incrementalLookback());
+    log.info("피드 증분 재색인 배치 시작: since={}", since);
+    feedReindexService.executeIncremental(since);
+    log.info("피드 증분 재색인 배치 완료");
   }
 }
