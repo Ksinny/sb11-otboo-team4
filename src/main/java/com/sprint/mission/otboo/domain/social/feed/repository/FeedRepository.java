@@ -44,4 +44,9 @@ public interface FeedRepository extends JpaRepository<Feed, UUID> {
       + "order by f.createdAt asc, f.id asc")
   List<Feed> findForReindex(@Param("lastCreatedAt") Instant lastCreatedAt,
       @Param("lastId") UUID lastId, Pageable pageable);
+
+  default List<Feed> findForIncrementalReindex(Instant since, Instant lastCreatedAt,
+      UUID lastId, Pageable pageable) {
+    return List.of();
+  }
 }

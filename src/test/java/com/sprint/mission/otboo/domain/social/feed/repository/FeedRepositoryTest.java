@@ -70,6 +70,14 @@ class FeedRepositoryTest {
         .executeUpdate();
   }
 
+  private void setUpdatedAt(UUID feedId, Instant updatedAt) {
+    testEntityManager.getEntityManager()
+        .createNativeQuery("update feeds set updated_at = :updatedAt where id = :id")
+        .setParameter("updatedAt", updatedAt)
+        .setParameter("id", feedId)
+        .executeUpdate();
+  }
+
   private void setDeletedAt(UUID feedId, Instant deletedAt) {
     testEntityManager.getEntityManager()
         .createNativeQuery("update feeds set deleted_at = :deletedAt where id = :id")
@@ -474,6 +482,83 @@ class FeedRepositoryTest {
 
       // when
       List<Feed> result = feedRepository.findForReindex(
+          Instant.parse("2026-08-20T01:00:00Z"), first.getId(), PageRequest.of(0, 10));
+
+      // then
+      assertThat(result).extracting(Feed::getContent)
+          .containsExactly("두 번째");
+    }
+  }
+
+  @Nested
+  @DisplayName("findForIncrementalReindex")
+  class FindForIncrementalReindex {
+
+    @Test
+    @DisplayName("기준 시각 이후에 수정된 활성 피드만 반환한다")
+    void 기준_시각_이후에_수정된_활성_피드만_반환한다() {
+      // given
+      Feed old = createAndSaveFeed("오래된 피드");
+      Feed recent = createAndSaveFeed("최근 수정된 피드");
+      testEntityManager.flush();
+
+      setUpdatedAt(old.getId(), Instant.parse("2026-08-20T01:00:00Z"));
+      setUpdatedAt(recent.getId(), Instant.parse("2026-08-20T05:00:00Z"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      List<Feed> result = feedRepository.findForIncrementalReindex(
+          Instant.parse("2026-08-20T03:00:00Z"), Instant.EPOCH, new UUID(0L, 0L),
+          PageRequest.of(0, 10));
+
+      // then
+      assertThat(result).extracting(Feed::getContent)
+          .containsExactly("최근 수정된 피드");
+    }
+
+    @Test
+    @DisplayName("소프트 삭제된 피드는 제외한다")
+    void 소프트_삭제된_피드는_제외한다() {
+      // given
+      Feed active = createAndSaveFeed("살아있는 피드");
+      Feed deleted = createAndSaveFeed("삭제된 피드");
+      deleted.delete();
+      testEntityManager.flush();
+
+      setUpdatedAt(active.getId(), Instant.parse("2026-08-20T05:00:00Z"));
+      setUpdatedAt(deleted.getId(), Instant.parse("2026-08-20T05:00:00Z"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      List<Feed> result = feedRepository.findForIncrementalReindex(
+          Instant.parse("2026-08-20T03:00:00Z"), Instant.EPOCH, new UUID(0L, 0L),
+          PageRequest.of(0, 10));
+
+      // then
+      assertThat(result).extracting(Feed::getContent)
+          .containsExactly("살아있는 피드");
+    }
+
+    @Test
+    @DisplayName("커서 이전 피드는 제외한다")
+    void 커서_이전_피드는_제외한다() {
+      // given
+      Feed first = createAndSaveFeed("첫 번째");
+      Feed second = createAndSaveFeed("두 번째");
+      testEntityManager.flush();
+
+      setCreatedAt(first.getId(), Instant.parse("2026-08-20T01:00:00Z"));
+      setCreatedAt(second.getId(), Instant.parse("2026-08-20T02:00:00Z"));
+      setUpdatedAt(first.getId(), Instant.parse("2026-08-20T05:00:00Z"));
+      setUpdatedAt(second.getId(), Instant.parse("2026-08-20T05:00:00Z"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      List<Feed> result = feedRepository.findForIncrementalReindex(
+          Instant.parse("2026-08-20T03:00:00Z"),
           Instant.parse("2026-08-20T01:00:00Z"), first.getId(), PageRequest.of(0, 10));
 
       // then
