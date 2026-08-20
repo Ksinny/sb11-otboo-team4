@@ -12,6 +12,7 @@ import com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.Feed
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -40,6 +41,8 @@ class FeedReindexJobIntegrationTest {
   private static final WeatherSnapshot DUMMY_SNAPSHOT = new WeatherSnapshot(
       SkyStatus.CLEAR, PrecipitationType.NONE,
       0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
+
+  private final List<UUID> createdUserIds = new ArrayList<>();
 
   @Autowired
   private JobOperatorTestUtils jobOperatorTestUtils;
@@ -73,6 +76,8 @@ class FeedReindexJobIntegrationTest {
 
   private void cleanUp() {
     feedRepository.deleteAll();
+    userRepository.deleteAllById(createdUserIds);
+    createdUserIds.clear();
     feedSearchRepository.deleteAll();
     operations.indexOps(FeedDocument.class).refresh();
   }
@@ -80,6 +85,7 @@ class FeedReindexJobIntegrationTest {
   private Feed saveFeed(String content) {
     User author = userRepository.save(
         User.create("작성자", UUID.randomUUID() + "@otboo.io", "password"));
+    createdUserIds.add(author.getId());
     return feedRepository.save(
         Feed.create(author.getId(), UUID.randomUUID(), content, DUMMY_SNAPSHOT, List.of()));
   }
