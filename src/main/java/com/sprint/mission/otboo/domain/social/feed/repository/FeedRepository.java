@@ -1,10 +1,12 @@
 package com.sprint.mission.otboo.domain.social.feed.repository;
 
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -34,4 +36,8 @@ public interface FeedRepository extends JpaRepository<Feed, UUID> {
 
   @Query("select f from Feed f where f.id in :ids and f.softDeletable.deletedAt is null")
   List<Feed> findAllActiveByIds(@Param("ids") Collection<UUID> ids);
+
+  default List<Feed> findForReindex(Instant lastCreatedAt, UUID lastId, Pageable pageable) {
+    return List.of();
+  }
 }

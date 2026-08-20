@@ -23,6 +23,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
@@ -51,6 +52,14 @@ class FeedRepositoryTest {
     User author = persistUser("작성자");
     return feedRepository.save(
         Feed.create(author.getId(), UUID.randomUUID(), content, DUMMY_SNAPSHOT, List.of()));
+  }
+
+  private void setCreatedAt(UUID feedId, Instant createdAt) {
+    testEntityManager.getEntityManager()
+        .createNativeQuery("update feeds set created_at = :createdAt where id = :id")
+        .setParameter("createdAt", createdAt)
+        .setParameter("id", feedId)
+        .executeUpdate();
   }
 
   private void setLikeCount(UUID feedId, long count) {
@@ -402,6 +411,74 @@ class FeedRepositoryTest {
       assertThat(result)
           .extracting(Feed::getContent)
           .containsExactly("살아있는 피드");
+    }
+  }
+
+  @Nested
+  @DisplayName("findForReindex")
+  class FindForReindex {
+
+    @Test
+    @DisplayName("커서 이후의 활성 피드를 createdAt id 순으로 반환한다")
+    void 커서_이후의_활성_피드를_createdAt_id_순으로_반환한다() {
+      // given
+      Feed first = createAndSaveFeed("첫 번째");
+      Feed second = createAndSaveFeed("두 번째");
+      testEntityManager.flush();
+
+      setCreatedAt(first.getId(), Instant.parse("2026-08-20T01:00:00Z"));
+      setCreatedAt(second.getId(), Instant.parse("2026-08-20T02:00:00Z"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      List<Feed> result = feedRepository.findForReindex(
+          Instant.EPOCH, new UUID(0L, 0L), PageRequest.of(0, 10));
+
+      // then
+      assertThat(result).extracting(Feed::getContent)
+          .containsExactly("첫 번째", "두 번째");
+    }
+
+    @Test
+    @DisplayName("소프트 삭제된 피드는 제외한다")
+    void 소프트_삭제된_피드는_제외한다() {
+      // given
+      createAndSaveFeed("살아있는 피드");
+      Feed deleted = createAndSaveFeed("삭제된 피드");
+      deleted.delete();
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      List<Feed> result = feedRepository.findForReindex(
+          Instant.EPOCH, new UUID(0L, 0L), PageRequest.of(0, 10));
+
+      // then
+      assertThat(result).extracting(Feed::getContent)
+          .containsExactly("살아있는 피드");
+    }
+
+    @Test
+    @DisplayName("커서 이전 피드는 제외한다")
+    void 커서_이전_피드는_제외한다() {
+      // given
+      Feed first = createAndSaveFeed("첫 번째");
+      Feed second = createAndSaveFeed("두 번째");
+      testEntityManager.flush();
+
+      setCreatedAt(first.getId(), Instant.parse("2026-08-20T01:00:00Z"));
+      setCreatedAt(second.getId(), Instant.parse("2026-08-20T02:00:00Z"));
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      List<Feed> result = feedRepository.findForReindex(
+          Instant.parse("2026-08-20T01:00:00Z"), first.getId(), PageRequest.of(0, 10));
+
+      // then
+      assertThat(result).extracting(Feed::getContent)
+          .containsExactly("두 번째");
     }
   }
 }
