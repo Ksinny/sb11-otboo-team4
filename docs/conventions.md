@@ -1023,10 +1023,10 @@ public class FeedMapper {
 > destination prefix는 `global/config/StompDestinations`가 단일 출처입니다.
 > 브로커 설정(`WebSocketConfig`)과 destination 생성(`StompDestinationUtil`)이 같은 상수를 참조해야 하며,
 > 한쪽만 바뀌면 컴파일도 테스트도 통과하지만 런타임에 메시지가 조용히 유실됩니다.
-
+>
 > SUBSCRIBE 시 `StompAuthChannelInterceptor`가 인증 사용자가 대화 당사자인지 인가합니다.
 > destination이 정규 형식(UUID 두 개, 사전순)이 아니면 거절합니다.
-
+>
 > STOMP 메시지 처리 중 발생한 예외는 `global/exception/StompExceptionHandler`가 처리합니다.
 > ERROR 프레임은 STOMP 명세상 연결 종료를 수반하므로, 애플리케이션 검증 실패로 소켓이 끊기지 않도록
 > `@SendToUser`로 에러 채널에 전달합니다.
