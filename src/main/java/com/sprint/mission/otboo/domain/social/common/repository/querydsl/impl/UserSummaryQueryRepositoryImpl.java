@@ -8,6 +8,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sprint.mission.otboo.domain.authuser.user.exception.UserNotFoundException;
 import com.sprint.mission.otboo.domain.social.common.dto.UserSummary;
 import com.sprint.mission.otboo.domain.social.common.repository.querydsl.UserSummaryQueryRepository;
+import com.sprint.mission.otboo.global.file.util.FileUrlResolver;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Repository;
 public class UserSummaryQueryRepositoryImpl implements UserSummaryQueryRepository {
 
   private final JPAQueryFactory queryFactory;
+  private final FileUrlResolver fileUrlResolver;
 
   public UserSummary findByUserId(UUID userId) {
     UserSummary result = queryFactory
