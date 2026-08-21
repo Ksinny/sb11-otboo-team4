@@ -70,6 +70,20 @@ public class AsyncConfig implements AsyncConfigurer {
     return executor;
   }
 
+  @Bean(name = "dmListenerExecutor")
+  public Executor dmListenerExecutor() {
+    // TODO: 현재 아래 설정은 임시 값. 팀 논의 필요 지점
+    // sseListenerExecutor와 분리 — SSE 구독 콜백 지연이 DM 전파를 막지 않게 함
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(4);
+    executor.setMaxPoolSize(4);
+    executor.setQueueCapacity(100);
+    executor.setThreadNamePrefix("dm-listener-");
+    executor.setTaskDecorator(new MdcTaskDecorator());
+    executor.initialize();
+    return executor;
+  }
+
   @Override
   public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
     return (throwable, method, params) -> {
