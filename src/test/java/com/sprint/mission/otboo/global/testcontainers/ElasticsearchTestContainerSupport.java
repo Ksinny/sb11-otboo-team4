@@ -6,22 +6,25 @@ import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- * ES 통합 테스트용 컨테이너.
+ * ES 테스트용 컨테이너
  *
  * <p>{@code RedisTestContainerSupport}와 달리 인터페이스가 아닌 추상 클래스다.
- * ES 테스트는 Spring 컨텍스트를 띄우므로 컨테이너 주소를 프로퍼티로 주입해야 하는데, {@code @DynamicPropertySource}는 static 메서드에만
- * 붙일 수 있어 인터페이스에 둘 수 없다.
+ * {@link IntegrationTestSupport}가 이를 상속해, 전체 컨텍스트 테스트와 ES 슬라이스 테스트가 같은 컨테이너와 프로퍼티 등록을 공유하는 계층을
+ * 만든다.
  *
- * <p>Nori 플러그인이 필요해 {@code docker/elasticsearch} 이미지를 쓴다.
- * 테스트 전에 아래를 한 번 실행해야 한다.
- * <pre>docker build -t otboo-es:9.4.2 docker/elasticsearch</pre>
+ * <p>컨테이너를 static 필드로 두어 JVM당 한 번만 기동한다. {@code @ServiceConnection}으로 빈 등록하면
+ * 컨텍스트가 종료될 때 컨테이너도 함께 내려가는데, 이 프로젝트는 {@code @MockitoBean}/{@code @TestBean}으로 컨텍스트가 여러 갈래로 갈라져 그만큼
+ * 재기동된다. static 필드는 컨텍스트 수명과 무관하게 유지된다.
+ *
+ * <p>Nori 플러그인이 필요해 {@code docker/elasticsearch} 이미지를 쓴다. 테스트 전에 아래를 한 번 실행해야 한다.
+ * <pre>docker build -t otboo-es docker/elasticsearch</pre>
  */
 public abstract class ElasticsearchTestContainerSupport {
 
   private static final DockerImageName IMAGE = DockerImageName
-      .parse("otboo-es:9.4.2")
+      .parse("otboo-es:latest")
       .asCompatibleSubstituteFor("docker.elastic.co/elasticsearch/elasticsearch");
-  
+
   protected static final ElasticsearchContainer ES_CONTAINER = createStartedContainer();
 
   private static ElasticsearchContainer createStartedContainer() {
@@ -33,7 +36,8 @@ public abstract class ElasticsearchTestContainerSupport {
   }
 
   @DynamicPropertySource
-  static void registerProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.elasticsearch.uris", ES_CONTAINER::getHttpHostAddress);
+  static void registerElasticsearchProperties(DynamicPropertyRegistry registry) {
+    registry.add("spring.elasticsearch.uris",
+        () -> "http://" + ES_CONTAINER.getHttpHostAddress());
   }
 }
