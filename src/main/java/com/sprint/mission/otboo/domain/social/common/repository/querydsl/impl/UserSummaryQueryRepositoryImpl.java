@@ -27,7 +27,7 @@ public class UserSummaryQueryRepositoryImpl implements UserSummaryQueryRepositor
         .select(Projections.constructor(UserSummary.class,
             user.id, user.name, profile.profileImageUrl))
         .from(user)
-        .leftJoin(profile).on(profile.id.eq(user.id))
+        .leftJoin(profile).on(profile.user.id.eq(user.id))
         .where(user.id.eq(userId))
         .fetchOne();
 
@@ -57,7 +57,7 @@ public class UserSummaryQueryRepositoryImpl implements UserSummaryQueryRepositor
         .select(Projections.constructor(UserSummary.class,
             user.id, user.name, profile.profileImageUrl))
         .from(user)
-        .leftJoin(profile).on(profile.id.eq(user.id))
+        .leftJoin(profile).on(profile.user.id.eq(user.id))
         .where(user.id.in(userIds))
         .fetch()
         .stream()
