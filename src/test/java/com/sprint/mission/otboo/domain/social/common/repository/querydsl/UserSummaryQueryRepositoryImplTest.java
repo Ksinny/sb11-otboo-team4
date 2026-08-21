@@ -172,7 +172,26 @@ class UserSummaryQueryRepositoryImplTest {
           .extracting(UserSummary::userId)
           .containsExactlyInAnyOrder(user1.getId(), user2.getId());
     }
+
+    @Test
+    @DisplayName("프로필 이미지가 있으면 완전한 URL로 변환해 반환한다")
+    void 프로필_이미지가_있으면_완전한_URL로_변환해_반환한다() {
+      // given
+      User user = testEntityManager.persist(User.create("우디", "woody@otboo.io", "password"));
+      Profile profile = Profile.create(user);
+      ReflectionTestUtils.setField(profile, "profileImageUrl", "profile/woody.png");
+      testEntityManager.persist(profile);
+      testEntityManager.flush();
+      testEntityManager.clear();
+
+      // when
+      List<UserSummary> result = userSummaryQueryRepository.findByUserIds(List.of(user.getId()));
+
+      // then
+      assertThat(result)
+          .singleElement()
+          .extracting(UserSummary::profileImageUrl)
+          .isEqualTo("http://localhost:8080/uploads/profile/woody.png");
+    }
   }
-
-
 }
