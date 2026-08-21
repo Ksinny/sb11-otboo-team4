@@ -24,7 +24,7 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepository {
 
-  private static final String FIELD_CONTENT = "content";
+  private static final String FIELD_SEARCH_TEXT = "searchText";
   private static final String FIELD_SKY_STATUS = "skyStatus";
   private static final String FIELD_PRECIPITATION_TYPE = "precipitationType";
   private static final String FIELD_AUTHOR_ID = "authorId";
@@ -105,7 +105,7 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
     // 검색어의 모든 토큰이 있어야 매칭한다.
     // 기본 OR이면 "민트색"이 민트+색으로 분해해 색 토큰만 가진 다른 색상 피드까지 걸린다.
     return Query.of(q -> q.match(m -> m
-        .field(FIELD_CONTENT)
+        .field(FIELD_SEARCH_TEXT)
         .query(keywordLike)
         .minimumShouldMatch("100%")));
   }
