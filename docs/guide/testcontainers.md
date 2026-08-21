@@ -84,16 +84,15 @@ class FeedSearchCustomRepositoryImplTest extends ElasticsearchTestContainerSuppo
 실행 전 아래를 한 번 실행해야 합니다. CI는 워크플로에서 같은 명령을 수행합니다.
 
 ```bash
-docker build -t otboo-es:9.4.2 docker/elasticsearch
+docker build -t otboo-es docker/elasticsearch
 ```
 
-**주의 1 — 인터페이스가 아닌 추상 클래스**: §2의 Redis와 달리 ES 테스트는 Spring 컨텍스트를 띄우므로 컨테이너 주소를 프로퍼티로 주입해야 합니다.
-`@DynamicPropertySource`는 static 메서드에만 붙을 수 있어 인터페이스에 둘 수 없습니다.
+**주의 1 — 인터페이스가 아닌 추상 클래스**: `IntegrationTestSupport`가 이를 상속해,
+전체 컨텍스트 테스트와 ES 슬라이스 테스트가 같은 컨테이너와 프로퍼티 등록을 공유하는 계층을 만듭니다.
 
-**주의 2 — `@ServiceConnection` 대신 static 필드**: Spring Boot 공식 방식인 `@ServiceConnection`은 컨테이너를 빈으로 등록해
-컨텍스트마다 새로 띄웁니다.
-이 프로젝트는 `@MockitoBean`/`@TestBean`으로 컨텍스트가 여러 개 갈라져 기동 비용이 커집니다.
-static 필드는 JVM당 한 번만 뜨고 모든 컨텍스트가 공유합니다.
+**주의 2 — `@ServiceConnection` 대신 static 필드**: `@ServiceConnection`으로 빈 등록하면 컨텍스트가 종료될 때 컨테이너도 함께
+내려갑니다. 같은 설정의 컨텍스트는 캐시되어 재사용되지만, 이 프로젝트는 `@MockitoBean`/`@TestBean`으로 컨텍스트가 여러 갈래로 갈라져 그만큼 재기동됩니다.
+static 필드는 컨텍스트 수명과 무관하게 JVM당 한 번만 뜹니다.
 
 **주의 3 — `asCompatibleSubstituteFor` 필요**: Testcontainers는 이미지 이름으로 ES 여부를 판별합니다.
 커스텀 태그(`otboo-es`)를 쓰면 이 선언이 없을 때 기동을 거부합니다.
