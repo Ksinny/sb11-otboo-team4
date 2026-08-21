@@ -102,7 +102,12 @@ public class FeedSearchCustomRepositoryImpl implements FeedSearchCustomRepositor
     if (!StringUtils.hasText(keywordLike)) {
       return Query.of(q -> q.matchAll(m -> m));
     }
-    return Query.of(q -> q.match(m -> m.field(FIELD_CONTENT).query(keywordLike)));
+    // 검색어의 모든 토큰이 있어야 매칭한다.
+    // 기본 OR이면 "민트색"이 민트+색으로 분해해 색 토큰만 가진 다른 색상 피드까지 걸린다.
+    return Query.of(q -> q.match(m -> m
+        .field(FIELD_CONTENT)
+        .query(keywordLike)
+        .minimumShouldMatch("100%")));
   }
 
   private List<Query> buildFilters(FeedListParams params) {
