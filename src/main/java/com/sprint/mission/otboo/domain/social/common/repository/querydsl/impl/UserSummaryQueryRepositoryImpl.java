@@ -34,7 +34,7 @@ public class UserSummaryQueryRepositoryImpl implements UserSummaryQueryRepositor
     if (result == null) {
       throw UserNotFoundException.withNone();
     }
-    return result;
+    return withResolvedImageUrl(result);
   }
 
   @Override
@@ -59,6 +59,18 @@ public class UserSummaryQueryRepositoryImpl implements UserSummaryQueryRepositor
         .from(user)
         .leftJoin(profile).on(profile.id.eq(user.id))
         .where(user.id.in(userIds))
-        .fetch();
+        .fetch()
+        .stream()
+        .map(this::withResolvedImageUrl)
+        .toList();
+  }
+
+  // DB에는 저장 키만 들어 있어 응답에 그대로 내보내면 브라우저가 이미지를 못 찾는다.
+  // UserSummary를 쓰는 Follow·Feed·Comment·DM이 각자 변환하지 않도록 이 레포에서 완성한다.
+  private UserSummary withResolvedImageUrl(UserSummary summary) {
+    return new UserSummary(
+        summary.userId(),
+        summary.name(),
+        fileUrlResolver.resolve(summary.profileImageUrl()));
   }
 }
