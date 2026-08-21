@@ -102,7 +102,7 @@ jobs:
           tags: otboo-es:latest
           load: true
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
