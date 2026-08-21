@@ -174,6 +174,41 @@ class FeedSearchCustomRepositoryImplTest extends ElasticsearchTestContainerSuppo
       assertThat(result.hasNext()).isFalse();
       assertThat(result.nextCursor()).isNull();
     }
+
+    @Test
+    @DisplayName("검색어의 모든 토큰이 있는 피드만 반환한다")
+    void 검색어의_모든_토큰이_있는_피드만_반환한다() {
+      // given
+      UUID matched = indexFeed("민트색 후드티 코디", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      indexFeed("카키색 야상 가을룩", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+      indexFeed("검은색 트렌치코트 데일리룩", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-03T00:00:00Z"), 0L);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params("민트색"));
+
+      // then
+      assertThat(result.feedIds()).containsExactly(matched);
+      assertThat(result.totalCount()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("단일 토큰 검색어는 부분 일치로 조회된다")
+    void 단일_토큰_검색어는_부분_일치로_조회된다() {
+      // given
+      UUID first = indexFeed("니트에 청바지 조합", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+      UUID second = indexFeed("베이지색 반팔티에 청바지 입었어요", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params("바지"));
+
+      // then
+      assertThat(result.feedIds()).containsExactlyInAnyOrder(first, second);
+    }
   }
 
   @Nested
