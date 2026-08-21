@@ -2,10 +2,12 @@ package com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.imp
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.sprint.mission.otboo.domain.clothesrecommend.clothes.dto.ClothesType;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSearchResult;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSortBy;
+import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.FeedSearchRepository;
@@ -82,6 +84,24 @@ class FeedSearchCustomRepositoryImplTest extends ElasticsearchTestContainerSuppo
   private UUID indexFeed(String content, SkyStatus sky, PrecipitationType precipitation,
       Instant createdAt, long likeCount) {
     return indexFeed(UUID.randomUUID(), content, sky, precipitation, createdAt, likeCount);
+  }
+
+  private UUID indexFeedWithOotds(String content, List<String> ootdNames, Instant createdAt) {
+    UUID feedId = UUID.randomUUID();
+    WeatherSnapshot snapshot = new WeatherSnapshot(
+        SkyStatus.CLEAR, PrecipitationType.NONE, 0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
+    List<OotdSnapshot> ootds = ootdNames.stream()
+        .map(name -> new OotdSnapshot(UUID.randomUUID(), name, null, ClothesType.TOP, List.of()))
+        .toList();
+
+    Feed feed = Feed.create(UUID.randomUUID(), UUID.randomUUID(), content, snapshot, ootds);
+    setField(feed, "id", feedId);
+    setField(feed, "createdAt", createdAt);
+    setField(feed, "likeCount", 0L);
+
+    feedSearchRepository.save(FeedDocument.from(feed));
+    operations.indexOps(FeedDocument.class).refresh();
+    return feedId;
   }
 
   private FeedListParams params(String keywordLike) {
@@ -573,6 +593,41 @@ class FeedSearchCustomRepositoryImplTest extends ElasticsearchTestContainerSuppo
       // then
       assertThat(page2.feedIds()).containsExactly(third);
       assertThat(page2.hasNext()).isFalse();
+    }
+  }
+
+  @Nested
+  @DisplayName("착장 검색")
+  class SearchByOotd {
+
+    @Test
+    @DisplayName("본문에 없어도 착장 이름으로 검색된다")
+    void 본문에_없어도_착장_이름으로_검색된다() {
+      // given
+      UUID matched = indexFeedWithOotds("오늘의 기록", List.of("민트색 후드티"),
+          Instant.parse("2026-08-01T00:00:00Z"));
+      indexFeedWithOotds("다른 기록", List.of("청바지"),
+          Instant.parse("2026-08-02T00:00:00Z"));
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params("후드티"));
+
+      // then
+      assertThat(result.feedIds()).containsExactly(matched);
+    }
+
+    @Test
+    @DisplayName("착장이 없어도 본문으로 검색된다")
+    void 착장이_없어도_본문으로_검색된다() {
+      // given
+      UUID matched = indexFeedWithOotds("민트색 후드티 코디", List.of(),
+          Instant.parse("2026-08-01T00:00:00Z"));
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params("후드티"));
+
+      // then
+      assertThat(result.feedIds()).containsExactly(matched);
     }
   }
 }
