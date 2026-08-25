@@ -211,6 +211,25 @@ class FeedSearchCustomRepositoryImplTest extends ElasticsearchTestContainerSuppo
     }
 
     @Test
+    @DisplayName("검색어 토큰 일부만 있는 피드는 반환하지 않는다")
+    void 검색어_토큰_일부만_있는_피드는_반환하지_않는다() {
+      // given
+      indexFeed("민트색 후드티 코디", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-01T00:00:00Z"), 0L);
+      indexFeed("카키색 야상 가을룩", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
+      indexFeed("따뜻한 니트를 입었어요", SkyStatus.CLEAR,
+          PrecipitationType.NONE, Instant.parse("2026-08-03T00:00:00Z"), 0L);
+
+      // when
+      FeedSearchResult result = feedSearchRepository.search(params("니트 야상 코디"));
+
+      // then
+      assertThat(result.feedIds()).isEmpty();
+      assertThat(result.totalCount()).isZero();
+    }
+
+    @Test
     @DisplayName("복합명사는 분해된 토큰으로도 조회된다")
     void 복합명사는_분해된_토큰으로도_조회된다() {
       // given
