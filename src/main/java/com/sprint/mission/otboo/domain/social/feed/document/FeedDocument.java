@@ -7,9 +7,9 @@ import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import lombok.Getter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.ReadOnlyProperty;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
@@ -24,6 +24,7 @@ public class FeedDocument {
   @Field(type = FieldType.Keyword)
   private String id;
 
+  @ReadOnlyProperty
   @Field(type = FieldType.Text, analyzer = "korean")
   private String searchText;
 
@@ -31,7 +32,7 @@ public class FeedDocument {
   private String content;
 
   @Field(type = FieldType.Text, analyzer = "korean", copyTo = "searchText")
-  private String ootdNames;
+  private List<String> ootdNames;
 
   @Field(type = FieldType.Keyword)
   private String authorId;
@@ -52,7 +53,7 @@ public class FeedDocument {
     FeedDocument doc = new FeedDocument();
     doc.id = feed.getId().toString();
     doc.content = feed.getContent();
-    doc.ootdNames = joinOotdNames(feed.getOotds());
+    doc.ootdNames = extractOotdNames(feed.getOotds());
     doc.authorId = feed.getAuthorId().toString();
     doc.skyStatus = feed.getSkyStatus();
     doc.precipitationType = feed.getPrecipitationType();
@@ -61,15 +62,14 @@ public class FeedDocument {
     return doc;
   }
 
-  // 본문에 없는 착장 정보도 검색되도록 이름만 이어 붙인다.
-  // copy_to로 content와 함께 searchText에 모이므로 검색은 한 필드만 본다.
-  private static String joinOotdNames(List<OotdSnapshot> ootds) {
-    if (ootds == null || ootds.isEmpty()) {
-      return null;
+  // 본문에 없는 착장 정보도 검색되도록 이름을 함께 색인한다.
+  private static List<String> extractOotdNames(List<OotdSnapshot> ootds) {
+    if (ootds == null) {
+      return List.of();
     }
     return ootds.stream()
         .map(OotdSnapshot::name)
         .filter(Objects::nonNull)
-        .collect(Collectors.joining(" "));
+        .toList();
   }
 }
