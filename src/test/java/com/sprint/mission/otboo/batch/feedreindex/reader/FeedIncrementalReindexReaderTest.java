@@ -62,7 +62,7 @@ class FeedIncrementalReindexReaderTest {
   @BeforeEach
   void setUp() {
     reader = new FeedIncrementalReindexReader(feedRepository,
-        new FeedReindexProperties(2, Duration.ofHours(2)), SINCE.toEpochMilli());
+        new FeedReindexProperties(2, 10, Duration.ofHours(2)), SINCE.toEpochMilli());
   }
 
   @Nested

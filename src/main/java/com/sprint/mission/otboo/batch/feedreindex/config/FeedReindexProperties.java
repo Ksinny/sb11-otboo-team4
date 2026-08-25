@@ -26,6 +26,7 @@ import org.springframework.validation.annotation.Validated;
 public record FeedReindexProperties(
 
     @DefaultValue("500") @Positive @Max(BatchConstants.MAX_CHUNK_SIZE) int chunkSize,
+    @DefaultValue("10") @Positive @Max(BatchConstants.MAX_SKIP_LIMIT) int skipLimit,
 
     // 증분 재색인이 훑을 과거 구간
     // 행 주기(1시간)보다 넉넉히 잡아 한 번 걸러져도 다음 실행이 덮는다.
