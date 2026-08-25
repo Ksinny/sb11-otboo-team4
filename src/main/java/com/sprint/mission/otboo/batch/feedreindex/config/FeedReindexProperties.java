@@ -25,6 +25,7 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "batch.feed-reindex")
 public record FeedReindexProperties(
 
+    // ES bulk 단위. 피드 문서가 건당 1KB 미만이라 500건이어도 요청 크기에 여유가 있다.
     @DefaultValue("500") @Positive @Max(BatchConstants.MAX_CHUNK_SIZE) int chunkSize,
     @DefaultValue("10") @Positive @Max(BatchConstants.MAX_SKIP_LIMIT) int skipLimit,
 
