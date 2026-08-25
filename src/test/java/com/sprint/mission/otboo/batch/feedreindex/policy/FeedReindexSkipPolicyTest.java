@@ -4,10 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sprint.mission.otboo.batch.feedreindex.config.FeedReindexProperties;
 import java.time.Duration;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.data.elasticsearch.BulkFailureException;
+import org.springframework.data.elasticsearch.BulkFailureException.FailureDetails;
 import org.springframework.data.elasticsearch.UncategorizedElasticsearchException;
 import org.springframework.data.elasticsearch.VersionConflictException;
 
@@ -81,6 +84,29 @@ class FeedReindexSkipPolicyTest {
 
       // when & then
       assertThat(policy.shouldSkip(t, 100)).isTrue();
+    }
+
+    @Test
+    @DisplayName("bulk 버전 충돌도 개수 제한 없이 건너뛴다")
+    void bulk_버전_충돌도_개수_제한_없이_건너뛴다() {
+      // given
+      Throwable t = new BulkFailureException("Bulk operation has failures",
+          Map.of("feed-1", new FailureDetails(409, "version conflict")));
+
+      // when & then
+      assertThat(policy.shouldSkip(t, 100)).isTrue();
+    }
+
+    @Test
+    @DisplayName("bulk 실패에 409가 아닌 것이 섞이면 건너뛰지 않는다")
+    void bulk_실패에_409가_아닌_것이_섞이면_건너뛰지_않는다() {
+      // given
+      Throwable t = new BulkFailureException("Bulk operation has failures",
+          Map.of("feed-1", new FailureDetails(409, "version conflict"),
+              "feed-2", new FailureDetails(400, "mapper_parsing_exception")));
+
+      // when & then
+      assertThat(policy.shouldSkip(t, 100)).isFalse();
     }
   }
 }
