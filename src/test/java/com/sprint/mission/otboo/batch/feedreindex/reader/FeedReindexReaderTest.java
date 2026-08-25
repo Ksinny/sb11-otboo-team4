@@ -60,7 +60,7 @@ class FeedReindexReaderTest {
   @BeforeEach
   void setUp() {
     reader = new FeedReindexReader(feedRepository,
-        new FeedReindexProperties(2, Duration.ofHours(2)));
+        new FeedReindexProperties(2, 10, Duration.ofHours(2)));
   }
 
   @Nested

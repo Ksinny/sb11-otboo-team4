@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import com.sprint.mission.otboo.batch.feedreindex.listener.FeedReindexJobListener;
+import com.sprint.mission.otboo.batch.feedreindex.listener.FeedReindexSkipListener;
 import com.sprint.mission.otboo.batch.feedreindex.listener.FeedReindexStepListener;
+import com.sprint.mission.otboo.batch.feedreindex.policy.FeedReindexSkipPolicy;
 import com.sprint.mission.otboo.batch.feedreindex.reader.FeedIncrementalReindexReader;
 import com.sprint.mission.otboo.batch.feedreindex.reader.FeedReindexReader;
 import com.sprint.mission.otboo.batch.feedreindex.writer.FeedReindexWriter;
@@ -36,10 +38,12 @@ class FeedReindexJobConfigTest {
         transactionManager,
         mock(FeedReindexJobListener.class),
         mock(FeedReindexStepListener.class),
+        mock(FeedReindexSkipListener.class),
+        mock(FeedReindexSkipPolicy.class),
         mock(FeedReindexReader.class),
         mock(FeedIncrementalReindexReader.class),
         mock(FeedReindexWriter.class),
-        new FeedReindexProperties(500, Duration.ofHours(2))
+        new FeedReindexProperties(500, 10, Duration.ofHours(2))
     );
   }
 
