@@ -441,7 +441,7 @@ class FeedRepositoryTest {
 
       // when
       List<Feed> result = feedRepository.findForReindex(
-          Instant.EPOCH, new UUID(0L, 0L), PageRequest.of(0, 10));
+          Instant.EPOCH, new UUID(0L, 0L), 10);
 
       // then
       assertThat(result).extracting(Feed::getContent)
@@ -460,7 +460,7 @@ class FeedRepositoryTest {
 
       // when
       List<Feed> result = feedRepository.findForReindex(
-          Instant.EPOCH, new UUID(0L, 0L), PageRequest.of(0, 10));
+          Instant.EPOCH, new UUID(0L, 0L), 10);
 
       // then
       assertThat(result).extracting(Feed::getContent)
@@ -482,7 +482,7 @@ class FeedRepositoryTest {
 
       // when
       List<Feed> result = feedRepository.findForReindex(
-          Instant.parse("2026-08-20T01:00:00Z"), first.getId(), PageRequest.of(0, 10));
+          Instant.parse("2026-08-20T01:00:00Z"), first.getId(), 10);
 
       // then
       assertThat(result).extracting(Feed::getContent)
@@ -505,10 +505,10 @@ class FeedRepositoryTest {
 
       // when
       List<Feed> first = feedRepository.findForReindex(
-          Instant.EPOCH, new UUID(0L, 0L), PageRequest.of(0, 1));
+          Instant.EPOCH, new UUID(0L, 0L), 1);
       Feed cursor = first.get(0);
       List<Feed> second = feedRepository.findForReindex(
-          cursor.getCreatedAt(), cursor.getId(), PageRequest.of(0, 10));
+          cursor.getCreatedAt(), cursor.getId(), 10);
 
       // then
       assertThat(second).hasSize(1);

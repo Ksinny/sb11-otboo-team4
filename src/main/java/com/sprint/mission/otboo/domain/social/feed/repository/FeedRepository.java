@@ -37,13 +37,18 @@ public interface FeedRepository extends JpaRepository<Feed, UUID> {
   @Query("select f from Feed f where f.id in :ids and f.softDeletable.deletedAt is null")
   List<Feed> findAllActiveByIds(@Param("ids") Collection<UUID> ids);
 
-  @Query("select f from Feed f "
-      + "where f.softDeletable.deletedAt is null "
-      + "and (f.createdAt > :lastCreatedAt "
-      + "     or (f.createdAt = :lastCreatedAt and f.id > :lastId)) "
-      + "order by f.createdAt asc, f.id asc")
+  // (created_at, id) 튜플 비교
+  // OR 형태로 쓰면 옵티마이저가 range scan으로 접지 못해 idx_feeds_active_created_at_id를 온전히 타지 못한다.
+  // JPQL은 튜플 비교를 지원하지 않아 네이티브 쿼리로 작성한다.
+  @Query(value = """
+      select * from feeds
+      where deleted_at is null
+        and (created_at, id) > (:lastCreatedAt, :lastId)
+      order by created_at, id
+      limit :limit
+      """, nativeQuery = true)
   List<Feed> findForReindex(@Param("lastCreatedAt") Instant lastCreatedAt,
-      @Param("lastId") UUID lastId, Pageable pageable);
+      @Param("lastId") UUID lastId, @Param("limit") int limit);
 
   @Query("select f from Feed f "
       + "where f.softDeletable.deletedAt is null "
