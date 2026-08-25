@@ -1,9 +1,12 @@
 package com.sprint.mission.otboo.batch.feedreindex.writer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.sprint.mission.otboo.batch.feedreindex.metrics.FeedReindexMetrics;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
@@ -14,12 +17,12 @@ import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.infrastructure.item.Chunk;
@@ -32,7 +35,8 @@ class FeedReindexWriterTest {
       SkyStatus.CLEAR, PrecipitationType.NONE,
       0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
 
-  @InjectMocks
+  private static final String STEP_NAME = "feedReindexStep";
+
   private FeedReindexWriter writer;
 
   @Mock
@@ -40,6 +44,9 @@ class FeedReindexWriterTest {
 
   @Mock
   private EntityManager entityManager;
+
+  @Mock
+  private FeedReindexMetrics feedReindexMetrics;
 
   private static Feed feedWith(UUID id, String content) {
     Feed feed = Feed.create(UUID.randomUUID(), UUID.randomUUID(), content,
@@ -57,6 +64,12 @@ class FeedReindexWriterTest {
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @BeforeEach
+  void setUp() {
+    writer = new FeedReindexWriter(feedSearchRepository, entityManager,
+        feedReindexMetrics, STEP_NAME);
   }
 
   @Nested
@@ -108,6 +121,57 @@ class FeedReindexWriterTest {
       // then
       verifyNoInteractions(feedSearchRepository);
       verifyNoInteractions(entityManager);
+    }
+  }
+
+  @Nested
+  @DisplayName("교정량 계측")
+  class Drift {
+
+    @Test
+    @DisplayName("인덱스에 없는 문서를 교정 건수로 센다")
+    void 인덱스에_없는_문서를_교정_건수로_센다() {
+      // given
+      Chunk<Feed> chunk = new Chunk<>(List.of(feedWith(UUID.randomUUID(), "피드1")));
+      given(feedSearchRepository.findAllById(anyList())).willReturn(List.of());
+
+      // when
+      writer.write(chunk);
+
+      // then
+      verify(feedReindexMetrics).countDrift(STEP_NAME, 1L);
+    }
+
+    @Test
+    @DisplayName("내용이 같은 문서는 교정 건수에서 제외한다")
+    void 내용이_같은_문서는_교정_건수에서_제외한다() {
+      // given
+      Feed feed = feedWith(UUID.randomUUID(), "피드1");
+      Chunk<Feed> chunk = new Chunk<>(List.of(feed));
+      given(feedSearchRepository.findAllById(anyList()))
+          .willReturn(List.of(FeedDocument.from(feed)));
+
+      // when
+      writer.write(chunk);
+
+      // then
+      verify(feedReindexMetrics).countDrift(STEP_NAME, 0L);
+    }
+
+    @Test
+    @DisplayName("content가 다르면 교정 건수로 센다")
+    void content가_다르면_교정_건수로_센다() {
+      // given
+      UUID id = UUID.randomUUID();
+      Chunk<Feed> chunk = new Chunk<>(List.of(feedWith(id, "수정된 피드")));
+      given(feedSearchRepository.findAllById(anyList()))
+          .willReturn(List.of(FeedDocument.from(feedWith(id, "피드1"))));
+
+      // when
+      writer.write(chunk);
+
+      // then
+      verify(feedReindexMetrics).countDrift(STEP_NAME, 1L);
     }
   }
 }

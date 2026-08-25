@@ -78,4 +78,17 @@ public class FeedDocument {
         .filter(Objects::nonNull)
         .toList();
   }
+
+  /**
+   * ES에 저장된 문서가 이 문서(DB 기준)와 정합한지 판정한다.
+   *
+   * <p>생성 후 바뀌지 않는 필드({@code id}·{@code authorId}·{@code createdAt}·날씨 스냅샷)는
+   * 비교하지 않는다. 문서가 존재하면 그 값은 맞고, {@code createdAt}은 DB가 마이크로초, ES가 밀리초라 왕복 시 값이 달라져 없는 불일치를 만든다.
+   *
+   * <p>이벤트 기반 인덱싱이 놓칠 수 있는 것은 수정({@code content}·{@code ootdNames})과
+   * 좋아요({@code likeCount})이므로 그 셋만 본다.
+   */
+  public boolean isConsistentWith(FeedDocument indexed) {
+    return false;
+  }
 }
