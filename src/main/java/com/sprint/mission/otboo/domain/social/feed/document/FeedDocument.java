@@ -89,6 +89,9 @@ public class FeedDocument {
    * 좋아요({@code likeCount})이므로 그 셋만 본다.
    */
   public boolean isConsistentWith(FeedDocument indexed) {
-    return false;
+    return indexed != null
+        && Objects.equals(content, indexed.content)
+        && Objects.equals(ootdNames, indexed.ootdNames)
+        && likeCount == indexed.likeCount;
   }
 }

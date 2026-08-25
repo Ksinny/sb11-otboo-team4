@@ -6,6 +6,10 @@ import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.FeedSearchRepository;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -49,6 +53,13 @@ public class FeedReindexWriter implements ItemWriter<Feed> {
   // 어긋난 문서가 0건이든 500건이든 처리량 지표는 동일하므로, 실제 교정한 건수를 따로 센다.
   // 청크당 mget 한 번이 추가되지만 500건 한 요청이라 부담은 작다.
   private long countDrift(List<FeedDocument> documents) {
-    return 0;
+    List<String> ids = documents.stream().map(FeedDocument::getId).toList();
+    Map<String, FeedDocument> indexed = StreamSupport
+        .stream(feedSearchRepository.findAllById(ids).spliterator(), false)
+        .collect(Collectors.toMap(FeedDocument::getId, Function.identity()));
+
+    return documents.stream()
+        .filter(doc -> !doc.isConsistentWith(indexed.get(doc.getId())))
+        .count();
   }
 }
