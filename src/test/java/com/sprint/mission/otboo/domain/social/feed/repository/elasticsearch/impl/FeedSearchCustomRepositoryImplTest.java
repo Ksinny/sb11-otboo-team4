@@ -67,11 +67,12 @@ class FeedSearchCustomRepositoryImplTest extends ElasticsearchTestContainerSuppo
 
   // 인덱싱 후 즉시 검색되도록 refresh한다. ES는 기본 1초 주기로 인덱스를 갱신한다.
   private UUID indexFeed(UUID authorId, String content, SkyStatus sky,
-      PrecipitationType precipitation, Instant createdAt, long likeCount) {
+      PrecipitationType precipitation, Instant createdAt, long likeCount,
+      List<OotdSnapshot> ootds) {
     UUID feedId = UUID.randomUUID();
     WeatherSnapshot snapshot = new WeatherSnapshot(
         sky, precipitation, 0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
-    Feed feed = Feed.create(authorId, UUID.randomUUID(), content, snapshot, List.of());
+    Feed feed = Feed.create(authorId, UUID.randomUUID(), content, snapshot, ootds);
     setField(feed, "id", feedId);
     setField(feed, "createdAt", createdAt);
     setField(feed, "likeCount", likeCount);
@@ -81,27 +82,22 @@ class FeedSearchCustomRepositoryImplTest extends ElasticsearchTestContainerSuppo
     return feedId;
   }
 
+  private UUID indexFeed(UUID authorId, String content, SkyStatus sky,
+      PrecipitationType precipitation, Instant createdAt, long likeCount) {
+    return indexFeed(authorId, content, sky, precipitation, createdAt, likeCount, List.of());
+  }
+
   private UUID indexFeed(String content, SkyStatus sky, PrecipitationType precipitation,
       Instant createdAt, long likeCount) {
     return indexFeed(UUID.randomUUID(), content, sky, precipitation, createdAt, likeCount);
   }
 
   private UUID indexFeedWithOotds(String content, List<String> ootdNames, Instant createdAt) {
-    UUID feedId = UUID.randomUUID();
-    WeatherSnapshot snapshot = new WeatherSnapshot(
-        SkyStatus.CLEAR, PrecipitationType.NONE, 0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
     List<OotdSnapshot> ootds = ootdNames.stream()
         .map(name -> new OotdSnapshot(UUID.randomUUID(), name, null, ClothesType.TOP, List.of()))
         .toList();
-
-    Feed feed = Feed.create(UUID.randomUUID(), UUID.randomUUID(), content, snapshot, ootds);
-    setField(feed, "id", feedId);
-    setField(feed, "createdAt", createdAt);
-    setField(feed, "likeCount", 0L);
-
-    feedSearchRepository.save(FeedDocument.from(feed));
-    operations.indexOps(FeedDocument.class).refresh();
-    return feedId;
+    return indexFeed(UUID.randomUUID(), content, SkyStatus.CLEAR,
+        PrecipitationType.NONE, createdAt, 0L, ootds);
   }
 
   private FeedListParams params(String keywordLike) {
