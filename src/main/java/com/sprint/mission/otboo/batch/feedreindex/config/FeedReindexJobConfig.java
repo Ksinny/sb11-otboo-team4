@@ -9,6 +9,8 @@ import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.job.parameters.DefaultJobParametersValidator;
+import org.springframework.batch.core.job.parameters.JobParametersValidator;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.builder.StepBuilder;
@@ -49,9 +51,16 @@ public class FeedReindexJobConfig {
   @Bean(name = "feedIncrementalReindexJob")
   public Job feedIncrementalReindexJob() {
     return new JobBuilder("feedIncrementalReindexJob", jobRepository)
+        .validator(incrementalJobParametersValidator())
         .listener(feedReindexJobListener)
         .start(feedIncrementalReindexStep())
         .build();
+  }
+  
+  private JobParametersValidator incrementalJobParametersValidator() {
+    DefaultJobParametersValidator validator = new DefaultJobParametersValidator();
+    validator.setRequiredKeys(new String[]{"since"});
+    return validator;
   }
 
   @Bean
