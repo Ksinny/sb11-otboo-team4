@@ -2,7 +2,9 @@ package com.sprint.mission.otboo.domain.social.feed.repository.elasticsearch.imp
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.sprint.mission.otboo.domain.clothesrecommend.clothes.dto.ClothesType;
+import com.navercorp.fixturemonkey.FixtureMonkey;
+import com.navercorp.fixturemonkey.api.introspector.ConstructorPropertiesArbitraryIntrospector;
+import com.navercorp.fixturemonkey.jakarta.validation.plugin.JakartaValidationPlugin;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedListParams;
 import com.sprint.mission.otboo.domain.social.feed.dto.FeedSearchResult;
@@ -32,6 +34,11 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 @DisplayName("FeedSearchCustomRepository")
 class FeedSearchCustomRepositoryImplTest extends ElasticsearchTestContainerSupport {
+
+  private static final FixtureMonkey fm = FixtureMonkey.builder()
+      .objectIntrospector(ConstructorPropertiesArbitraryIntrospector.INSTANCE)
+      .plugin(new JakartaValidationPlugin())
+      .build();
 
   @Autowired
   private FeedSearchRepository feedSearchRepository;
@@ -94,7 +101,7 @@ class FeedSearchCustomRepositoryImplTest extends ElasticsearchTestContainerSuppo
 
   private UUID indexFeedWithOotds(String content, List<String> ootdNames, Instant createdAt) {
     List<OotdSnapshot> ootds = ootdNames.stream()
-        .map(name -> new OotdSnapshot(UUID.randomUUID(), name, null, ClothesType.TOP, List.of()))
+        .map(name -> fm.giveMeBuilder(OotdSnapshot.class).set("name", name).sample())
         .toList();
     return indexFeed(UUID.randomUUID(), content, SkyStatus.CLEAR,
         PrecipitationType.NONE, createdAt, 0L, ootds);
