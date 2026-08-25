@@ -211,8 +211,8 @@ class FeedSearchCustomRepositoryImplTest extends ElasticsearchTestContainerSuppo
     }
 
     @Test
-    @DisplayName("단일 토큰 검색어는 부분 일치로 조회된다")
-    void 단일_토큰_검색어는_부분_일치로_조회된다() {
+    @DisplayName("복합명사는 분해된 토큰으로도 조회된다")
+    void 복합명사는_분해된_토큰으로도_조회된다() {
       // given
       UUID first = indexFeed("니트에 청바지 조합", SkyStatus.CLEAR,
           PrecipitationType.NONE, Instant.parse("2026-08-02T00:00:00Z"), 0L);
