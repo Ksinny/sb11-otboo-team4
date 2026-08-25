@@ -24,7 +24,7 @@ public class FeedReindexScheduler {
   // PT2H 근거: 10만 건이면 chunk 500 기준 200청크. 청크당 1초로 잡아도 4분 안쪽이다.
   @SchedulerLock(
       name = LOCK_NAME,
-      lockAtMostFor = "${batch.feed-reindex.lock-at-most-for:PT30M}",
+      lockAtMostFor = "${batch.feed-reindex.lock-at-most-for:PT2H}",
       lockAtLeastFor = "${batch.feed-reindex.lock-at-least-for:PT1M}")
   @Scheduled(cron = "0 0 5 * * SUN", zone = "Asia/Seoul")
   public void reindexAll() {
@@ -35,7 +35,7 @@ public class FeedReindexScheduler {
   // lockAtMostFor는 위와 같은 값을 쓴다 — 같은 락 이름이라 먼저 잡은 쪽 값이 적용되므로 다르게 주면 실행 순서에 따라 결과가 달라진다.
   @SchedulerLock(
       name = LOCK_NAME,
-      lockAtMostFor = "${batch.feed-reindex.lock-at-most-for:PT30M}",
+      lockAtMostFor = "${batch.feed-reindex.lock-at-most-for:PT2H}",
       lockAtLeastFor = "${batch.feed-reindex.incremental-lock-at-least-for:PT30S}")
   @Scheduled(cron = "0 30 * * * *", zone = "Asia/Seoul")
   public void reindexIncremental() {

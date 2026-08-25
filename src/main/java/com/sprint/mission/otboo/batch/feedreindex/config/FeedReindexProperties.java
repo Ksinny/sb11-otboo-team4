@@ -16,7 +16,7 @@ import org.springframework.validation.annotation.Validated;
  * {@code @Validated} 검증을 받지 않으므로, yaml에 오타가 있어도 기동이 막히지 않고 조용히 기본값으로 동작한다.
  *
  * <ul>
- *   <li>{@code batch.feed-reindex.lock-at-most-for} (기본 PT30M)
+ *   <li>{@code batch.feed-reindex.lock-at-most-for} (기본 PT2H)
  *   <li>{@code batch.feed-reindex.lock-at-least-for} (기본 ...)
  *   <li>{@code batch.feed-reindex.incremental-lock-at-least-for} (기본 ...)
  * </ul>
