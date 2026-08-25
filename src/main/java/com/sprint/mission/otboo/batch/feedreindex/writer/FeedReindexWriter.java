@@ -31,6 +31,9 @@ public class FeedReindexWriter implements ItemWriter<Feed> {
   @Value("#{stepExecution.stepName}")
   private final String stepName;
 
+  // Reader가 읽은 뒤 Writer가 쓰기 전에 사용자가 수정하면 오래된 문서가 최신을 덮을 수 있다.
+  // FeedDocument에 updatedAt 기반 외부 버전(EXTERNAL_GTE)을 실어 ES가 거부하게 했고,
+  // 거부된 건은 FeedReindexSkipPolicy가 정상 동작으로 보고 건너뛴다.
   @Override
   public void write(Chunk<? extends Feed> chunk) {
     if (chunk.isEmpty()) {
