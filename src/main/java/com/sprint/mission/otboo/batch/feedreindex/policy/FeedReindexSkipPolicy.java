@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.step.skip.SkipPolicy;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.data.elasticsearch.BulkFailureException;
+import org.springframework.data.elasticsearch.VersionConflictException;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,9 +23,25 @@ public class FeedReindexSkipPolicy implements SkipPolicy {
 
   @Override
   public boolean shouldSkip(Throwable t, long skipCount) {
+    // 버전 충돌은 배치가 읽은 뒤 더 최신 문서가 색인돼 ES가 오래된 쓰기를 거부한 것이다.
+    // 의도한 동작이므로 개수 제한 없이 건너뛴다.
+    // bulk(saveAll)는 VersionConflictException이 아니라 BulkFailureException으로 감싸 던진다.
+    if (isVersionConflict(t)) {
+      return true;
+    }
+    // 연결 실패는 그 시점의 모든 인덱싱이 실패 중이라는 뜻이라 건너뛰지 않는다.
     if (t instanceof DataAccessResourceFailureException) {
       return false;
     }
     return t instanceof DataAccessException && skipCount < properties.skipLimit();
+  }
+
+  private boolean isVersionConflict(Throwable t) {
+    if (t instanceof VersionConflictException) {
+      return true;
+    }
+    return t instanceof BulkFailureException e
+        && e.getFailedDocuments().values().stream()
+        .allMatch(detail -> detail.status() == 409);
   }
 }

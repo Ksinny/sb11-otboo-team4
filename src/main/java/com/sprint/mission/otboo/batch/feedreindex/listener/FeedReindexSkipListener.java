@@ -3,16 +3,23 @@ package com.sprint.mission.otboo.batch.feedreindex.listener;
 import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.listener.SkipListener;
+import org.springframework.data.elasticsearch.VersionConflictException;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 public class FeedReindexSkipListener implements SkipListener<Feed, Feed> {
 
+  private static final String SKIP_MARKER = "FEED_REINDEX_SKIPPED";
+  
+
   @Override
   public void onSkipInWrite(Feed item, Throwable t) {
-    // 어느 문서가 왜 실패했는지 남긴다. 없으면 Job 실패 로그만으로는
-    // ES 장애인지 특정 문서 문제인지 구분할 수 없다.
-    log.error("FEED_REINDEX_SKIPPED feedId={}", item.getId(), t);
+    if (t instanceof VersionConflictException) {
+      // 더 최신 문서가 이미 색인돼 ES가 거부한 것이다.
+      log.debug("피드 재색인 버전 충돌로 건너뜀: feedId={}", item.getId());
+      return;
+    }
+    log.error("{} feedId={}", SKIP_MARKER, item.getId(), t);
   }
 }

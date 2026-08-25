@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.elasticsearch.UncategorizedElasticsearchException;
+import org.springframework.data.elasticsearch.VersionConflictException;
 
 @DisplayName("FeedReindexSkipPolicy")
 class FeedReindexSkipPolicyTest {
@@ -70,6 +71,16 @@ class FeedReindexSkipPolicyTest {
 
       // then
       assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("버전 충돌은 개수 제한 없이 건너뛴다")
+    void 버전_충돌은_개수_제한_없이_건너뛴다() {
+      // given
+      Throwable t = new VersionConflictException("version conflict");
+
+      // when & then
+      assertThat(policy.shouldSkip(t, 100)).isTrue();
     }
   }
 }

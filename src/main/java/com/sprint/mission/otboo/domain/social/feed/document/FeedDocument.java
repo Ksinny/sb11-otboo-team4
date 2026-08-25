@@ -10,19 +10,31 @@ import java.util.Objects;
 import lombok.Getter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.ReadOnlyProperty;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.elasticsearch.annotations.Document;
+import org.springframework.data.elasticsearch.annotations.Document.VersionType;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 import org.springframework.data.elasticsearch.annotations.Setting;
 
 @Getter
 @Setting(settingPath = "elasticsearch/feed-settings.json")
-@Document(indexName = "feeds", createIndex = false)
+@Document(indexName = "feeds", createIndex = false, versionType = VersionType.EXTERNAL_GTE)
 public class FeedDocument {
 
   @Id
   @Field(type = FieldType.Keyword)
   private String id;
+
+  /**
+   * 오래된 쓰기를 ES가 거부하도록 싣는 단조 증가 버전.
+   *
+   * <p>재색인 배치가 Reader와 Writer 사이에 수정된 피드를 오래된 내용으로 덮는 것을 막는다.
+   * {@code EXTERNAL_GTE}라 같은 버전은 허용되는데, {@code likeCount}가 {@code @Modifying} 쿼리로 바뀔 때
+   * {@code updatedAt}이 갱신되지 않기 때문이다.
+   */
+  @Version
+  private Long version;
 
   /**
    * 키워드 검색 대상. {@code copy_to}로만 채워지므로 애플리케이션이 직접 값을 넣지 않는다.
@@ -58,6 +70,8 @@ public class FeedDocument {
   public static FeedDocument from(Feed feed) {
     FeedDocument doc = new FeedDocument();
     doc.id = feed.getId().toString();
+    doc.version = Objects.requireNonNull(feed.getUpdatedAt(),
+        "영속화되지 않은 Feed는 색인할 수 없습니다").toEpochMilli();
     doc.content = feed.getContent();
     doc.ootdNames = extractOotdNames(feed.getOotds());
     doc.authorId = feed.getAuthorId().toString();

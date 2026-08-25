@@ -53,6 +53,7 @@ class FeedReindexWriterTest {
         DUMMY_SNAPSHOT, List.of());
     setField(feed, "id", id);
     setField(feed, "createdAt", Instant.parse("2026-08-20T01:00:00Z"));
+    setField(feed, "updatedAt", Instant.parse("2026-08-20T01:00:00Z"));
     return feed;
   }
 
