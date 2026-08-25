@@ -24,6 +24,12 @@ public class FeedDocument {
   @Field(type = FieldType.Keyword)
   private String id;
 
+  /**
+   * 키워드 검색 대상. {@code copy_to}로만 채워지므로 애플리케이션이 직접 값을 넣지 않는다.
+   *
+   * <p>사용자가 검색어로 입력할 법한 자유 텍스트만 모은다. enum·id처럼 필터로 다루는 값은
+   * 검색어가 될 일이 없으면서 토큰만 늘려 {@code minimum_should_match}를 가혹하게 만든다.
+   */
   @ReadOnlyProperty
   @Field(type = FieldType.Text, analyzer = "korean")
   private String searchText;
