@@ -37,6 +37,7 @@ class FeedIndexEventListenerTest {
   static final WeatherSnapshot DUMMY_SNAPSHOT = new WeatherSnapshot(
       SkyStatus.CLEAR, PrecipitationType.NONE,
       0.0, 0.0, 28.0, 2.0, 16.0, 31.0);
+  static final Instant FIXED_TIME = Instant.parse("2026-08-20T01:00:00Z");
 
   @InjectMocks
   FeedIndexEventListener listener;
@@ -61,7 +62,8 @@ class FeedIndexEventListenerTest {
     Feed feed = Feed.create(UUID.randomUUID(), UUID.randomUUID(), content,
         DUMMY_SNAPSHOT, List.of());
     setField(feed, "id", id);
-    setField(feed, "updatedAt", Instant.parse("2026-08-20T01:00:00Z"));
+    setField(feed, "createdAt", FIXED_TIME);
+    setField(feed, "updatedAt", FIXED_TIME);
     return feed;
   }
 

@@ -5,6 +5,7 @@ import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.PrecipitationType;
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 import lombok.Getter;
@@ -19,8 +20,10 @@ import org.springframework.data.elasticsearch.annotations.Setting;
 
 @Getter
 @Setting(settingPath = "elasticsearch/feed-settings.json")
-@Document(indexName = "feeds", createIndex = false, versionType = VersionType.EXTERNAL_GTE)
+@Document(indexName = FeedDocument.INDEX_NAME, createIndex = false, versionType = VersionType.EXTERNAL_GTE)
 public class FeedDocument {
+
+  public static final String INDEX_NAME = "feeds";
 
   @Id
   @Field(type = FieldType.Keyword)
@@ -61,7 +64,7 @@ public class FeedDocument {
   @Field(type = FieldType.Keyword)
   private PrecipitationType precipitationType;
 
-  @Field(type = FieldType.Date)
+  @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss[.SSSSSS][.SSS]X")
   private Instant createdAt;
 
   @Field(type = FieldType.Long)
@@ -77,7 +80,7 @@ public class FeedDocument {
     doc.authorId = feed.getAuthorId().toString();
     doc.skyStatus = feed.getSkyStatus();
     doc.precipitationType = feed.getPrecipitationType();
-    doc.createdAt = feed.getCreatedAt();
+    doc.createdAt = feed.getCreatedAt().truncatedTo(ChronoUnit.MILLIS);
     doc.likeCount = feed.getLikeCount();
     return doc;
   }
