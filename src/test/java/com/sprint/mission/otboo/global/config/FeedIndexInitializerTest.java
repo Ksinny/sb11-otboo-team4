@@ -2,12 +2,16 @@ package com.sprint.mission.otboo.global.config;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,13 +20,23 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.data.elasticsearch.ResourceNotFoundException;
 import org.springframework.data.elasticsearch.UncategorizedElasticsearchException;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
+import org.springframework.data.elasticsearch.core.document.Document;
+import org.springframework.data.elasticsearch.core.index.AliasActions;
+import org.springframework.data.elasticsearch.core.index.Settings;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FeedIndexInitializer")
 class FeedIndexInitializerTest {
+
+  private static final IndexCoordinates ALIAS = IndexCoordinates.of(FeedDocument.INDEX_NAME);
+
+  private static final IndexCoordinates INITIAL_INDEX = IndexCoordinates.of(
+      FeedDocument.INDEX_NAME + "_v1");
 
   @InjectMocks
   FeedIndexInitializer initializer;
@@ -31,62 +45,94 @@ class FeedIndexInitializerTest {
   ElasticsearchOperations elasticsearchOperations;
 
   @Mock
-  IndexOperations indexOperations;
+  IndexOperations aliasOperations;
+
+  @Mock
+  IndexOperations entityOperations;
+
+  @Mock
+  IndexOperations targetOperations;
+
+  private void givenAliasNotExists() {
+    given(elasticsearchOperations.indexOps(eq(ALIAS))).willReturn(aliasOperations);
+    given(aliasOperations.exists()).willReturn(false);
+    given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+    given(elasticsearchOperations.indexOps(eq(INITIAL_INDEX))).willReturn(targetOperations);
+  }
 
   @Nested
   @DisplayName("인덱스 초기화")
   class Run {
 
     @Test
-    @DisplayName("인덱스가 없으면 매핑과 함께 생성한다")
-    void 인덱스가_없으면_매핑과_함께_생성한다() {
+    @DisplayName("alias가 없으면 첫 인덱스를 만들고 alias를 붙인다")
+    void alias가_없으면_첫_인덱스를_만들고_alias를_붙인다() {
       // given
-      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(indexOperations);
-      given(indexOperations.exists()).willReturn(false);
+      givenAliasNotExists();
+      Settings settings = new Settings();
+      Document mapping = Document.create();
+      given(entityOperations.createSettings()).willReturn(settings);
+      given(entityOperations.createMapping()).willReturn(mapping);
 
       // when
       initializer.run(null);
 
       // then
-      verify(indexOperations).createWithMapping();
+      verify(targetOperations).create(settings, mapping);
+      verify(targetOperations).alias(any(AliasActions.class));
     }
 
     @Test
-    @DisplayName("인덱스가 이미 있으면 생성하지 않는다")
-    void 인덱스가_이미_있으면_생성하지_않는다() {
+    @DisplayName("alias가 이미 있으면 인덱스를 만들지 않는다")
+    void alias가_이미_있으면_인덱스를_만들지_않는다() {
       // given
-      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(indexOperations);
-      given(indexOperations.exists()).willReturn(true);
+      given(elasticsearchOperations.indexOps(eq(ALIAS))).willReturn(aliasOperations);
+      given(aliasOperations.exists()).willReturn(true);
+      given(aliasOperations.getAliases(FeedDocument.INDEX_NAME))
+          .willReturn(Map.of(INITIAL_INDEX.getIndexName(), Set.of()));
 
       // when
       initializer.run(null);
 
       // then
-      verify(indexOperations, never()).createWithMapping();
+      verify(targetOperations, never()).create(any(), any());
+    }
+
+    @Test
+    @DisplayName("feeds가 alias가 아닌 실제 인덱스면 인덱스를 만들지 않는다")
+    void feeds가_alias가_아닌_실제_인덱스면_인덱스를_만들지_않는다() {
+      // given
+      given(elasticsearchOperations.indexOps(eq(ALIAS))).willReturn(aliasOperations);
+      given(aliasOperations.exists()).willReturn(true);
+      willThrow(new ResourceNotFoundException("alias [feeds] missing"))
+          .given(aliasOperations).getAliases(FeedDocument.INDEX_NAME);
+
+      // when & then
+      assertThatCode(() -> initializer.run(null)).doesNotThrowAnyException();
+      verify(targetOperations, never()).create(any(), any());
     }
 
     @Test
     @DisplayName("다른 인스턴스가 먼저 생성했으면 예외를 삼킨다")
     void 다른_인스턴스가_먼저_생성했으면_예외를_삼킨다() {
       // given
-      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(indexOperations);
-      given(indexOperations.exists()).willReturn(false);
+      givenAliasNotExists();
       willThrow(new UncategorizedElasticsearchException(
-          "resource_already_exists_exception: index [feeds] already exists"))
-          .given(indexOperations).createWithMapping();
+          "resource_already_exists_exception: index [feeds_v1] already exists"))
+          .given(targetOperations).create(any(), any());
 
       // when & then
       assertThatCode(() -> initializer.run(null)).doesNotThrowAnyException();
+      verify(targetOperations, never()).alias(any(AliasActions.class));
     }
 
     @Test
     @DisplayName("이미 존재 외의 오류는 전파한다")
     void 이미_존재_외의_오류는_전파한다() {
       // given
-      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(indexOperations);
-      given(indexOperations.exists()).willReturn(false);
+      givenAliasNotExists();
       willThrow(new DataAccessResourceFailureException("Connection refused"))
-          .given(indexOperations).createWithMapping();
+          .given(targetOperations).create(any(), any());
 
       // when & then
       assertThatThrownBy(() -> initializer.run(null))
