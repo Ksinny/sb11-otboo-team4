@@ -60,7 +60,16 @@ public class FeedMapper {
       return List.of();
     }
     return snapshots.stream()
-        .map(s -> new OotdDto(s.clothesId(), s.name(), s.imageUrl(), s.type(), s.attributes()))
+        .map(s -> new OotdDto(
+            s.clothesId(), s.name(), resolveImageUrl(s.imageUrl()), s.type(), s.attributes()))
         .toList();
+  }
+
+  /**
+   * 스냅샷에는 원본 키가 저장되지만, 이 수정 전에 등록된 피드에는 resolve된 URL이 담겨 있다. {@code resolve}는 멱등이 아니라 완전한 URL에 다시
+   * 씌우면 접두사가 중복되므로, 멱등인 {@code extractKey}를 먼저 태워 두 경우를 모두 처리한다.
+   */
+  private String resolveImageUrl(String imageUrl) {
+    return fileUrlResolver.resolve(fileUrlResolver.extractKey(imageUrl));
   }
 }
