@@ -98,10 +98,11 @@ class FeedIndexMigrationServiceTest {
 
     @Test
     @DisplayName("alias가 가리키는 인덱스의 다음 버전으로 새 인덱스를 만든다")
-    void alias가_가리키는_인덱스의_다음_버전으로_새_인덱스를_만든다() {
+    void alias가_가리키는_인덱스의_다음_버전으로_새_인덱스를_만든다() throws Exception {
       // given
       givenAliasPointsToCurrentIndex();
       givenNewIndexCreated();
+      givenJobCompleted();
 
       // when
       feedIndexMigrationService.migrate();
@@ -117,6 +118,7 @@ class FeedIndexMigrationServiceTest {
       // given
       givenAliasPointsToCurrentIndex();
       givenNewIndexCreated();
+      givenJobCompleted();
 
       // when
       feedIndexMigrationService.migrate();
