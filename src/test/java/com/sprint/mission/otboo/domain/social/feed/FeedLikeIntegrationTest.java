@@ -209,9 +209,9 @@ class FeedLikeIntegrationTest extends IntegrationTestSupport {
           }
         });
       }
-      ready.await(10, TimeUnit.SECONDS);
+      assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
       start.countDown();
-      done.await(30, TimeUnit.SECONDS);
+      assertThat(done.await(30, TimeUnit.SECONDS)).isTrue();
       executor.shutdown();
 
       // then
