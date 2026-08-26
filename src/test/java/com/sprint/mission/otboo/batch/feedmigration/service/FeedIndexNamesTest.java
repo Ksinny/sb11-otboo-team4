@@ -3,6 +3,7 @@ package com.sprint.mission.otboo.batch.feedmigration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.sprint.mission.otboo.batch.feedmigration.exception.FeedIndexNameException;
 import com.sprint.mission.otboo.batch.feedmigration.service.FeedIndexNames;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -28,11 +29,11 @@ class FeedIndexNamesTest {
     void 규칙에_맞지_않는_이름이면_예외를_던진다() {
       // when & then
       assertThatThrownBy(() -> FeedIndexNames.nextVersionOf("feeds"))
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(FeedIndexNameException.class);
       assertThatThrownBy(() -> FeedIndexNames.nextVersionOf("feeds_v"))
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(FeedIndexNameException.class);
       assertThatThrownBy(() -> FeedIndexNames.nextVersionOf("other_v1"))
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(FeedIndexNameException.class);
     }
   }
 
