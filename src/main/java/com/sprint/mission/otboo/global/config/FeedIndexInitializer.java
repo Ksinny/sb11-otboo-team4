@@ -1,6 +1,9 @@
 package com.sprint.mission.otboo.global.config;
 
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -33,6 +36,8 @@ public class FeedIndexInitializer implements ApplicationRunner {
   private static final String ALREADY_EXISTS = "resource_already_exists_exception";
   private static final String INITIAL_INDEX_NAME = FeedDocument.INDEX_NAME + "_v1";
   private static final String MIGRATION_REQUIRED_MARKER = "FEED_INDEX_MIGRATION_REQUIRED";
+  private static final String MAPPING_MISMATCH_MARKER = "FEED_INDEX_MAPPING_MISMATCH";
+  private static final String PROPERTIES = "properties";
 
   private final ElasticsearchOperations elasticsearchOperations;
 
@@ -43,6 +48,7 @@ public class FeedIndexInitializer implements ApplicationRunner {
 
     if (aliasOps.exists()) {
       warnIfNotAlias(aliasOps);
+      warnIfMappingMismatch(aliasOps);
       return;
     }
 
@@ -100,5 +106,50 @@ public class FeedIndexInitializer implements ApplicationRunner {
   private boolean isAlreadyExists(DataAccessException e) {
     String message = e.getMessage();
     return message != null && message.contains(ALREADY_EXISTS);
+  }
+
+  /**
+   * FeedDocument가 기대하는 필드가 실제 매핑에 있는지 확인한다.
+   *
+   * <p>매핑에 없는 필드는 색인되지 않아 검색 결과가 조용히 비므로, 마이그레이션이 필요한 상태를
+   * 기동 시점에 드러낸다. 필드 이름만 비교한다 — 타입·analyzer는 ES가 정규화해 돌려주므로 그대로 비교하면 오탐이 난다.
+   */
+  private void warnIfMappingMismatch(IndexOperations aliasOps) {
+    Set<String> expected = fieldNames(
+        elasticsearchOperations.indexOps(FeedDocument.class).createMapping());
+    Set<String> actual = fieldNames(aliasOps.getMapping());
+
+    Set<String> missing = new LinkedHashSet<>(expected);
+    missing.removeAll(actual);
+
+    if (missing.isEmpty()) {
+      return;
+    }
+    log.warn("{}: 실제 매핑에 없는 필드가 있습니다. 매핑 마이그레이션이 필요합니다: fields={}",
+        MAPPING_MISMATCH_MARKER, missing);
+  }
+
+  // getMapping()은 인덱스 이름과 mappings로 감싸져 올 수 있어 properties를 찾아 내려간다.
+  @SuppressWarnings("unchecked")
+  private Set<String> fieldNames(Map<String, Object> mapping) {
+    Map<String, Object> properties = findProperties(mapping);
+    return properties == null ? Set.of() : new LinkedHashSet<>(properties.keySet());
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> findProperties(Map<String, Object> node) {
+    Object properties = node.get(PROPERTIES);
+    if (properties instanceof Map<?, ?> map) {
+      return (Map<String, Object>) map;
+    }
+    for (Object value : node.values()) {
+      if (value instanceof Map<?, ?> child) {
+        Map<String, Object> found = findProperties((Map<String, Object>) child);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+    return null;
   }
 }

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
@@ -60,6 +61,16 @@ class FeedIndexInitializerTest {
     given(elasticsearchOperations.indexOps(eq(INITIAL_INDEX))).willReturn(targetOperations);
   }
 
+  private Document mappingWith(String... fieldNames) {
+    Map<String, Object> properties = new LinkedHashMap<>();
+    for (String name : fieldNames) {
+      properties.put(name, Map.of("type", "keyword"));
+    }
+    Document mapping = Document.create();
+    mapping.put("properties", properties);
+    return mapping;
+  }
+
   @Nested
   @DisplayName("인덱스 초기화")
   class Run {
@@ -90,6 +101,11 @@ class FeedIndexInitializerTest {
       given(aliasOperations.exists()).willReturn(true);
       given(aliasOperations.getAliases(FeedDocument.INDEX_NAME))
           .willReturn(Map.of(INITIAL_INDEX.getIndexName(), Set.of()));
+      given(aliasOperations.getMapping()).willReturn(mappingWith("id"));
+      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+      given(entityOperations.createMapping()).willReturn(mappingWith("id"));
+
+      // when
 
       // when
       initializer.run(null);
@@ -106,6 +122,9 @@ class FeedIndexInitializerTest {
       given(aliasOperations.exists()).willReturn(true);
       willThrow(new ResourceNotFoundException("alias [feeds] missing"))
           .given(aliasOperations).getAliases(FeedDocument.INDEX_NAME);
+      given(aliasOperations.getMapping()).willReturn(mappingWith("id"));
+      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+      given(entityOperations.createMapping()).willReturn(mappingWith("id"));
 
       // when & then
       assertThatCode(() -> initializer.run(null)).doesNotThrowAnyException();
@@ -137,6 +156,39 @@ class FeedIndexInitializerTest {
       // when & then
       assertThatThrownBy(() -> initializer.run(null))
           .isInstanceOf(DataAccessResourceFailureException.class);
+    }
+
+    @Test
+    @DisplayName("기대하는 필드가 실제 매핑에 모두 있으면 경고하지 않는다")
+    void 기대하는_필드가_실제_매핑에_모두_있으면_경고하지_않는다() {
+      // given
+      given(elasticsearchOperations.indexOps(eq(ALIAS))).willReturn(aliasOperations);
+      given(aliasOperations.exists()).willReturn(true);
+      given(aliasOperations.getAliases(FeedDocument.INDEX_NAME))
+          .willReturn(Map.of("feeds_v1", Set.of()));
+      given(aliasOperations.getMapping()).willReturn(mappingWith("id", "content", "searchText"));
+      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+      given(entityOperations.createMapping()).willReturn(mappingWith("id", "content"));
+
+      // when & then
+      assertThatCode(() -> initializer.run(null)).doesNotThrowAnyException();
+      verify(targetOperations, never()).create(any(), any());
+    }
+
+    @Test
+    @DisplayName("기대하는 필드가 실제 매핑에 없어도 기동을 막지 않는다")
+    void 기대하는_필드가_실제_매핑에_없어도_기동을_막지_않는다() {
+      // given
+      given(elasticsearchOperations.indexOps(eq(ALIAS))).willReturn(aliasOperations);
+      given(aliasOperations.exists()).willReturn(true);
+      given(aliasOperations.getAliases(FeedDocument.INDEX_NAME))
+          .willReturn(Map.of("feeds_v1", Set.of()));
+      given(aliasOperations.getMapping()).willReturn(mappingWith("id"));
+      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+      given(entityOperations.createMapping()).willReturn(mappingWith("id", "searchText"));
+
+      // when & then
+      assertThatCode(() -> initializer.run(null)).doesNotThrowAnyException();
     }
   }
 }
