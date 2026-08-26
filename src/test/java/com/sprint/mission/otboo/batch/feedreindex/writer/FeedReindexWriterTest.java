@@ -1,5 +1,7 @@
 package com.sprint.mission.otboo.batch.feedreindex.writer;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
@@ -8,8 +10,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ErrorCause;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
+import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
+import com.sprint.mission.otboo.batch.feedreindex.exception.FeedReindexBulkException;
 import com.sprint.mission.otboo.batch.feedreindex.metrics.FeedReindexMetrics;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import com.sprint.mission.otboo.domain.social.feed.dto.WeatherSnapshot;
@@ -19,6 +24,7 @@ import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.
 import com.sprint.mission.otboo.domain.weathernotification.weather.entity.enums.SkyStatus;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,6 +86,22 @@ class FeedReindexWriterTest {
     given(elasticsearchClient.bulk(any(BulkRequest.class))).willReturn(response);
   }
 
+  private void givenBulkFailsWith(int... statuses) throws Exception {
+    List<BulkResponseItem> items = Arrays.stream(statuses)
+        .mapToObj(status -> {
+          ErrorCause error = mock(ErrorCause.class);
+          BulkResponseItem item = mock(BulkResponseItem.class);
+          given(item.error()).willReturn(error);
+          given(item.status()).willReturn(status);
+          return item;
+        })
+        .toList();
+    BulkResponse response = mock(BulkResponse.class);
+    given(response.errors()).willReturn(true);
+    given(response.items()).willReturn(items);
+    given(elasticsearchClient.bulk(any(BulkRequest.class))).willReturn(response);
+  }
+
   @BeforeEach
   void setUp() {
     writer = new FeedReindexWriter(elasticsearchClient, feedSearchRepository,
@@ -104,6 +126,32 @@ class FeedReindexWriterTest {
 
       // then
       verify(elasticsearchClient).bulk(any(BulkRequest.class));
+    }
+
+    @Test
+    @DisplayName("버전 충돌만 있으면 예외 없이 완료한다")
+    void 버전_충돌만_있으면_예외_없이_완료한다() throws Exception {
+      // given
+      Chunk<Feed> chunk = new Chunk<>(List.of(feedWith(UUID.randomUUID(), "피드1")));
+      givenBulkFailsWith(409);
+      given(feedSearchRepository.findAllById(anyList())).willReturn(List.of());
+
+      // when & then
+      assertThatCode(() -> writer.write(chunk)).doesNotThrowAnyException();
+      verify(entityManager).clear();
+    }
+
+    @Test
+    @DisplayName("409가 아닌 실패가 섞이면 예외를 던진다")
+    void 결과에_409가_아닌_실패가_섞이면_예외를_던진다() throws Exception {
+      // given
+      Chunk<Feed> chunk = new Chunk<>(List.of(feedWith(UUID.randomUUID(), "피드1")));
+      givenBulkFailsWith(409, 400);
+      given(feedSearchRepository.findAllById(anyList())).willReturn(List.of());
+
+      // when & then
+      assertThatThrownBy(() -> writer.write(chunk))
+          .isInstanceOf(FeedReindexBulkException.class);
     }
 
     @Test
