@@ -5,6 +5,7 @@ import com.sprint.mission.otboo.domain.clothesrecommend.clothes.service.ClothesS
 import com.sprint.mission.otboo.domain.social.feed.dto.OotdSnapshot;
 import com.sprint.mission.otboo.domain.social.feed.exception.ClothesOwnershipException;
 import com.sprint.mission.otboo.domain.social.feed.exception.OotdNotFoundException;
+import com.sprint.mission.otboo.global.file.util.FileUrlResolver;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OotdSnapshotProvider {
 
   private final ClothesService clothesService;
+  private final FileUrlResolver fileUrlResolver;
 
   public List<OotdSnapshot> readOotds(List<UUID> clothesIds, UUID currentUserId) {
     if (clothesIds == null || clothesIds.isEmpty()) {
