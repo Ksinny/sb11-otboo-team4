@@ -577,6 +577,7 @@ class FeedServiceTest {
       // when & then
       assertThatCode(() -> feedService.like(feedId, userId)).doesNotThrowAnyException();
       verify(feedRepository, never()).incrementLikeCount(any());
+      verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
