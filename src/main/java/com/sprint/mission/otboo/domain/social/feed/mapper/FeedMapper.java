@@ -8,11 +8,16 @@ import com.sprint.mission.otboo.domain.social.feed.entity.Feed;
 import com.sprint.mission.otboo.domain.weathernotification.weather.dto.PrecipitationDto;
 import com.sprint.mission.otboo.domain.weathernotification.weather.dto.TemperatureDto;
 import com.sprint.mission.otboo.domain.weathernotification.weather.dto.WeatherSummaryDto;
+import com.sprint.mission.otboo.global.file.util.FileUrlResolver;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class FeedMapper {
+
+  private final FileUrlResolver fileUrlResolver;
 
   public FeedDto toDto(Feed feed, UserSummary author, boolean likedByMe) {
     return new FeedDto(
