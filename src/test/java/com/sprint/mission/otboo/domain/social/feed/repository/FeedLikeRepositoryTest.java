@@ -198,15 +198,15 @@ class FeedLikeRepositoryTest {
       User liker = persistUser("좋아요누른사람");
       Feed feed = persistFeed(author.getId());
       testEntityManager.flush();
+      UUID id = UUID.randomUUID();
 
       // when
       int inserted = feedLikeRepository.insertIgnoreConflict(
-          UUID.randomUUID(), feed.getId(), liker.getId(), Instant.now());
+          id, feed.getId(), liker.getId(), Instant.now());
 
       // then
       assertThat(inserted).isEqualTo(1);
-      assertThat(feedLikeRepository.existsByFeedIdAndUserId(feed.getId(), liker.getId()))
-          .isTrue();
+      assertThat(feedLikeRepository.findById(id)).isPresent();
     }
 
     @Test
