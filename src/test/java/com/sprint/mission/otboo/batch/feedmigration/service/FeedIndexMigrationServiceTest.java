@@ -1,11 +1,15 @@
 package com.sprint.mission.otboo.batch.feedmigration.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.sprint.mission.otboo.batch.feedmigration.exception.FeedIndexMigrationFailedException;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +19,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.core.BatchStatus;
@@ -25,6 +30,7 @@ import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.data.elasticsearch.core.document.Document;
+import org.springframework.data.elasticsearch.core.index.AliasActions;
 import org.springframework.data.elasticsearch.core.index.Settings;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 
@@ -56,6 +62,9 @@ class FeedIndexMigrationServiceTest {
 
   @Mock
   private IndexOperations newIndexOperations;
+
+  @Mock
+  private IndexOperations obsoleteIndexOperations;
 
   private FeedIndexMigrationService feedIndexMigrationService;
 
@@ -117,6 +126,62 @@ class FeedIndexMigrationServiceTest {
       verify(jobOperator).start(eq(feedIndexMigrationJob), captor.capture());
       assertThat(captor.getValue().getString("targetIndex"))
           .isEqualTo(NEW_INDEX.getIndexName());
+    }
+
+    @Test
+    @DisplayName("재색인이 끝나면 alias를 새 인덱스로 전환한다")
+    void 재색인이_끝나면_alias를_새_인덱스로_전환한다() throws Exception {
+      // given
+      givenAliasPointsToCurrentIndex();
+      givenNewIndexCreated();
+      givenJobCompleted();
+
+      // when
+      feedIndexMigrationService.migrate();
+
+      // then
+      InOrder inOrder = inOrder(jobOperator, aliasOperations);
+      inOrder.verify(jobOperator).start(eq(feedIndexMigrationJob), any(JobParameters.class));
+      inOrder.verify(aliasOperations).alias(any(AliasActions.class));
+    }
+
+    @Test
+    @DisplayName("Job이 정상 종료되지 않으면 alias를 전환하지 않는다")
+    void Job이_정상_종료되지_않으면_alias를_전환하지_않는다() throws Exception {
+      // given
+      givenAliasPointsToCurrentIndex();
+      givenNewIndexCreated();
+      given(jobOperator.start(any(Job.class), any(JobParameters.class))).willReturn(jobExecution);
+      given(jobExecution.getStatus()).willReturn(BatchStatus.FAILED);
+
+      // when & then
+      assertThatThrownBy(() -> feedIndexMigrationService.migrate())
+          .isInstanceOf(FeedIndexMigrationFailedException.class);
+      verify(aliasOperations, never()).alias(any(AliasActions.class));
+    }
+
+    @Test
+    @DisplayName("한 세대를 남기고 오래된 인덱스를 삭제한다")
+    void 한_세대를_남기고_오래된_인덱스를_삭제한다() throws Exception {
+      // given
+      given(elasticsearchOperations.indexOps(eq(ALIAS))).willReturn(aliasOperations);
+      given(aliasOperations.getAliases(FeedDocument.INDEX_NAME))
+          .willReturn(Map.of("feeds_v3", Set.of()));
+      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+      given(entityOperations.createSettings()).willReturn(new Settings());
+      given(entityOperations.createMapping()).willReturn(Document.create());
+      given(elasticsearchOperations.indexOps(eq(IndexCoordinates.of("feeds_v4"))))
+          .willReturn(newIndexOperations);
+      given(elasticsearchOperations.indexOps(eq(IndexCoordinates.of("feeds_v2"))))
+          .willReturn(obsoleteIndexOperations);
+      given(obsoleteIndexOperations.exists()).willReturn(true);
+      givenJobCompleted();
+
+      // when
+      feedIndexMigrationService.migrate();
+
+      // then
+      verify(obsoleteIndexOperations).delete();
     }
   }
 }
