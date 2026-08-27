@@ -61,7 +61,14 @@ public class FeedIndexMigrationService {
 
   private void createIndex(String newIndex) {
     IndexOperations entityOps = elasticsearchOperations.indexOps(FeedDocument.class);
-    indexOps(newIndex).create(entityOps.createSettings(), entityOps.createMapping());
+    IndexOperations targetOps = indexOps(newIndex);
+
+    if (targetOps.exists()) {
+      targetOps.delete();
+      log.warn("이전 실행에서 남은 인덱스를 삭제했습니다: index={}", newIndex);
+    }
+
+    targetOps.create(entityOps.createSettings(), entityOps.createMapping());
     log.info("새 피드 인덱스 생성 완료: index={}", newIndex);
   }
 

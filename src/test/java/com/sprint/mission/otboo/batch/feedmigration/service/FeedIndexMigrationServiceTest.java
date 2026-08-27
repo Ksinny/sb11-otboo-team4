@@ -185,5 +185,23 @@ class FeedIndexMigrationServiceTest {
       // then
       verify(obsoleteIndexOperations).delete();
     }
+
+    @Test
+    @DisplayName("이전 실행에서 남은 인덱스가 있으면 삭제하고 새로 만든다")
+    void 이전_실행에서_남은_인덱스가_있으면_삭제하고_새로_만든다() throws Exception {
+      // given
+      givenAliasPointsToCurrentIndex();
+      givenNewIndexCreated();
+      givenJobCompleted();
+      given(newIndexOperations.exists()).willReturn(true);
+
+      // when
+      feedIndexMigrationService.migrate();
+
+      // then
+      InOrder inOrder = inOrder(newIndexOperations);
+      inOrder.verify(newIndexOperations).delete();
+      inOrder.verify(newIndexOperations).create(any(Settings.class), any(Document.class));
+    }
   }
 }
