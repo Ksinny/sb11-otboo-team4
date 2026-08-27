@@ -123,10 +123,14 @@ public class FeedIndexMigrationService {
   private void deleteObsoleteIndex(String newIndex) {
     FeedIndexNames.indexToDelete(newIndex).ifPresent(obsolete -> {
       IndexOperations obsoleteOps = indexOps(obsolete);
-      if (obsoleteOps.exists()) {
-        obsoleteOps.delete();
-        log.info("오래된 피드 인덱스 삭제 완료: index={}", obsolete);
+      if (!obsoleteOps.exists()) {
+        return;
       }
+      if (!obsoleteOps.delete()) {
+        log.error("오래된 인덱스 삭제 거부: index={}", obsolete);
+        throw FeedIndexMigrationFailedException.operationRejected("delete", obsolete);
+      }
+      log.info("오래된 피드 인덱스 삭제 완료: index={}", obsolete);
     });
   }
 

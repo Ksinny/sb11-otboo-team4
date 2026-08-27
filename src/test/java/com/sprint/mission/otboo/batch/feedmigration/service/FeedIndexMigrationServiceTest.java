@@ -219,6 +219,8 @@ class FeedIndexMigrationServiceTest {
       given(elasticsearchOperations.indexOps(eq(IndexCoordinates.of("feeds_v2"))))
           .willReturn(obsoleteIndexOperations);
       given(obsoleteIndexOperations.exists()).willReturn(true);
+      given(obsoleteIndexOperations.exists()).willReturn(true);
+      given(obsoleteIndexOperations.delete()).willReturn(true);
       givenJobCompleted();
 
       // when
@@ -245,6 +247,31 @@ class FeedIndexMigrationServiceTest {
       InOrder inOrder = inOrder(newIndexOperations);
       inOrder.verify(newIndexOperations).delete();
       inOrder.verify(newIndexOperations).create(any(Settings.class), any(Document.class));
+    }
+
+    @Test
+    @DisplayName("오래된 인덱스 삭제가 거부되면 예외를 던진다")
+    void 오래된_인덱스_삭제가_거부되면_예외를_던진다() throws Exception {
+      // given
+      given(elasticsearchOperations.indexOps(eq(ALIAS))).willReturn(aliasOperations);
+      given(aliasOperations.getAliases(FeedDocument.INDEX_NAME))
+          .willReturn(Map.of("feeds_v3", Set.of()));
+      given(aliasOperations.alias(any(AliasActions.class))).willReturn(true);
+      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+      given(entityOperations.createSettings()).willReturn(new Settings());
+      given(entityOperations.createMapping()).willReturn(Document.create());
+      given(elasticsearchOperations.indexOps(eq(IndexCoordinates.of("feeds_v4"))))
+          .willReturn(newIndexOperations);
+      given(newIndexOperations.create(any(Settings.class), any(Document.class))).willReturn(true);
+      given(elasticsearchOperations.indexOps(eq(IndexCoordinates.of("feeds_v2"))))
+          .willReturn(obsoleteIndexOperations);
+      given(obsoleteIndexOperations.exists()).willReturn(true);
+      given(obsoleteIndexOperations.delete()).willReturn(false);
+      givenJobCompleted();
+
+      // when & then
+      assertThatThrownBy(() -> feedIndexMigrationService.migrate())
+          .isInstanceOf(FeedIndexMigrationFailedException.class);
     }
   }
 }
