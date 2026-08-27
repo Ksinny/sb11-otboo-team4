@@ -1,10 +1,9 @@
-package com.sprint.mission.otboo.batch.feedmigration;
+package com.sprint.mission.otboo.batch.feedmigration.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sprint.mission.otboo.batch.feedmigration.exception.FeedIndexNameException;
-import com.sprint.mission.otboo.batch.feedmigration.service.FeedIndexNames;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
