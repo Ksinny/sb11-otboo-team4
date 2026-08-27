@@ -73,8 +73,7 @@ public class FeedIndexMigrationService {
     try {
       JobExecution execution = jobOperator.start(feedIndexMigrationJob, parameters);
       if (execution.getStatus() != BatchStatus.COMPLETED) {
-        throw FeedIndexMigrationFailedException.wrap(
-            new IllegalStateException("Job 상태=" + execution.getStatus()));
+        throw FeedIndexMigrationFailedException.jobNotCompleted(execution.getStatus().name());
       }
     } catch (JobExecutionAlreadyRunningException | JobRestartException
              | JobInstanceAlreadyCompleteException | InvalidJobParametersException e) {
