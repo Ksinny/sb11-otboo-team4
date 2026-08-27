@@ -33,7 +33,7 @@ feeds (alias) → feeds_v2
 2. 기동 로그에 매핑 불일치 경고가 뜹니다. **검색은 계속 됩니다** — 새 필드만 안 잡힙니다.
 
    ```text
-   FEED_INDEX_MIGRATION_REQUIRED: feeds가 alias가 아닌 실제 인덱스입니다.
+   FEED_INDEX_MAPPING_MISMATCH: 실제 매핑 누락 필드 존재 — 매핑 마이그레이션 필요: fields=[newField]
    ```
 
 3. ADMIN 권한으로 마이그레이션을 트리거합니다.
@@ -86,6 +86,10 @@ curl -X POST "{ES_HOST}/_aliases" -H 'Content-Type: application/json' -d '{
 
 기동 시 `FeedDocument`가 기대하는 필드가 실제 매핑에 있는지 확인하고, 없으면 로그를 남깁니다.
 
+```text
+FEED_INDEX_MAPPING_MISMATCH: 실제 매핑 누락 필드 존재 — 매핑 마이그레이션 필요: fields=[newField]
+```
+
 - **필드 이름만 비교합니다.** 타입·analyzer는 ES가 정규화해 돌려주므로 그대로 비교하면 오탐이 납니다.
 - **기대 − 실제** 방향만 봅니다. 매핑에 없는 필드는 검색이 조용히 비지만, 남는 필드는 지저분할 뿐 동작에 영향이 없습니다.
 - **기동을 막지 않습니다.** 검색은 앱의 일부 기능이라 전체 서비스를 내리는 것은 과합니다.
@@ -93,7 +97,7 @@ curl -X POST "{ES_HOST}/_aliases" -H 'Content-Type: application/json' -d '{
 `feeds`가 alias가 아닌 실제 인덱스인 경우에도 경고가 뜹니다.
 
 ```text
-FEED_INDEX_MAPPING_MISMATCH: 실제 매핑에 없는 필드가 있습니다: fields=[newField]
+FEED_INDEX_MIGRATION_REQUIRED: feeds가 alias가 아닌 실제 인덱스 — 매핑 마이그레이션 전 전환 필요
 ```
 
 `exists()`는 `HEAD` 요청이라 alias와 인덱스를 구분하지 못해, alias 조회로 별도 판별합니다.
