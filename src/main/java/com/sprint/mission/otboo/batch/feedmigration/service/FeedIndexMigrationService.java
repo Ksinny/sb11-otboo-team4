@@ -5,6 +5,7 @@ import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.JobExecution;
@@ -41,6 +42,7 @@ public class FeedIndexMigrationService {
   @Qualifier("feedIndexMigrationJob")
   private final Job feedIndexMigrationJob;
 
+  @SchedulerLock(name = "FeedIndexMigrationLock", lockAtMostFor = "PT30M")
   public void migrate() {
     String currentIndex = currentIndexBehindAlias();
     String newIndex = FeedIndexNames.nextVersionOf(currentIndex);
