@@ -8,7 +8,7 @@
 
 인덱스는 `feeds_v{n}`으로 만들고 `feeds`를 alias로 붙입니다.
 
-```
+```text
 feeds (alias) → feeds_v2
 ```
 
@@ -32,8 +32,8 @@ feeds (alias) → feeds_v2
 1. `FeedDocument`(또는 `elasticsearch/feed-settings.json`)를 수정하고 배포합니다.
 2. 기동 로그에 매핑 불일치 경고가 뜹니다. **검색은 계속 됩니다** — 새 필드만 안 잡힙니다.
 
-   ```
-   FEED_INDEX_MAPPING_MISMATCH: 실제 매핑에 없는 필드가 있습니다: fields=[newField]
+   ```text
+   FEED_INDEX_MIGRATION_REQUIRED: feeds가 alias가 아닌 실제 인덱스입니다.
    ```
 
 3. ADMIN 권한으로 마이그레이션을 트리거합니다.
@@ -47,7 +47,7 @@ feeds (alias) → feeds_v2
 
 4. `FeedIndexMigrationService`가 네 단계를 순서대로 밟습니다.
 
-   ```
+   ```text
    feeds_v2 생성 (새 매핑)
    DB에서 feeds_v2로 전체 재색인      ← 이 동안 검색은 feeds_v1
    alias 전환 (remove + add 한 요청)
@@ -90,8 +90,8 @@ curl -X POST "{ES_HOST}/_aliases" -H 'Content-Type: application/json' -d '{
 
 `feeds`가 alias가 아닌 실제 인덱스인 경우에도 경고가 뜹니다.
 
-```
-FEED_INDEX_MIGRATION_REQUIRED: feeds가 alias가 아닌 실제 인덱스입니다.
+```text
+FEED_INDEX_MAPPING_MISMATCH: 실제 매핑에 없는 필드가 있습니다: fields=[newField]
 ```
 
 `exists()`는 `HEAD` 요청이라 alias와 인덱스를 구분하지 못해, alias 조회로 별도 판별합니다.
