@@ -57,7 +57,7 @@ class FeedIndexInitializerTest {
   private void givenAliasNotExists() {
     given(elasticsearchOperations.indexOps(eq(ALIAS))).willReturn(aliasOperations);
     given(aliasOperations.exists()).willReturn(false);
-    given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+    given(elasticsearchOperations.indexOps(eq(FeedDocument.class))).willReturn(entityOperations);
     given(elasticsearchOperations.indexOps(eq(INITIAL_INDEX))).willReturn(targetOperations);
   }
 
@@ -80,8 +80,10 @@ class FeedIndexInitializerTest {
     void alias가_없으면_첫_인덱스를_만들고_alias를_붙인다() {
       // given
       givenAliasNotExists();
+      willThrow(new ResourceNotFoundException("alias [feeds] missing"))
+          .given(aliasOperations).getAliases(FeedDocument.INDEX_NAME);
       Settings settings = new Settings();
-      Document mapping = Document.create();
+      Document mapping = mappingWith("id");
       given(entityOperations.createSettings()).willReturn(settings);
       given(entityOperations.createMapping()).willReturn(mapping);
 
@@ -102,10 +104,8 @@ class FeedIndexInitializerTest {
       given(aliasOperations.getAliases(FeedDocument.INDEX_NAME))
           .willReturn(Map.of(INITIAL_INDEX.getIndexName(), Set.of()));
       given(aliasOperations.getMapping()).willReturn(mappingWith("id"));
-      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+      given(elasticsearchOperations.indexOps(eq(FeedDocument.class))).willReturn(entityOperations);
       given(entityOperations.createMapping()).willReturn(mappingWith("id"));
-
-      // when
 
       // when
       initializer.run(null);
@@ -123,7 +123,7 @@ class FeedIndexInitializerTest {
       willThrow(new ResourceNotFoundException("alias [feeds] missing"))
           .given(aliasOperations).getAliases(FeedDocument.INDEX_NAME);
       given(aliasOperations.getMapping()).willReturn(mappingWith("id"));
-      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+      given(elasticsearchOperations.indexOps(eq(FeedDocument.class))).willReturn(entityOperations);
       given(entityOperations.createMapping()).willReturn(mappingWith("id"));
 
       // when & then
@@ -136,13 +136,14 @@ class FeedIndexInitializerTest {
     void 다른_인스턴스가_먼저_생성했으면_예외를_삼킨다() {
       // given
       givenAliasNotExists();
+      willThrow(new ResourceNotFoundException("alias [feeds] missing"))
+          .given(aliasOperations).getAliases(FeedDocument.INDEX_NAME);
       willThrow(new UncategorizedElasticsearchException(
           "resource_already_exists_exception: index [feeds_v1] already exists"))
           .given(targetOperations).create(any(), any());
 
       // when & then
       assertThatCode(() -> initializer.run(null)).doesNotThrowAnyException();
-      verify(targetOperations, never()).alias(any(AliasActions.class));
     }
 
     @Test
@@ -167,7 +168,7 @@ class FeedIndexInitializerTest {
       given(aliasOperations.getAliases(FeedDocument.INDEX_NAME))
           .willReturn(Map.of("feeds_v1", Set.of()));
       given(aliasOperations.getMapping()).willReturn(mappingWith("id", "content", "searchText"));
-      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+      given(elasticsearchOperations.indexOps(eq(FeedDocument.class))).willReturn(entityOperations);
       given(entityOperations.createMapping()).willReturn(mappingWith("id", "content"));
 
       // when & then
@@ -184,11 +185,29 @@ class FeedIndexInitializerTest {
       given(aliasOperations.getAliases(FeedDocument.INDEX_NAME))
           .willReturn(Map.of("feeds_v1", Set.of()));
       given(aliasOperations.getMapping()).willReturn(mappingWith("id"));
-      given(elasticsearchOperations.indexOps(FeedDocument.class)).willReturn(entityOperations);
+      given(elasticsearchOperations.indexOps(eq(FeedDocument.class))).willReturn(entityOperations);
       given(entityOperations.createMapping()).willReturn(mappingWith("id", "searchText"));
 
       // when & then
       assertThatCode(() -> initializer.run(null)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("다른 인스턴스가 인덱스만 만들고 alias를 붙이지 않았으면 alias를 복구한다")
+    void 다른_인스턴스가_인덱스만_만들고_alias를_붙이지_않았으면_alias를_복구한다() {
+      // given
+      givenAliasNotExists();
+      willThrow(new ResourceNotFoundException("alias [feeds] missing"))
+          .given(aliasOperations).getAliases(FeedDocument.INDEX_NAME);
+      willThrow(new UncategorizedElasticsearchException(
+          "resource_already_exists_exception: index [feeds_v1] already exists"))
+          .given(targetOperations).create(any(), any());
+
+      // when
+      initializer.run(null);
+
+      // then
+      verify(targetOperations).alias(any(AliasActions.class));
     }
   }
 }

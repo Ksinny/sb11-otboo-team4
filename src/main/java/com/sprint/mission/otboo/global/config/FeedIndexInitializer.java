@@ -52,7 +52,7 @@ public class FeedIndexInitializer implements ApplicationRunner {
       return;
     }
 
-    createInitialIndex();
+    createInitialIndex(aliasOps);
   }
 
   // exists()는 HEAD 요청이라 alias와 실제 인덱스를 구분하지 않는다.
@@ -75,16 +75,14 @@ public class FeedIndexInitializer implements ApplicationRunner {
     }
   }
 
-  private void createInitialIndex() {
+  private void createInitialIndex(IndexOperations aliasOps) {
     IndexOperations entityOps = elasticsearchOperations.indexOps(FeedDocument.class);
     IndexOperations targetOps =
         elasticsearchOperations.indexOps(IndexCoordinates.of(INITIAL_INDEX_NAME));
 
     try {
       targetOps.create(entityOps.createSettings(), entityOps.createMapping());
-      targetOps.alias(addAliasAction());
-      log.info("피드 검색 인덱스 생성 완료: index={}, alias={}",
-          INITIAL_INDEX_NAME, FeedDocument.INDEX_NAME);
+      log.info("피드 검색 인덱스 생성 완료: index={}", INITIAL_INDEX_NAME);
     } catch (DataAccessException e) {
       // 다중 인스턴스 동시 기동 시 다른 인스턴스가 먼저 생성한 경우만 흡수한다.
       // 연결 실패나 매핑 오류는 그대로 전파해 기동 실패로 드러나게 한다.
@@ -92,6 +90,14 @@ public class FeedIndexInitializer implements ApplicationRunner {
         throw e;
       }
       log.warn("피드 검색 인덱스가 이미 존재합니다: index={}", INITIAL_INDEX_NAME);
+    }
+
+    // 생성 성공 여부와 무관하게 alias를 보장한다. 다른 인스턴스가 인덱스만 만들고
+    // alias 부여 전에 죽으면, 인덱스는 있는데 alias가 없는 상태가 계속 남는다.
+    if (!isAlias(aliasOps)) {
+      targetOps.alias(addAliasAction());
+      log.info("피드 검색 인덱스 alias 부여 완료: index={}, alias={}",
+          INITIAL_INDEX_NAME, FeedDocument.INDEX_NAME);
     }
   }
 
