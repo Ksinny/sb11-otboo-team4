@@ -61,7 +61,7 @@ public class FeedIndexInitializer implements ApplicationRunner {
     if (isAlias(aliasOps)) {
       return;
     }
-    log.warn("{}: {}가 alias가 아닌 실제 인덱스입니다. 매핑 마이그레이션 전에 전환이 필요합니다.",
+    log.warn("{}: {}가 alias가 아닌 실제 인덱스 — 매핑 마이그레이션 전 전환 필요",
         MIGRATION_REQUIRED_MARKER, FeedDocument.INDEX_NAME);
   }
 
@@ -89,7 +89,7 @@ public class FeedIndexInitializer implements ApplicationRunner {
       if (!isAlreadyExists(e)) {
         throw e;
       }
-      log.warn("피드 검색 인덱스가 이미 존재합니다: index={}", INITIAL_INDEX_NAME);
+      log.warn("실제 매핑 누락 필드 존재 — 매핑 마이그레이션 필요: fields={}", INITIAL_INDEX_NAME);
     }
 
     // 생성 성공 여부와 무관하게 alias를 보장한다. 다른 인스턴스가 인덱스만 만들고
