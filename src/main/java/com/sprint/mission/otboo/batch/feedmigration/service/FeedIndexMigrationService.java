@@ -42,7 +42,7 @@ public class FeedIndexMigrationService {
   @Qualifier("feedIndexMigrationJob")
   private final Job feedIndexMigrationJob;
 
-  @SchedulerLock(name = "FeedIndexMigrationLock", lockAtMostFor = "PT30M")
+  @SchedulerLock(name = "FeedIndexMigrationLock", lockAtMostFor = "PT2H")
   public void migrate() {
     String currentIndex = currentIndexBehindAlias();
     String newIndex = FeedIndexNames.nextVersionOf(currentIndex);
