@@ -106,7 +106,7 @@ class WeatherServiceTest {
       Weather todaySlot = Weather.create(weatherGrid, freshForecastedAt,
           Instant.parse("2026-07-27T09:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE,
           0.0, 10.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null,
-          null);
+          null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       given(weatherRepository.findAllByWeatherGridAndForecastAtGreaterThanEqual(eq(weatherGrid),
           any())).willReturn(List.of(todaySlot));
 
@@ -120,7 +120,7 @@ class WeatherServiceTest {
           .set("forecastAt", todaySlot.getForecastAt())
           .set("skyStatus", SkyStatus.CLEAR)
           .sample();
-      given(weatherMapper.toDto(todaySlot, weatherGrid, latitude, longitude, locationNames))
+      given(weatherMapper.toDto(todaySlot, weatherGrid, latitude, longitude, locationNames, true))
           .willReturn(expectedDto);
 
       // when
@@ -146,7 +146,7 @@ class WeatherServiceTest {
 
       Weather savedSlot = Weather.create(createdWeatherGrid, LATEST_BASE_TIME.toInstant(),
           Instant.parse("2026-07-27T09:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       given(weatherRefresher.refreshSlots(createdWeatherGrid, new KmaGridPoint(60, 127),
           LATEST_BASE_TIME)).willReturn(List.of(savedSlot));
 
@@ -157,7 +157,7 @@ class WeatherServiceTest {
           .set("skyStatus", SkyStatus.CLEAR)
           .sample();
       given(weatherMapper.toDto(savedSlot, createdWeatherGrid, latitude, longitude,
-          List.of("서울특별시", "중구", "명동"))).willReturn(expectedDto);
+          List.of("서울특별시", "중구", "명동"), true)).willReturn(expectedDto);
 
       // when
       List<WeatherDto> result = weatherService.getWeather(latitude, longitude);
@@ -179,7 +179,7 @@ class WeatherServiceTest {
       // 어제(D-1) 슬롯만 존재, 오늘 슬롯은 없음(stale)
       Weather yesterdaySlot = Weather.create(weatherGrid, Instant.parse("2026-07-26T08:00:00Z"),
           Instant.parse("2026-07-26T09:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 60.0, 0.0, 26.0, 0.0, 24.0, 29.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 60.0, 0.0, 26.0, 0.0, 24.0, 29.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       given(weatherRepository.findAllByWeatherGridAndForecastAtGreaterThanEqual(eq(weatherGrid),
           any())).willReturn(List.of(yesterdaySlot));
 
@@ -209,7 +209,7 @@ class WeatherServiceTest {
       Instant staleForecastedAt = Instant.parse("2026-07-27T05:00:00Z");
       Weather staleTodaySlot = Weather.create(weatherGrid, staleForecastedAt,
           Instant.parse("2026-07-27T09:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       given(weatherRepository.findAllByWeatherGridAndForecastAtGreaterThanEqual(eq(weatherGrid),
           any())).willReturn(List.of(staleTodaySlot));
 
@@ -223,7 +223,7 @@ class WeatherServiceTest {
           .set("skyStatus", SkyStatus.CLEAR)
           .sample();
       given(weatherMapper.toDto(staleTodaySlot, weatherGrid, latitude, longitude,
-          List.of("서울특별시", "중구", "명동"))).willReturn(expectedDto);
+          List.of("서울특별시", "중구", "명동"), true)).willReturn(expectedDto);
 
       // when
       List<WeatherDto> result = weatherService.getWeather(latitude, longitude);
@@ -246,17 +246,17 @@ class WeatherServiceTest {
       Instant staleForecastedAt = Instant.parse("2026-07-27T05:00:00Z");
       Weather staleTodaySlot = Weather.create(weatherGrid, staleForecastedAt,
           Instant.parse("2026-07-27T09:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       Weather tomorrowSlot = Weather.create(weatherGrid, staleForecastedAt,
           Instant.parse("2026-07-28T06:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 65.0, 0.0, 24.0, 0.0, 20.0, 26.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 65.0, 0.0, 24.0, 0.0, 20.0, 26.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       given(weatherRepository.findAllByWeatherGridAndForecastAtGreaterThanEqual(eq(weatherGrid),
           any())).willReturn(List.of(staleTodaySlot, tomorrowSlot));
 
       // 라이브 재조회는 오늘 슬롯만 갱신해서 돌아온다(내일 날짜는 파서 게이트 등으로 빠짐)
       Weather refreshedTodaySlot = Weather.create(weatherGrid, LATEST_BASE_TIME.toInstant(),
           Instant.parse("2026-07-27T09:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 65.0, 0.0, 29.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 65.0, 0.0, 29.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       given(weatherRefresher.refreshSlots(weatherGrid, new KmaGridPoint(60, 127),
           LATEST_BASE_TIME)).willReturn(List.of(refreshedTodaySlot));
       given(locationResolver.resolveLocationNames(latitude, longitude))
@@ -269,9 +269,9 @@ class WeatherServiceTest {
           .set("skyStatus", SkyStatus.CLEAR)
           .sample();
       given(weatherMapper.toDto(refreshedTodaySlot, weatherGrid, latitude, longitude,
-          List.of("서울특별시", "중구", "명동"))).willReturn(todayDto);
+          List.of("서울특별시", "중구", "명동"), true)).willReturn(todayDto);
       given(weatherMapper.toDto(tomorrowSlot, weatherGrid, latitude, longitude,
-          List.of("서울특별시", "중구", "명동"))).willReturn(tomorrowDto);
+          List.of("서울특별시", "중구", "명동"), false)).willReturn(tomorrowDto);
 
       // when
       List<WeatherDto> result = weatherService.getWeather(latitude, longitude);
@@ -296,16 +296,16 @@ class WeatherServiceTest {
       // WeatherRefresher가 라이브 재조회 결과에 어제 슬롯 + 오늘 슬롯 2개(17:00/18:30 KST) + 내일 슬롯(15시 KST)를 반환해도
       Weather pastSlot = Weather.create(weatherGrid, LATEST_BASE_TIME.toInstant(),
           Instant.parse("2026-07-26T09:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 60.0, 0.0, 26.0, 0.0, 24.0, 29.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 60.0, 0.0, 26.0, 0.0, 24.0, 29.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       Weather todayFar = Weather.create(weatherGrid, LATEST_BASE_TIME.toInstant(),
           Instant.parse("2026-07-27T08:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 65.0, 0.0, 27.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 65.0, 0.0, 27.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       Weather todayClosest = Weather.create(weatherGrid, LATEST_BASE_TIME.toInstant(),
           Instant.parse("2026-07-27T09:30:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       Weather tomorrowSlot = Weather.create(weatherGrid, LATEST_BASE_TIME.toInstant(),
           Instant.parse("2026-07-28T06:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 65.0, 0.0, 24.0, 0.0, 20.0, 26.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 65.0, 0.0, 24.0, 0.0, 20.0, 26.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       given(weatherRefresher.refreshSlots(weatherGrid, new KmaGridPoint(60, 127),
           LATEST_BASE_TIME))
           .willReturn(List.of(pastSlot, todayFar, todayClosest, tomorrowSlot));
@@ -321,12 +321,12 @@ class WeatherServiceTest {
           new HumidityDto(28.0, 0.0), new TemperatureDto(25.0, 0.0, 25.0, 31.0),
           new WindSpeedDto(2.0, WindStrength.WEAK));
       given(weatherMapper.toDto(todayClosest, weatherGrid, latitude, longitude,
-          List.of("서울특별시", "중구", "명동"))).willReturn(todayDto);
+          List.of("서울특별시", "중구", "명동"), true)).willReturn(todayDto);
       WeatherDto tomorrowDto = FIXTURE_MONKEY.giveMeBuilder(WeatherDto.class)
           .set("skyStatus", SkyStatus.CLEAR)
           .sample();
       given(weatherMapper.toDto(tomorrowSlot, weatherGrid, latitude, longitude,
-          List.of("서울특별시", "중구", "명동"))).willReturn(tomorrowDto);
+          List.of("서울특별시", "중구", "명동"), false)).willReturn(tomorrowDto);
 
       // when
       List<WeatherDto> result = weatherService.getWeather(latitude, longitude);
@@ -472,7 +472,7 @@ class WeatherServiceTest {
       WeatherDto expectedDto = FIXTURE_MONKEY.giveMeBuilder(WeatherDto.class)
           .set("skyStatus", SkyStatus.CLEAR)
           .sample();
-      given(weatherMapper.toDto(cachedSlot, weatherGrid, latitude, longitude, locationNames))
+      given(weatherMapper.toDto(cachedSlot, weatherGrid, latitude, longitude, locationNames, true))
           .willReturn(expectedDto);
 
       // when
@@ -498,7 +498,7 @@ class WeatherServiceTest {
       Weather dbSlot = Weather.create(weatherGrid, freshForecastedAt,
           Instant.parse("2026-07-27T09:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE,
           0.0, 10.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null,
-          null);
+          null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       given(weatherRepository.findAllByWeatherGridAndForecastAtGreaterThanEqual(eq(weatherGrid),
           any())).willReturn(List.of(dbSlot));
 
@@ -509,7 +509,7 @@ class WeatherServiceTest {
       WeatherDto expectedDto = FIXTURE_MONKEY.giveMeBuilder(WeatherDto.class)
           .set("skyStatus", SkyStatus.CLEAR)
           .sample();
-      given(weatherMapper.toDto(dbSlot, weatherGrid, latitude, longitude, locationNames))
+      given(weatherMapper.toDto(dbSlot, weatherGrid, latitude, longitude, locationNames, true))
           .willReturn(expectedDto);
 
       // when
@@ -536,7 +536,7 @@ class WeatherServiceTest {
 
       Weather refreshedSlot = Weather.create(weatherGrid, LATEST_BASE_TIME.toInstant(),
           Instant.parse("2026-07-27T09:00:00Z"), SkyStatus.CLEAR, PrecipitationType.NONE, 0.0,
-          0.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null);
+          0.0, 65.0, 0.0, 28.0, 0.0, 25.0, 31.0, 2.0, WindStrength.WEAK, null, null, null, null, SkyStatus.CLEAR, PrecipitationType.NONE, 50.0);
       given(weatherRefresher.refreshSlotsAsync(eq(weatherGrid), eq(new KmaGridPoint(60, 127)),
           eq(LATEST_BASE_TIME), eq(List.of()), eq(weatherRefreshExecutor)))
           .willReturn(CompletableFuture.completedFuture(List.of(refreshedSlot)));
@@ -548,8 +548,8 @@ class WeatherServiceTest {
       WeatherDto expectedDto = FIXTURE_MONKEY.giveMeBuilder(WeatherDto.class)
           .set("skyStatus", SkyStatus.CLEAR)
           .sample();
-      given(weatherMapper.toDto(refreshedSlot, weatherGrid, latitude, longitude, locationNames))
-          .willReturn(expectedDto);
+      given(weatherMapper.toDto(refreshedSlot, weatherGrid, latitude, longitude, locationNames,
+          true)).willReturn(expectedDto);
 
       // when
       List<WeatherDto> result = weatherService.getWeatherAsync(latitude, longitude).join();
