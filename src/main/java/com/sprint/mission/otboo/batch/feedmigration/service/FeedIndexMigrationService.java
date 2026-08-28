@@ -60,6 +60,7 @@ public class FeedIndexMigrationService {
     createIndex(newIndex);
     long indexedCount = reindexInto(newIndex);
     switchAlias(currentIndex, newIndex);
+    refreshIndex(newIndex);
     deleteObsoleteIndex(newIndex);
 
     log.info("피드 인덱스 마이그레이션 완료: alias={}, index={}",
@@ -143,6 +144,13 @@ public class FeedIndexMigrationService {
     }
     log.info("피드 인덱스 alias 전환 완료: alias={}, from={}, to={}",
         FeedDocument.INDEX_NAME, currentIndex, newIndex);
+  }
+
+  // 재색인은 bulk API로 refresh 없이 색인한다. 전환 직후 검색과 문서 수 조회가
+  // 바로 맞도록 한 번 refresh한다. 마이그레이션은 수동 트리거라 비용이 문제되지 않는다.
+  private void refreshIndex(String newIndex) {
+    indexOps(newIndex).refresh();
+    log.info("새 피드 인덱스 refresh 완료: index={}", newIndex);
   }
 
   // 전환 직후 한 세대는 남겨, 문제가 생기면 alias만 되돌려 복구할 수 있게 한다.

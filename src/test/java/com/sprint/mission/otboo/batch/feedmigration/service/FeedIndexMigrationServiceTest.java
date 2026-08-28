@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -120,7 +121,7 @@ class FeedIndexMigrationServiceTest {
       feedIndexMigrationService.migrate();
 
       // then
-      verify(elasticsearchOperations).indexOps(eq(NEW_INDEX));
+      verify(elasticsearchOperations, atLeastOnce()).indexOps(eq(NEW_INDEX));
       verify(newIndexOperations).create(any(Settings.class), any(Document.class));
     }
 
@@ -157,6 +158,23 @@ class FeedIndexMigrationServiceTest {
       InOrder inOrder = inOrder(jobOperator, aliasOperations);
       inOrder.verify(jobOperator).start(eq(feedIndexMigrationJob), any(JobParameters.class));
       inOrder.verify(aliasOperations).alias(any(AliasActions.class));
+    }
+
+    @Test
+    @DisplayName("alias 전환 후 새 인덱스를 refresh한다")
+    void alias_전환_후_새_인덱스를_refresh한다() throws Exception {
+      // given
+      givenAliasPointsToCurrentIndex();
+      givenNewIndexCreated();
+      givenJobCompleted();
+
+      // when
+      feedIndexMigrationService.migrate();
+
+      // then
+      InOrder inOrder = inOrder(aliasOperations, newIndexOperations);
+      inOrder.verify(aliasOperations).alias(any(AliasActions.class));
+      inOrder.verify(newIndexOperations).refresh();
     }
 
     @Test
