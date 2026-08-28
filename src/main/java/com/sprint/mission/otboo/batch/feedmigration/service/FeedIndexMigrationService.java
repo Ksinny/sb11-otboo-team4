@@ -8,13 +8,16 @@ import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.JobExecution;
+import org.springframework.batch.core.job.JobInstance;
 import org.springframework.batch.core.job.parameters.InvalidJobParametersException;
 import org.springframework.batch.core.job.parameters.JobParameters;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
@@ -75,7 +78,7 @@ public class FeedIndexMigrationService {
     return new FeedIndexMigrationResult(
         currentIndex, newIndex, indexedCount, System.currentTimeMillis() - startedAt);
   }
-  
+
   public FeedIndexStatus readStatus() {
     return new FeedIndexStatus(
         FeedDocument.INDEX_NAME,
@@ -91,18 +94,36 @@ public class FeedIndexMigrationService {
   /**
    * 마지막으로 완료된 Job 실행 시각.
    *
-   * <p>Job 인스턴스는 실행 시각(time 파라미터)마다 새로 만들어지므로 가장 최근 인스턴스 하나만 본다.
+   * <p>Job 인스턴스는 실행 시각(time 파라미터)마다 새로 만들어진다. 가장 최근 인스턴스가
+   * 실행 중이거나 실패했을 수 있어, 완료된 실행을 찾을 때까지 최대 5페이지(50개)를 훑는다.
    */
   private Instant lastCompletedAt(String jobName) {
-    return jobRepository.getJobInstances(jobName, 0, 1).stream()
-        .findFirst()
-        .flatMap(instance -> jobRepository.getJobExecutions(instance).stream()
-            .filter(execution -> execution.getStatus() == BatchStatus.COMPLETED)
-            .map(JobExecution::getEndTime)
-            .filter(Objects::nonNull)
-            .max(Comparator.naturalOrder()))
-        .map(endTime -> endTime.atZone(ZoneId.systemDefault()).toInstant())
-        .orElse(null);
+    int pageSize = 10;
+    int maxPages = 5;
+
+    for (int page = 0; page < maxPages; page++) {
+      List<JobInstance> instances = jobRepository.getJobInstances(jobName, page * pageSize,
+          pageSize);
+      if (instances.isEmpty()) {
+        return null;
+      }
+      for (JobInstance instance : instances) {
+        Optional<Instant> completedAt = latestCompletedEndTime(instance);
+        if (completedAt.isPresent()) {
+          return completedAt.get();
+        }
+      }
+    }
+    return null;
+  }
+
+  private Optional<Instant> latestCompletedEndTime(JobInstance instance) {
+    return jobRepository.getJobExecutions(instance).stream()
+        .filter(execution -> execution.getStatus() == BatchStatus.COMPLETED)
+        .map(JobExecution::getEndTime)
+        .filter(Objects::nonNull)
+        .max(Comparator.naturalOrder())
+        .map(endTime -> endTime.atZone(ZoneId.systemDefault()).toInstant());
   }
 
   private String currentIndexBehindAlias() {

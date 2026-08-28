@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -363,12 +364,48 @@ class FeedIndexMigrationServiceTest {
 
       JobInstance instance = new JobInstance(1L, "feedReindexJob");
       LocalDateTime endTime = LocalDateTime.of(2026, 8, 28, 5, 0);
-      given(jobRepository.getJobInstances("feedReindexJob", 0, 1))
+      given(jobRepository.getJobInstances("feedReindexJob", 0, 10))
           .willReturn(List.of(instance));
       given(jobRepository.getJobExecutions(instance)).willReturn(List.of(jobExecution));
       given(jobExecution.getStatus()).willReturn(BatchStatus.COMPLETED);
       given(jobExecution.getEndTime()).willReturn(endTime);
-      given(jobRepository.getJobInstances("feedIndexMigrationJob", 0, 1))
+      given(jobRepository.getJobInstances("feedIndexMigrationJob", 0, 10))
+          .willReturn(List.of());
+
+      // when
+      FeedIndexStatus status = feedIndexMigrationService.readStatus();
+
+      // then
+      assertThat(status.lastReindexAt())
+          .isEqualTo(endTime.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    @Test
+    @DisplayName("최근 인스턴스가 실패했으면 이전 완료 인스턴스를 찾는다")
+    void 최근_인스턴스가_실패했으면_이전_완료_인스턴스를_찾는다() {
+      // given
+      given(feedIndexInspector.currentIndexName()).willReturn(Optional.of("feeds_v1"));
+      given(feedIndexInspector.isAlias()).willReturn(true);
+      given(feedIndexInspector.missingFields()).willReturn(Set.of());
+      given(feedIndexInspector.indexedCount()).willReturn(26L);
+      given(feedRepository.countActive()).willReturn(26L);
+
+      JobInstance failedInstance = new JobInstance(2L, "feedReindexJob");
+      JobInstance completedInstance = new JobInstance(1L, "feedReindexJob");
+      JobExecution failedExecution = mock(JobExecution.class);
+      JobExecution completedExecution = mock(JobExecution.class);
+      LocalDateTime endTime = LocalDateTime.of(2026, 8, 28, 5, 0);
+
+      given(jobRepository.getJobInstances("feedReindexJob", 0, 10))
+          .willReturn(List.of(failedInstance, completedInstance));
+      given(jobRepository.getJobExecutions(failedInstance)).willReturn(List.of(failedExecution));
+      given(failedExecution.getStatus()).willReturn(BatchStatus.FAILED);
+      given(jobRepository.getJobExecutions(completedInstance)).willReturn(
+          List.of(completedExecution));
+      given(completedExecution.getStatus()).willReturn(BatchStatus.COMPLETED);
+      given(completedExecution.getEndTime()).willReturn(endTime);
+
+      given(jobRepository.getJobInstances("feedIndexMigrationJob", 0, 10))
           .willReturn(List.of());
 
       // when
