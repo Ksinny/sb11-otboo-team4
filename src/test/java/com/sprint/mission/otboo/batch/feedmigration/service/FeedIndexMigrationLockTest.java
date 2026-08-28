@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 
 import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexMigrationResult;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
+import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import com.sprint.mission.otboo.global.config.SchedulerLockConfig;
 import com.sprint.mission.otboo.global.testcontainers.RedisTestContainerSupport;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.job.parameters.JobParameters;
 import org.springframework.batch.core.launch.JobOperator;
+import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -58,12 +60,25 @@ class FeedIndexMigrationLockTest implements RedisTestContainerSupport {
   private final IndexOperations aliasOperations = mock(IndexOperations.class);
   private final IndexOperations entityOperations = mock(IndexOperations.class);
   private final IndexOperations newIndexOperations = mock(IndexOperations.class);
+
   @Autowired
   private FeedIndexMigrationService feedIndexMigrationService;
+
   @MockitoBean
   private JobOperator jobOperator;
+
   @MockitoBean
   private ElasticsearchOperations elasticsearchOperations;
+
+  @MockitoBean
+  private FeedIndexInspector feedIndexInspector;
+
+  @MockitoBean
+  private FeedRepository feedRepository;
+
+  @MockitoBean
+  private JobRepository jobRepository;
+
   @MockitoBean(name = "feedIndexMigrationJob")
   private Job feedIndexMigrationJob;
 
