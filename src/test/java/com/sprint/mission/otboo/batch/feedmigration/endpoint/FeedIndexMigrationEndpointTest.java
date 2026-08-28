@@ -8,6 +8,7 @@ import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexMigrationResult
 import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexStatus;
 import com.sprint.mission.otboo.batch.feedmigration.exception.FeedIndexMigrationAlreadyRunningException;
 import com.sprint.mission.otboo.batch.feedmigration.service.FeedIndexMigrationService;
+import java.time.Instant;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -70,7 +71,8 @@ class FeedIndexMigrationEndpointTest {
     void 서비스가_반환한_상태를_그대로_반환한다() {
       // given
       FeedIndexStatus expected = new FeedIndexStatus(
-          "feeds", "feeds_v1", true, Set.of("searchText"), 26L, 26L);
+          "feeds", "feeds_v1", true, Set.of("searchText"), 26L, 26L,
+          Instant.parse("2026-08-28T05:00:00Z"), Instant.parse("2026-08-28T03:00:00Z"));
       given(feedIndexMigrationService.readStatus()).willReturn(expected);
 
       // when

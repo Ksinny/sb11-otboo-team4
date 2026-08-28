@@ -6,6 +6,9 @@ import com.sprint.mission.otboo.batch.feedmigration.exception.FeedIndexMigration
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Comparator;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -19,6 +22,7 @@ import org.springframework.batch.core.launch.JobExecutionAlreadyRunningException
 import org.springframework.batch.core.launch.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.launch.JobRestartException;
+import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.StepExecution;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
@@ -45,6 +49,7 @@ public class FeedIndexMigrationService {
   private final ElasticsearchOperations elasticsearchOperations;
   private final FeedIndexInspector feedIndexInspector;
   private final FeedRepository feedRepository;
+  private final JobRepository jobRepository;
 
   @Qualifier("feedIndexMigrationJob")
   private final Job feedIndexMigrationJob;
@@ -78,7 +83,26 @@ public class FeedIndexMigrationService {
         feedIndexInspector.isAlias(),
         feedIndexInspector.missingFields(),
         feedIndexInspector.indexedCount(),
-        feedRepository.countActive());
+        feedRepository.countActive(),
+        lastCompletedAt("feedReindexJob"),
+        lastCompletedAt("feedIndexMigrationJob"));
+  }
+
+  /**
+   * 마지막으로 완료된 Job 실행 시각.
+   *
+   * <p>Job 인스턴스는 실행 시각(time 파라미터)마다 새로 만들어지므로 가장 최근 인스턴스 하나만 본다.
+   */
+  private Instant lastCompletedAt(String jobName) {
+    return jobRepository.getJobInstances(jobName, 0, 1).stream()
+        .findFirst()
+        .flatMap(instance -> jobRepository.getJobExecutions(instance).stream()
+            .filter(execution -> execution.getStatus() == BatchStatus.COMPLETED)
+            .map(JobExecution::getEndTime)
+            .filter(Objects::nonNull)
+            .max(Comparator.naturalOrder()))
+        .map(endTime -> endTime.atZone(ZoneId.systemDefault()).toInstant())
+        .orElse(null);
   }
 
   private String currentIndexBehindAlias() {
