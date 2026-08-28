@@ -2,6 +2,7 @@ package com.sprint.mission.otboo.batch.feedreindex.service;
 
 import com.sprint.mission.otboo.batch.feedreindex.config.FeedReindexProperties;
 import com.sprint.mission.otboo.batch.feedreindex.dto.FeedReindexResult;
+import com.sprint.mission.otboo.batch.feedreindex.exception.FeedReindexAlreadyRunningException;
 import com.sprint.mission.otboo.batch.feedreindex.exception.FeedReindexJobFailedException;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import java.time.Instant;
@@ -75,8 +76,10 @@ public class FeedReindexService {
             new IllegalStateException("Job 상태=" + execution.getStatus()));
       }
       return execution;
-    } catch (JobExecutionAlreadyRunningException | JobRestartException
-             | JobInstanceAlreadyCompleteException | InvalidJobParametersException e) {
+    } catch (JobExecutionAlreadyRunningException e) {
+      throw FeedReindexAlreadyRunningException.wrap(e);
+    } catch (JobRestartException | JobInstanceAlreadyCompleteException
+             | InvalidJobParametersException e) {
       throw FeedReindexJobFailedException.wrap(e);
     }
   }
