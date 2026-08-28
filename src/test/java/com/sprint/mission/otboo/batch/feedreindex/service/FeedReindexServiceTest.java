@@ -5,13 +5,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.sprint.mission.otboo.batch.feedreindex.config.FeedReindexProperties;
+import com.sprint.mission.otboo.batch.feedreindex.dto.FeedReindexResult;
 import com.sprint.mission.otboo.batch.feedreindex.exception.FeedReindexJobFailedException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -28,6 +31,7 @@ import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.job.parameters.JobParameters;
 import org.springframework.batch.core.launch.JobExecutionAlreadyRunningException;
 import org.springframework.batch.core.launch.JobOperator;
+import org.springframework.batch.core.step.StepExecution;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FeedReindexService")
@@ -101,6 +105,25 @@ class FeedReindexServiceTest {
       // when & then
       assertThatThrownBy(() -> feedReindexService.executeReindexAll())
           .isInstanceOf(FeedReindexJobFailedException.class);
+    }
+
+    @Test
+    @DisplayName("Step 실행 결과를 집계해 반환한다")
+    void Step_실행_결과를_집계해_반환한다() throws Exception {
+      // given
+      StepExecution stepExecution = mock(StepExecution.class);
+      given(stepExecution.getReadCount()).willReturn(26L);
+      given(stepExecution.getWriteCount()).willReturn(24L);
+      given(jobExecution.getStepExecutions()).willReturn(List.of(stepExecution));
+      given(jobOperator.start(any(Job.class), any(JobParameters.class))).willReturn(jobExecution);
+      given(jobExecution.getStatus()).willReturn(BatchStatus.COMPLETED);
+
+      // when
+      FeedReindexResult result = feedReindexService.executeReindexAll();
+
+      // then
+      assertThat(result.readCount()).isEqualTo(26L);
+      assertThat(result.writeCount()).isEqualTo(24L);
     }
   }
 
