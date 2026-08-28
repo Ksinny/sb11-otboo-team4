@@ -1,10 +1,12 @@
 package com.sprint.mission.otboo.batch.feedmigration.endpoint;
 
 import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexMigrationResult;
+import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexStatus;
 import com.sprint.mission.otboo.batch.feedmigration.exception.FeedIndexMigrationAlreadyRunningException;
 import com.sprint.mission.otboo.batch.feedmigration.service.FeedIndexMigrationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
+import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
 import org.springframework.stereotype.Component;
 
@@ -31,5 +33,10 @@ public class FeedIndexMigrationEndpoint {
       throw FeedIndexMigrationAlreadyRunningException.occurred();
     }
     return result;
+  }
+
+  @ReadOperation
+  public FeedIndexStatus status() {
+    return feedIndexMigrationService.readStatus();
   }
 }

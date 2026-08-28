@@ -1,8 +1,10 @@
 package com.sprint.mission.otboo.batch.feedmigration.service;
 
 import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexMigrationResult;
+import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexStatus;
 import com.sprint.mission.otboo.batch.feedmigration.exception.FeedIndexMigrationFailedException;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
+import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ import org.springframework.data.elasticsearch.core.index.AliasActionParameters;
 import org.springframework.data.elasticsearch.core.index.AliasActions;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 매핑 변경 시 새 인덱스로 무중단 전환한다.
@@ -40,6 +43,8 @@ public class FeedIndexMigrationService {
 
   private final JobOperator jobOperator;
   private final ElasticsearchOperations elasticsearchOperations;
+  private final FeedIndexInspector feedIndexInspector;
+  private final FeedRepository feedRepository;
 
   @Qualifier("feedIndexMigrationJob")
   private final Job feedIndexMigrationJob;
@@ -62,6 +67,17 @@ public class FeedIndexMigrationService {
 
     return new FeedIndexMigrationResult(
         currentIndex, newIndex, indexedCount, System.currentTimeMillis() - startedAt);
+  }
+
+  @Transactional(readOnly = true)
+  public FeedIndexStatus readStatus() {
+    return new FeedIndexStatus(
+        FeedDocument.INDEX_NAME,
+        feedIndexInspector.currentIndexName().orElse(null),
+        feedIndexInspector.isAlias(),
+        feedIndexInspector.missingFields(),
+        feedIndexInspector.indexedCount(),
+        feedRepository.countActive());
   }
 
   private String currentIndexBehindAlias() {

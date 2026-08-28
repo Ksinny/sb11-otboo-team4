@@ -9,9 +9,12 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexStatus;
 import com.sprint.mission.otboo.batch.feedmigration.exception.FeedIndexMigrationFailedException;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
+import com.sprint.mission.otboo.domain.social.feed.repository.FeedRepository;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -68,10 +71,17 @@ class FeedIndexMigrationServiceTest {
 
   private FeedIndexMigrationService feedIndexMigrationService;
 
+  @Mock
+  private FeedIndexInspector feedIndexInspector;
+
+  @Mock
+  private FeedRepository feedRepository;
+
   @BeforeEach
   void setUp() {
     feedIndexMigrationService = new FeedIndexMigrationService(
-        jobOperator, elasticsearchOperations, feedIndexMigrationJob);
+        jobOperator, elasticsearchOperations, feedIndexInspector,
+        feedRepository, feedIndexMigrationJob);
   }
 
   private void givenAliasPointsToCurrentIndex() {
@@ -272,6 +282,47 @@ class FeedIndexMigrationServiceTest {
       // when & then
       assertThatThrownBy(() -> feedIndexMigrationService.migrate())
           .isInstanceOf(FeedIndexMigrationFailedException.class);
+    }
+  }
+
+  @Nested
+  @DisplayName("인덱스 상태 조회")
+  class ReadStatus {
+
+    @Test
+    @DisplayName("alias 여부와 누락 필드, 문서 수를 조합해 반환한다")
+    void alias_여부와_누락_필드_문서_수를_조합해_반환한다() {
+      // given
+      given(feedIndexInspector.currentIndexName()).willReturn(Optional.of("feeds_v1"));
+      given(feedIndexInspector.isAlias()).willReturn(true);
+      given(feedIndexInspector.missingFields()).willReturn(Set.of("searchText"));
+      given(feedIndexInspector.indexedCount()).willReturn(26L);
+      given(feedRepository.countActive()).willReturn(30L);
+
+      // when
+      FeedIndexStatus status = feedIndexMigrationService.readStatus();
+
+      // then
+      assertThat(status).isEqualTo(new FeedIndexStatus(
+          "feeds", "feeds_v1", true, Set.of("searchText"), 26L, 30L));
+    }
+
+    @Test
+    @DisplayName("alias가 아니면 현재 인덱스가 비어 있다")
+    void alias가_아니면_현재_인덱스가_비어_있다() {
+      // given
+      given(feedIndexInspector.currentIndexName()).willReturn(Optional.empty());
+      given(feedIndexInspector.isAlias()).willReturn(false);
+      given(feedIndexInspector.missingFields()).willReturn(Set.of());
+      given(feedIndexInspector.indexedCount()).willReturn(0L);
+      given(feedRepository.countActive()).willReturn(30L);
+
+      // when
+      FeedIndexStatus status = feedIndexMigrationService.readStatus();
+
+      // then
+      assertThat(status.currentIndex()).isNull();
+      assertThat(status.alias()).isFalse();
     }
   }
 }

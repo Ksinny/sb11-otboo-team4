@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexMigrationResult;
+import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexStatus;
 import com.sprint.mission.otboo.batch.feedmigration.exception.FeedIndexMigrationAlreadyRunningException;
 import com.sprint.mission.otboo.batch.feedmigration.service.FeedIndexMigrationService;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -56,6 +58,26 @@ class FeedIndexMigrationEndpointTest {
           .isInstanceOf(FeedIndexMigrationAlreadyRunningException.class)
           .extracting("status")
           .isEqualTo(HttpStatus.CONFLICT);
+    }
+  }
+
+  @Nested
+  @DisplayName("상태 조회")
+  class Status {
+
+    @Test
+    @DisplayName("서비스가 반환한 상태를 그대로 반환한다")
+    void 서비스가_반환한_상태를_그대로_반환한다() {
+      // given
+      FeedIndexStatus expected = new FeedIndexStatus(
+          "feeds", "feeds_v1", true, Set.of("searchText"), 26L, 26L);
+      given(feedIndexMigrationService.readStatus()).willReturn(expected);
+
+      // when
+      FeedIndexStatus actual = endpoint.status();
+
+      // then
+      assertThat(actual).isEqualTo(expected);
     }
   }
 }

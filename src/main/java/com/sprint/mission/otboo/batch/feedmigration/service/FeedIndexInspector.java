@@ -10,6 +10,7 @@ import org.springframework.data.elasticsearch.ResourceNotFoundException;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.stereotype.Component;
 
 /**
@@ -74,6 +75,13 @@ public class FeedIndexInspector {
   private Set<String> fieldNames(Map<String, Object> mapping) {
     Map<String, Object> properties = findProperties(mapping);
     return properties == null ? Set.of() : new LinkedHashSet<>(properties.keySet());
+  }
+
+  /**
+   * 인덱스에 색인된 문서 수.
+   */
+  public long indexedCount() {
+    return elasticsearchOperations.count(Query.findAll(), FeedDocument.class);
   }
 
   @SuppressWarnings("unchecked")
