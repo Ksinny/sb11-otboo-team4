@@ -1,6 +1,7 @@
 package com.sprint.mission.otboo.batch.feedmigration.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -149,6 +150,14 @@ class FeedIndexMigrationLockTest implements RedisTestContainerSupport {
         executor.shutdownNow();
         executor.awaitTermination(5, TimeUnit.SECONDS);
       }
+    }
+
+    @Test
+    @DisplayName("migrate()는 트랜잭션 없이 실행되어 JobRepository와 충돌하지 않는다")
+    void migrate는_트랜잭션_없이_실행되어_JobRepository와_충돌하지_않는다() {
+      // when & then
+      assertThatCode(() -> feedIndexMigrationService.migrate())
+          .doesNotThrowAnyException();
     }
   }
 }

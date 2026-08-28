@@ -46,7 +46,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class FeedIndexMigrationService {
 
   private final JobOperator jobOperator;
@@ -79,6 +78,7 @@ public class FeedIndexMigrationService {
         currentIndex, newIndex, indexedCount, System.currentTimeMillis() - startedAt);
   }
 
+  @Transactional(readOnly = true)
   public FeedIndexStatus readStatus() {
     return new FeedIndexStatus(
         FeedDocument.INDEX_NAME,
