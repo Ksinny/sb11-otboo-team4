@@ -1,5 +1,6 @@
 package com.sprint.mission.otboo.batch.feedmigration.service;
 
+import com.sprint.mission.otboo.batch.feedmigration.dto.FeedIndexMigrationResult;
 import com.sprint.mission.otboo.batch.feedmigration.exception.FeedIndexMigrationFailedException;
 import com.sprint.mission.otboo.domain.social.feed.document.FeedDocument;
 import java.time.Instant;
@@ -16,6 +17,7 @@ import org.springframework.batch.core.launch.JobExecutionAlreadyRunningException
 import org.springframework.batch.core.launch.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.launch.JobRestartException;
+import org.springframework.batch.core.step.StepExecution;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
@@ -43,18 +45,23 @@ public class FeedIndexMigrationService {
   private final Job feedIndexMigrationJob;
 
   @SchedulerLock(name = "FeedIndexMigrationLock", lockAtMostFor = "PT2H")
-  public void migrate() {
+  public FeedIndexMigrationResult migrate() {
+    long startedAt = System.currentTimeMillis();
+
     String currentIndex = currentIndexBehindAlias();
     String newIndex = FeedIndexNames.nextVersionOf(currentIndex);
     log.info("피드 인덱스 마이그레이션 시작: from={}, to={}", currentIndex, newIndex);
 
     createIndex(newIndex);
-    reindexInto(newIndex);
+    long indexedCount = reindexInto(newIndex);
     switchAlias(currentIndex, newIndex);
     deleteObsoleteIndex(newIndex);
 
     log.info("피드 인덱스 마이그레이션 완료: alias={}, index={}",
         FeedDocument.INDEX_NAME, newIndex);
+
+    return new FeedIndexMigrationResult(
+        currentIndex, newIndex, indexedCount, System.currentTimeMillis() - startedAt);
   }
 
   private String currentIndexBehindAlias() {
@@ -77,7 +84,7 @@ public class FeedIndexMigrationService {
     log.info("새 피드 인덱스 생성 완료: index={}", newIndex);
   }
 
-  private void reindexInto(String newIndex) {
+  private long reindexInto(String newIndex) {
     JobParameters parameters = new JobParametersBuilder()
         .addLong("time", Instant.now().toEpochMilli())
         .addString("targetIndex", newIndex)
@@ -89,6 +96,9 @@ public class FeedIndexMigrationService {
             newIndex, execution.getStatus());
         throw FeedIndexMigrationFailedException.jobNotCompleted(execution.getStatus().name());
       }
+      return execution.getStepExecutions().stream()
+          .mapToLong(StepExecution::getWriteCount)
+          .sum();
     } catch (JobExecutionAlreadyRunningException | JobRestartException
              | JobInstanceAlreadyCompleteException | InvalidJobParametersException e) {
       log.error("마이그레이션 재색인 실행 실패: index={}", newIndex, e);
