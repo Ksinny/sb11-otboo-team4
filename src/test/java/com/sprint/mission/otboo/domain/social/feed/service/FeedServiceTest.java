@@ -667,6 +667,9 @@ class FeedServiceTest {
       assertThat(captor.getAllValues())
           .filteredOn(FeedIndexAsyncRequestedEvent.class::isInstance)
           .containsExactly(FeedIndexAsyncRequestedEvent.upsert(feedId));
+      assertThat(captor.getAllValues())
+          .filteredOn(FeedIndexRequestedEvent.class::isInstance)
+          .isEmpty();
     }
   }
 
@@ -749,10 +752,14 @@ class FeedServiceTest {
       feedService.unlike(feedId, userId);
 
       // then
-      ArgumentCaptor<FeedIndexAsyncRequestedEvent> captor =
-          ArgumentCaptor.forClass(FeedIndexAsyncRequestedEvent.class);
-      verify(eventPublisher).publishEvent(captor.capture());
-      assertThat(captor.getValue()).isEqualTo(FeedIndexAsyncRequestedEvent.upsert(feedId));
+      ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+      verify(eventPublisher, atLeastOnce()).publishEvent(captor.capture());
+      assertThat(captor.getAllValues())
+          .filteredOn(FeedIndexAsyncRequestedEvent.class::isInstance)
+          .containsExactly(FeedIndexAsyncRequestedEvent.upsert(feedId));
+      assertThat(captor.getAllValues())
+          .filteredOn(FeedIndexRequestedEvent.class::isInstance)
+          .isEmpty();
     }
   }
 
