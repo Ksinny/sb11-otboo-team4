@@ -4,12 +4,15 @@ import com.sprint.mission.otboo.global.metrics.dashboard.config.MetricsDashboard
 import com.sprint.mission.otboo.global.metrics.dashboard.dto.MetricsDataPointDto;
 import com.sprint.mission.otboo.global.metrics.dashboard.dto.MetricsTimeseriesDto;
 import com.sprint.mission.otboo.global.metrics.dashboard.exception.MetricsDashboardNotWhitelistedException;
+import com.sprint.mission.otboo.global.metrics.dashboard.exception.MetricsDashboardQueryFailedException;
 import com.sprint.mission.otboo.global.metrics.dashboard.filter.MetricsDashboardWhitelist;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricDataRequest;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricDataResponse;
@@ -18,6 +21,7 @@ import software.amazon.awssdk.services.cloudwatch.model.MetricDataQuery;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDataResult;
 import software.amazon.awssdk.services.cloudwatch.model.MetricStat;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MetricsDashboardService {
@@ -34,7 +38,13 @@ public class MetricsDashboardService {
       throw MetricsDashboardNotWhitelistedException.withMetric(metric);
     }
 
-    GetMetricDataResponse response = cloudWatchClient.getMetricData(buildRequest(metric, range));
+    GetMetricDataResponse response;
+    try {
+      response = cloudWatchClient.getMetricData(buildRequest(metric, range));
+    } catch (SdkException e) {
+      log.error("CloudWatch 메트릭 조회 실패: metric={}", metric, e);
+      throw MetricsDashboardQueryFailedException.wrap(e);
+    }
 
     List<MetricsDataPointDto> values = response.metricDataResults().stream()
         .flatMap(result -> toDataPoints(result).stream())

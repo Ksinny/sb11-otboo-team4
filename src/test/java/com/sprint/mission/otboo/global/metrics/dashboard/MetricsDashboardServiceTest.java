@@ -2,6 +2,7 @@ package com.sprint.mission.otboo.global.metrics.dashboard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -9,6 +10,7 @@ import static org.mockito.BDDMockito.then;
 import com.sprint.mission.otboo.global.metrics.dashboard.config.MetricsDashboardProperties;
 import com.sprint.mission.otboo.global.metrics.dashboard.dto.MetricsTimeseriesDto;
 import com.sprint.mission.otboo.global.metrics.dashboard.exception.MetricsDashboardNotWhitelistedException;
+import com.sprint.mission.otboo.global.metrics.dashboard.exception.MetricsDashboardQueryFailedException;
 import com.sprint.mission.otboo.global.metrics.dashboard.filter.MetricsDashboardWhitelist;
 import java.time.Duration;
 import java.time.Instant;
@@ -20,7 +22,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.model.CloudWatchException;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricDataRequest;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricDataResponse;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDataResult;
@@ -95,6 +99,35 @@ class MetricsDashboardServiceTest {
       assertThat(metricStat.period()).isEqualTo((int) MetricsRange.ONE_HOUR.period().toSeconds());
       assertThat(Duration.between(request.startTime(), request.endTime()))
           .isEqualTo(MetricsRange.ONE_HOUR.lookback());
+    }
+  }
+
+  @Nested
+  @DisplayName("CloudWatch 호출 실패")
+  class CloudWatchFailure {
+
+    @Test
+    @DisplayName("CloudWatch 호출이 실패하면 MetricsDashboardQueryFailedException으로 감싼다")
+    void CloudWatch_호출이_실패하면_예외로_감싼다() {
+      // given
+      String metric = "batch.weather-fetch.job.completed";
+      given(whitelist.matches(metric)).willReturn(true);
+      given(properties.namespace()).willReturn("otboo");
+      CloudWatchException cause = (CloudWatchException) CloudWatchException.builder()
+          .message("Rate exceeded")
+          .build();
+      given(cloudWatchClient.getMetricData(any(GetMetricDataRequest.class))).willThrow(cause);
+
+      // when
+      MetricsDashboardQueryFailedException exception = catchThrowableOfType(
+          MetricsDashboardQueryFailedException.class,
+          () -> metricsDashboardService.getTimeseries(metric, MetricsRange.ONE_HOUR));
+
+      // then
+      assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
+      assertThat(exception.getMessage()).isEqualTo("메트릭 조회에 실패했습니다.");
+      assertThat(exception.getDetails()).isEmpty();
+      assertThat(exception.getCause()).isEqualTo(cause);
     }
   }
 }
