@@ -46,6 +46,7 @@ import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * 마이그레이션이 동시에 실행되면 두 요청이 같은 대상 인덱스를 계산한다. 한쪽이 alias를 전환한 뒤 다른 쪽이 그 인덱스를 지울 수 있으므로 락으로 직렬화한다.
@@ -104,8 +105,11 @@ class FeedIndexMigrationLockTest implements RedisTestContainerSupport {
     given(newIndexOperations.create(any(Settings.class), any(Document.class))).willReturn(true);
 
     // 락이 유지되는 동안 다른 스레드가 진입을 시도하도록 재색인을 지연시킨다.
+    // migrate()가 클래스 레벨 @Transactional 등으로 트랜잭션 안에서 실행되면 여기서 실패해
+    // "Existing transaction detected in JobRepository" 회귀를 잡는다.
     given(jobOperator.start(any(Job.class), any(JobParameters.class)))
         .willAnswer(invocation -> {
+          assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
           Thread.sleep(500);
           return jobExecution;
         });
